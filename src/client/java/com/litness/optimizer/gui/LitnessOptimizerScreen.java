@@ -553,7 +553,8 @@ public class LitnessOptimizerScreen extends Screen {
                 this.init();
             }).bounds(startX + panelWidth - 55, contentY, 55, 18).build());
 
-            refreshCreatingSetEnchantButtons(contentY + 23, startX, panelWidth);
+            // Status Banner a Y=93 (contentY + 21), Pulsanti incantesimi partono a Y=112 (contentY + 40)
+            refreshCreatingSetEnchantButtons(contentY + 40, startX, panelWidth);
             return;
         }
 
@@ -831,6 +832,7 @@ public class LitnessOptimizerScreen extends Screen {
         int startY = 95;
 
         if (isCreatingSet) {
+            int bannerY = 93;
             String conflictWarn = "";
             for (String enchId : creatingSetEnchants) {
                 EnchantmentEntry ee = EnchantmentDatabase.getEnchantment(enchId);
@@ -843,28 +845,26 @@ public class LitnessOptimizerScreen extends Screen {
 
             int bannerBg = conflictWarn.isEmpty() ? 0xEE141422 : 0xEE2A1A14;
             int bannerStripe = conflictWarn.isEmpty() ? 0xFF10B981 : 0xFFF59E0B;
-            extractor.fill(panelX, startY - 2, panelX + panelWidth, startY + 16, bannerBg);
-            extractor.fill(panelX, startY - 2, panelX + 3, startY + 16, bannerStripe);
-            extractor.outline(panelX, startY - 2, panelWidth, 16, conflictWarn.isEmpty() ? 0xFF2A2A3E : 0xFF7C2D12);
+            extractor.fill(panelX, bannerY, panelX + panelWidth, bannerY + 16, bannerBg);
+            extractor.fill(panelX, bannerY, panelX + 3, bannerY + 16, bannerStripe);
+            extractor.outline(panelX, bannerY, panelWidth, 16, conflictWarn.isEmpty() ? 0xFF2A2A3E : 0xFF7C2D12);
 
             String status = "Crea Set Futuro per " + ITEM_NAMES[creatingSetItemIndex] + " • Selezionati: " + creatingSetEnchants.size() + "/12" + conflictWarn;
-            extractor.text(this.font, status, panelX + 8, startY + 2, conflictWarn.isEmpty() ? 0xFF34D399 : 0xFFFBBF24, false);
+            extractor.text(this.font, status, panelX + 8, bannerY + 4, conflictWarn.isEmpty() ? 0xFF34D399 : 0xFFFBBF24, false);
 
             this.hoveredSelectionEntry = null;
             int startIdx = creatingSetPage * 10;
             int endIdx = Math.min(startIdx + 10, currentVisibleSelectionEnchants.size());
-            int colWidth = (panelWidth - 10) / 2;
-            int enchStartY = startY + 23;
 
+            // Controlla il passaggio del mouse direttamente sui pulsanti reali (zero falsi positivi nel vuoto)
             for (int i = startIdx; i < endIdx; i++) {
                 int slot = i - startIdx;
-                int col = slot % 2;
-                int row = slot / 2;
-                int btnX = panelX + (col * (colWidth + 10));
-                int btnY = enchStartY + (row * 20);
-                if (mouseX >= btnX && mouseX <= btnX + colWidth && mouseY >= btnY && mouseY <= btnY + 20) {
-                    this.hoveredSelectionEntry = currentVisibleSelectionEnchants.get(i);
-                    break;
+                if (slot < creatingSetEnchantButtons.size()) {
+                    Button b = creatingSetEnchantButtons.get(slot);
+                    if (b != null && b.isHovered()) {
+                        this.hoveredSelectionEntry = currentVisibleSelectionEnchants.get(i);
+                        break;
+                    }
                 }
             }
             return;
