@@ -1,0 +1,2965 @@
+{
+  "schemaVersion": 1,
+  "items": [
+    {
+      "id": "helmet",
+      "name": "Elmo",
+      "group": "Armature",
+      "texture": "diamond_helmet",
+      "emoji": "🪖"
+    },
+    {
+      "id": "chest",
+      "name": "Corazza",
+      "group": "Armature",
+      "texture": "diamond_chestplate",
+      "emoji": "🥋"
+    },
+    {
+      "id": "legs",
+      "name": "Gambali",
+      "group": "Armature",
+      "texture": "diamond_leggings",
+      "emoji": "👖"
+    },
+    {
+      "id": "boots",
+      "name": "Stivali",
+      "group": "Armature",
+      "texture": "diamond_boots",
+      "emoji": "🥾"
+    },
+    {
+      "id": "sword",
+      "name": "Spada",
+      "group": "Armi",
+      "texture": "diamond_sword",
+      "emoji": "🗡️"
+    },
+    {
+      "id": "axe",
+      "name": "Ascia",
+      "group": "Armi",
+      "texture": "diamond_axe",
+      "emoji": "🪓"
+    },
+    {
+      "id": "mace",
+      "name": "Mazza",
+      "group": "Armi",
+      "texture": "mace",
+      "emoji": "🔨"
+    },
+    {
+      "id": "trident",
+      "name": "Tridente",
+      "group": "Armi",
+      "texture": "trident",
+      "emoji": "🔱"
+    },
+    {
+      "id": "bow",
+      "name": "Arco",
+      "group": "Armi",
+      "texture": "bow",
+      "emoji": "🏹"
+    },
+    {
+      "id": "xbow",
+      "name": "Balestra",
+      "group": "Armi",
+      "texture": "crossbow_standby",
+      "emoji": "🎯"
+    },
+    {
+      "id": "pick",
+      "name": "Piccone",
+      "group": "Attrezzi",
+      "texture": "diamond_pickaxe",
+      "emoji": "⛏️"
+    },
+    {
+      "id": "shovel",
+      "name": "Pala",
+      "group": "Attrezzi",
+      "texture": "diamond_shovel",
+      "emoji": "🥄"
+    },
+    {
+      "id": "hoe",
+      "name": "Zappa",
+      "group": "Attrezzi",
+      "texture": "diamond_hoe",
+      "emoji": "🌾"
+    },
+    {
+      "id": "rod",
+      "name": "Canna da pesca",
+      "group": "Attrezzi",
+      "texture": "fishing_rod",
+      "emoji": "🎣"
+    },
+    {
+      "id": "shears",
+      "name": "Cesoie",
+      "group": "Attrezzi",
+      "texture": "shears",
+      "emoji": "✂️"
+    },
+    {
+      "id": "flint",
+      "name": "Acciarino",
+      "group": "Attrezzi",
+      "texture": "flint_and_steel",
+      "emoji": "🔥"
+    },
+    {
+      "id": "elytra",
+      "name": "Elitre",
+      "group": "Altro",
+      "texture": "elytra",
+      "emoji": "🦋"
+    },
+    {
+      "id": "shield",
+      "name": "Scudo",
+      "group": "Altro",
+      "texture": null,
+      "emoji": "🛡️"
+    }
+  ],
+  "enchantments": [
+    {
+      "id": "aqua_affinity",
+      "name": "Affinità all'acqua",
+      "category": "vanilla",
+      "description": "Aumenta la velocità di estrazione sott'acqua.",
+      "maxLevel": 1,
+      "applicableTo": [
+        "helmet"
+      ],
+      "targetScope": "specific_items",
+      "anvilCost": "?"
+    },
+    {
+      "id": "bane_of_arthropods",
+      "name": "Flagello degli artropodi",
+      "category": "vanilla",
+      "description": "Aumenta i danni contro gli artropodi e applica loro lentezza.",
+      "maxLevel": 5,
+      "applicableTo": [
+        "sword",
+        "axe",
+        "mace"
+      ],
+      "targetScope": "multiple_items",
+      "anvilCost": "?"
+    },
+    {
+      "id": "binding_curse",
+      "name": "Maledizione del legame",
+      "category": "vanilla",
+      "description": "Impedisce di rimuovere l'oggetto equipaggiato, salvo morte o rottura.",
+      "maxLevel": 1,
+      "applicableTo": [
+        "helmet",
+        "chest",
+        "legs",
+        "boots",
+        "elytra"
+      ],
+      "targetScope": "multiple_items",
+      "anvilCost": "?"
+    },
+    {
+      "id": "blast_protection",
+      "name": "Protezione dalle esplosioni",
+      "category": "vanilla",
+      "description": "Riduce i danni e il contraccolpo causati dalle esplosioni.",
+      "maxLevel": 4,
+      "applicableTo": [
+        "helmet",
+        "chest",
+        "legs",
+        "boots"
+      ],
+      "targetScope": "armor_set",
+      "anvilCost": "?"
+    },
+    {
+      "id": "breach",
+      "name": "Breccia",
+      "category": "vanilla",
+      "description": "Riduce l'efficacia dell'armatura del bersaglio.",
+      "maxLevel": 4,
+      "applicableTo": [
+        "mace"
+      ],
+      "targetScope": "specific_items",
+      "anvilCost": "?"
+    },
+    {
+      "id": "channeling",
+      "name": "Canalizzazione",
+      "category": "vanilla",
+      "description": "Durante un temporale, evoca un fulmine sul bersaglio colpito.",
+      "maxLevel": 1,
+      "applicableTo": [
+        "trident"
+      ],
+      "targetScope": "specific_items",
+      "anvilCost": "?"
+    },
+    {
+      "id": "density",
+      "name": "Densità",
+      "category": "vanilla",
+      "description": "Aumenta i danni da schianto in base alla distanza di caduta.",
+      "maxLevel": 5,
+      "applicableTo": [
+        "mace"
+      ],
+      "targetScope": "specific_items",
+      "anvilCost": "?"
+    },
+    {
+      "id": "depth_strider",
+      "name": "Passo anfibio",
+      "category": "vanilla",
+      "description": "Aumenta la velocità di movimento sott'acqua.",
+      "maxLevel": 3,
+      "applicableTo": [
+        "boots"
+      ],
+      "targetScope": "specific_items",
+      "anvilCost": "?"
+    },
+    {
+      "id": "efficiency",
+      "name": "Efficienza",
+      "category": "vanilla",
+      "description": "Aumenta la velocità di estrazione e di alcune azioni degli attrezzi.",
+      "maxLevel": 5,
+      "applicableTo": [
+        "pick",
+        "shovel",
+        "hoe",
+        "axe",
+        "shears"
+      ],
+      "targetScope": "multiple_items",
+      "anvilCost": "?"
+    },
+    {
+      "id": "feather_falling",
+      "name": "Atterraggio morbido",
+      "category": "vanilla",
+      "description": "Riduce i danni da caduta.",
+      "maxLevel": 4,
+      "applicableTo": [
+        "boots"
+      ],
+      "targetScope": "specific_items",
+      "anvilCost": "?"
+    },
+    {
+      "id": "fire_aspect",
+      "name": "Aspetto di fuoco",
+      "category": "vanilla",
+      "description": "Incendia i bersagli colpiti.",
+      "maxLevel": 2,
+      "applicableTo": [
+        "sword",
+        "mace"
+      ],
+      "targetScope": "multiple_items",
+      "anvilCost": "?"
+    },
+    {
+      "id": "fire_protection",
+      "name": "Protezione dal fuoco",
+      "category": "vanilla",
+      "description": "Riduce i danni da fuoco e lava.",
+      "maxLevel": 4,
+      "applicableTo": [
+        "helmet",
+        "chest",
+        "legs",
+        "boots"
+      ],
+      "targetScope": "armor_set",
+      "anvilCost": "?"
+    },
+    {
+      "id": "flame",
+      "name": "Fiamma",
+      "category": "vanilla",
+      "description": "Incendia i bersagli colpiti dalle frecce.",
+      "maxLevel": 1,
+      "applicableTo": [
+        "bow"
+      ],
+      "targetScope": "specific_items",
+      "anvilCost": "?"
+    },
+    {
+      "id": "fortune",
+      "name": "Fortuna",
+      "category": "vanilla",
+      "description": "Aumenta la quantità o la probabilità di ottenere drop da certi blocchi.",
+      "maxLevel": 3,
+      "applicableTo": [
+        "pick",
+        "shovel",
+        "hoe",
+        "axe"
+      ],
+      "targetScope": "multiple_items",
+      "anvilCost": "?"
+    },
+    {
+      "id": "frost_walker",
+      "name": "Passo gelato",
+      "category": "vanilla",
+      "description": "Converte in ghiaccio l'acqua sotto i piedi mentre cammini.",
+      "maxLevel": 2,
+      "applicableTo": [
+        "boots"
+      ],
+      "targetScope": "specific_items",
+      "anvilCost": "?"
+    },
+    {
+      "id": "impaling",
+      "name": "Impalamento",
+      "category": "vanilla",
+      "description": "Aumenta i danni inflitti ai mob acquatici.",
+      "maxLevel": 5,
+      "applicableTo": [
+        "trident"
+      ],
+      "targetScope": "specific_items",
+      "anvilCost": "?"
+    },
+    {
+      "id": "infinity",
+      "name": "Infinità",
+      "category": "vanilla",
+      "description": "Permette di scoccare frecce normali senza consumarle, se ne hai almeno una.",
+      "maxLevel": 1,
+      "applicableTo": [
+        "bow"
+      ],
+      "targetScope": "specific_items",
+      "anvilCost": "?"
+    },
+    {
+      "id": "knockback",
+      "name": "Contraccolpo",
+      "category": "vanilla",
+      "description": "Aumenta la distanza a cui vengono respinti i bersagli.",
+      "maxLevel": 2,
+      "applicableTo": [
+        "sword"
+      ],
+      "targetScope": "specific_items",
+      "anvilCost": "?"
+    },
+    {
+      "id": "looting",
+      "name": "Saccheggio",
+      "category": "vanilla",
+      "description": "Aumenta il bottino lasciato dai mob.",
+      "maxLevel": 3,
+      "applicableTo": [
+        "sword"
+      ],
+      "targetScope": "specific_items",
+      "anvilCost": "?"
+    },
+    {
+      "id": "loyalty",
+      "name": "Lealtà",
+      "category": "vanilla",
+      "description": "Fa ritornare il tridente dopo il lancio.",
+      "maxLevel": 3,
+      "applicableTo": [
+        "trident"
+      ],
+      "targetScope": "specific_items",
+      "anvilCost": "?"
+    },
+    {
+      "id": "luck_of_the_sea",
+      "name": "Fortuna del mare",
+      "category": "vanilla",
+      "description": "Aumenta la probabilità di pescare tesori.",
+      "maxLevel": 3,
+      "applicableTo": [
+        "rod"
+      ],
+      "targetScope": "specific_items",
+      "anvilCost": "?"
+    },
+    {
+      "id": "lure",
+      "name": "Esca",
+      "category": "vanilla",
+      "description": "Riduce il tempo necessario perché un pesce abbocchi.",
+      "maxLevel": 3,
+      "applicableTo": [
+        "rod"
+      ],
+      "targetScope": "specific_items",
+      "anvilCost": "?"
+    },
+    {
+      "id": "mending",
+      "name": "Ripristino",
+      "category": "vanilla",
+      "description": "Usa i punti esperienza raccolti per riparare l'oggetto.",
+      "maxLevel": 1,
+      "applicableTo": [
+        "helmet",
+        "chest",
+        "legs",
+        "boots",
+        "pick",
+        "shovel",
+        "hoe",
+        "axe",
+        "sword",
+        "mace",
+        "trident",
+        "bow",
+        "xbow",
+        "rod",
+        "shears",
+        "flint",
+        "elytra",
+        "shield"
+      ],
+      "targetScope": "all_items",
+      "anvilCost": "?"
+    },
+    {
+      "id": "multishot",
+      "name": "Tiro multiplo",
+      "category": "vanilla",
+      "description": "Scocca tre proiettili al costo di uno.",
+      "maxLevel": 1,
+      "applicableTo": [
+        "xbow"
+      ],
+      "targetScope": "specific_items",
+      "anvilCost": "?"
+    },
+    {
+      "id": "piercing",
+      "name": "Perforazione",
+      "category": "vanilla",
+      "description": "Permette ai dardi della balestra di attraversare più bersagli.",
+      "maxLevel": 4,
+      "applicableTo": [
+        "xbow"
+      ],
+      "targetScope": "specific_items",
+      "anvilCost": "?"
+    },
+    {
+      "id": "power",
+      "name": "Potenza",
+      "category": "vanilla",
+      "description": "Aumenta i danni inflitti dalle frecce.",
+      "maxLevel": 5,
+      "applicableTo": [
+        "bow"
+      ],
+      "targetScope": "specific_items",
+      "anvilCost": "?"
+    },
+    {
+      "id": "projectile_protection",
+      "name": "Protezione dai proiettili",
+      "category": "vanilla",
+      "description": "Riduce i danni da proiettili, come frecce e tridenti lanciati.",
+      "maxLevel": 4,
+      "applicableTo": [
+        "helmet",
+        "chest",
+        "legs",
+        "boots"
+      ],
+      "targetScope": "armor_set",
+      "anvilCost": "?"
+    },
+    {
+      "id": "protection",
+      "name": "Protezione",
+      "category": "vanilla",
+      "description": "Riduce la maggior parte dei danni subiti.",
+      "maxLevel": 4,
+      "applicableTo": [
+        "helmet",
+        "chest",
+        "legs",
+        "boots"
+      ],
+      "targetScope": "armor_set",
+      "anvilCost": "?"
+    },
+    {
+      "id": "punch",
+      "name": "Impatto",
+      "category": "vanilla",
+      "description": "Aumenta il contraccolpo inflitto dalle frecce.",
+      "maxLevel": 2,
+      "applicableTo": [
+        "bow"
+      ],
+      "targetScope": "specific_items",
+      "anvilCost": "?"
+    },
+    {
+      "id": "quick_charge",
+      "name": "Carica rapida",
+      "category": "vanilla",
+      "description": "Riduce il tempo di ricarica della balestra.",
+      "maxLevel": 3,
+      "applicableTo": [
+        "xbow"
+      ],
+      "targetScope": "specific_items",
+      "anvilCost": "?"
+    },
+    {
+      "id": "respiration",
+      "name": "Respirazione",
+      "category": "vanilla",
+      "description": "Aumenta il tempo che puoi trascorrere sott'acqua prima di annegare.",
+      "maxLevel": 3,
+      "applicableTo": [
+        "helmet"
+      ],
+      "targetScope": "specific_items",
+      "anvilCost": "?"
+    },
+    {
+      "id": "riptide",
+      "name": "Risacca",
+      "category": "vanilla",
+      "description": "Ti spinge in avanti quando lanci il tridente in acqua o sotto la pioggia.",
+      "maxLevel": 3,
+      "applicableTo": [
+        "trident"
+      ],
+      "targetScope": "specific_items",
+      "anvilCost": "?"
+    },
+    {
+      "id": "sharpness",
+      "name": "Affilatezza",
+      "category": "vanilla",
+      "description": "Aumenta i danni inflitti in mischia.",
+      "maxLevel": 5,
+      "applicableTo": [
+        "sword",
+        "axe"
+      ],
+      "targetScope": "multiple_items",
+      "anvilCost": "?"
+    },
+    {
+      "id": "silk_touch",
+      "name": "Tocco di velluto",
+      "category": "vanilla",
+      "description": "Fa cadere alcuni blocchi esattamente come sono.",
+      "maxLevel": 1,
+      "applicableTo": [
+        "pick",
+        "shovel",
+        "hoe",
+        "axe"
+      ],
+      "targetScope": "multiple_items",
+      "anvilCost": "?"
+    },
+    {
+      "id": "smite",
+      "name": "Anatema",
+      "category": "vanilla",
+      "description": "Aumenta i danni inflitti ai non morti.",
+      "maxLevel": 5,
+      "applicableTo": [
+        "sword",
+        "axe",
+        "mace"
+      ],
+      "targetScope": "multiple_items",
+      "anvilCost": "?"
+    },
+    {
+      "id": "soul_speed",
+      "name": "Velocità delle anime",
+      "category": "vanilla",
+      "description": "Aumenta la velocità di movimento sulla sabbia e sul terreno delle anime.",
+      "maxLevel": 3,
+      "applicableTo": [
+        "boots"
+      ],
+      "targetScope": "specific_items",
+      "anvilCost": "?"
+    },
+    {
+      "id": "sweeping_edge",
+      "name": "Lama sferzante",
+      "category": "vanilla",
+      "description": "Aumenta i danni inflitti dagli attacchi ad area della spada.",
+      "maxLevel": 3,
+      "applicableTo": [
+        "sword"
+      ],
+      "targetScope": "specific_items",
+      "anvilCost": "?"
+    },
+    {
+      "id": "swift_sneak",
+      "name": "Passo felpato",
+      "category": "vanilla",
+      "description": "Aumenta la velocità di movimento mentre sei accovacciato.",
+      "maxLevel": 3,
+      "applicableTo": [
+        "legs"
+      ],
+      "targetScope": "specific_items",
+      "anvilCost": "?"
+    },
+    {
+      "id": "thorns",
+      "name": "Spine",
+      "category": "vanilla",
+      "description": "Può infliggere danni a chi ti attacca.",
+      "maxLevel": 3,
+      "applicableTo": [
+        "helmet",
+        "chest",
+        "legs",
+        "boots"
+      ],
+      "targetScope": "armor_set",
+      "anvilCost": "?"
+    },
+    {
+      "id": "unbreaking",
+      "name": "Indistruttibilità",
+      "category": "vanilla",
+      "description": "Riduce la probabilità che l'oggetto perda durabilità quando viene usato.",
+      "maxLevel": 3,
+      "applicableTo": [
+        "helmet",
+        "chest",
+        "legs",
+        "boots",
+        "pick",
+        "shovel",
+        "hoe",
+        "axe",
+        "sword",
+        "mace",
+        "trident",
+        "bow",
+        "xbow",
+        "rod",
+        "shears",
+        "flint",
+        "elytra",
+        "shield"
+      ],
+      "targetScope": "all_items",
+      "anvilCost": "?"
+    },
+    {
+      "id": "vanishing_curse",
+      "name": "Maledizione della scomparsa",
+      "category": "vanilla",
+      "description": "Fa scomparire l'oggetto quando muori.",
+      "maxLevel": 1,
+      "applicableTo": [
+        "helmet",
+        "chest",
+        "legs",
+        "boots",
+        "pick",
+        "shovel",
+        "hoe",
+        "axe",
+        "sword",
+        "mace",
+        "trident",
+        "bow",
+        "xbow",
+        "rod",
+        "shears",
+        "flint",
+        "elytra",
+        "shield"
+      ],
+      "targetScope": "all_items",
+      "anvilCost": "?"
+    },
+    {
+      "id": "wind_burst",
+      "name": "Colpo di vento",
+      "category": "vanilla",
+      "description": "Ti lancia in aria quando colpisci un bersaglio con un attacco in caduta.",
+      "maxLevel": 3,
+      "applicableTo": [
+        "mace"
+      ],
+      "targetScope": "specific_items",
+      "anvilCost": "?"
+    },
+    {
+      "id": "abrasion",
+      "name": "Abrasion",
+      "category": "custom",
+      "description": "Ogni colpo toglie 2 di durabilità a ogni pezzo d'armatura del bersaglio.",
+      "maxLevel": 2,
+      "rarity": "Epico",
+      "applicableTo": [
+        "sword",
+        "axe"
+      ],
+      "targetScope": "multiple_items",
+      "requirements": [],
+      "conflicts": [],
+      "unique": false,
+      "maxPerItem": null,
+      "anvilCost": 7
+    },
+    {
+      "id": "adrenaline",
+      "name": "Adrenaline",
+      "category": "custom",
+      "description": "Ti da Forza per 4 secondi quando pari un colpo o una freccia con lo scudo.",
+      "maxLevel": 3,
+      "rarity": "Non comune",
+      "applicableTo": [
+        "shield"
+      ],
+      "targetScope": "specific_items",
+      "requirements": [],
+      "conflicts": [],
+      "unique": false,
+      "maxPerItem": null,
+      "anvilCost": 5
+    },
+    {
+      "id": "arcane-defense",
+      "name": "Arcane Defence",
+      "category": "custom",
+      "description": "probabilità del 20% per pezzo di annullare i danni da veleno e magia.",
+      "maxLevel": 5,
+      "rarity": "Non comune",
+      "applicableTo": [
+        "helmet",
+        "chest",
+        "legs",
+        "boots"
+      ],
+      "targetScope": "armor_set",
+      "requirements": [],
+      "conflicts": [],
+      "unique": false,
+      "maxPerItem": null,
+      "anvilCost": 4
+    },
+    {
+      "id": "arrow-storm",
+      "name": "Arrow Storm",
+      "category": "custom",
+      "description": "Click sinistro con l'arco: scaglia una raffica di 10 frecce verso il punto mirato. Ricarica: 10 secondi.",
+      "maxLevel": 3,
+      "rarity": "Leggendario",
+      "applicableTo": [
+        "bow"
+      ],
+      "targetScope": "specific_items",
+      "requirements": [],
+      "conflicts": [],
+      "unique": false,
+      "maxPerItem": null,
+      "anvilCost": 15
+    },
+    {
+      "id": "ascend",
+      "name": "Ascend",
+      "category": "custom",
+      "description": "Accovacciato, click destro per salire di circa 13 blocchi e scendere piano. Ricarica: 45 secondi.",
+      "maxLevel": 2,
+      "rarity": "Epico",
+      "applicableTo": [
+        "sword"
+      ],
+      "targetScope": "specific_items",
+      "requirements": [],
+      "conflicts": [],
+      "unique": false,
+      "maxPerItem": null,
+      "anvilCost": 7
+    },
+    {
+      "id": "auger",
+      "name": "Auger",
+      "category": "custom",
+      "description": "Scava una parete 3x3 attorno a ogni blocco, saltando quelli più duri. Non funziona accovacciati.",
+      "maxLevel": 1,
+      "rarity": "Speciale",
+      "applicableTo": [
+        "pick"
+      ],
+      "targetScope": "specific_items",
+      "requirements": [],
+      "conflicts": [
+        "Blast Mining",
+        "Veinminer",
+        "Dynamite"
+      ],
+      "unique": true,
+      "maxPerItem": 1,
+      "anvilCost": 19
+    },
+    {
+      "id": "aura",
+      "name": "Aura",
+      "category": "custom",
+      "description": "I compagni di squadra entro 7 blocchi subiscono il 15% di danni in meno.",
+      "maxLevel": 2,
+      "rarity": "Speciale",
+      "applicableTo": [
+        "chest",
+        "legs"
+      ],
+      "targetScope": "multiple_items",
+      "requirements": [],
+      "conflicts": [],
+      "unique": false,
+      "maxPerItem": null,
+      "anvilCost": 14
+    },
+    {
+      "id": "berserker",
+      "name": "Berserker",
+      "category": "custom",
+      "description": "Sotto il 50% di salute, infliggi il 50% di danni in più e attacchi il 30% più velocemente.",
+      "maxLevel": 3,
+      "rarity": "Epico",
+      "applicableTo": [
+        "sword",
+        "axe"
+      ],
+      "targetScope": "multiple_items",
+      "requirements": [],
+      "conflicts": [
+        "Shura"
+      ],
+      "unique": false,
+      "maxPerItem": null,
+      "anvilCost": 13
+    },
+    {
+      "id": "blackout",
+      "name": "Blackout",
+      "category": "custom",
+      "description": "Hai l'8% di probabilità di avvolgere l'avversario nell'oscurita per 6 secondi e applicargli Debolezza I per 2 secondi.",
+      "maxLevel": 4,
+      "rarity": "Epico",
+      "applicableTo": [
+        "sword"
+      ],
+      "targetScope": "specific_items",
+      "requirements": [],
+      "conflicts": [],
+      "unique": false,
+      "maxPerItem": null,
+      "anvilCost": 7
+    },
+    {
+      "id": "blast-mining",
+      "name": "Blast Mining",
+      "category": "custom",
+      "description": "probabilità del 15% di far esplodere un cubo 3x3x3, esclusi i blocchi più duri. Non funziona accovacciati.",
+      "maxLevel": 3,
+      "rarity": "Leggendario",
+      "applicableTo": [
+        "pick"
+      ],
+      "targetScope": "specific_items",
+      "requirements": [],
+      "conflicts": [
+        "Veinminer",
+        "Auger"
+      ],
+      "unique": true,
+      "maxPerItem": 1,
+      "anvilCost": 9
+    },
+    {
+      "id": "bleed",
+      "name": "Bleed",
+      "category": "custom",
+      "description": "I colpi hanno il 10.50% di probabilità di far sanguinare il bersaglio: 1 danno ogni 0.75 secondi, per 14 volte.",
+      "maxLevel": 7,
+      "rarity": "Epico",
+      "applicableTo": [
+        "sword"
+      ],
+      "targetScope": "specific_items",
+      "requirements": [],
+      "conflicts": [
+        "Hemorrhage"
+      ],
+      "unique": false,
+      "maxPerItem": null,
+      "anvilCost": 10
+    },
+    {
+      "id": "block-breather",
+      "name": "Block Breather",
+      "category": "custom",
+      "description": "65% di probabilità di ignorare i danni da soffocamento.",
+      "maxLevel": 3,
+      "rarity": "Comune",
+      "applicableTo": [
+        "helmet"
+      ],
+      "targetScope": "specific_items",
+      "requirements": [],
+      "conflicts": [],
+      "unique": false,
+      "maxPerItem": null,
+      "anvilCost": 2
+    },
+    {
+      "id": "boss-hunter",
+      "name": "Boss Hunter",
+      "category": "custom",
+      "description": "Infliggi l'80% di danni in più contro i boss.",
+      "maxLevel": 8,
+      "rarity": "Non comune",
+      "applicableTo": [
+        "bow",
+        "xbow"
+      ],
+      "targetScope": "multiple_items",
+      "requirements": [],
+      "conflicts": [],
+      "unique": false,
+      "maxPerItem": null,
+      "anvilCost": 5
+    },
+    {
+      "id": "bouncy",
+      "name": "Bouncy",
+      "category": "custom",
+      "description": "Riduce del 100% il danno da caduta e fornisce Salto II permanente.",
+      "maxLevel": 2,
+      "rarity": "Raro",
+      "applicableTo": [
+        "boots"
+      ],
+      "targetScope": "specific_items",
+      "requirements": [],
+      "conflicts": [
+        "Feather Falling",
+        "Glacier Stomp"
+      ],
+      "unique": true,
+      "maxPerItem": 1,
+      "anvilCost": 8
+    },
+    {
+      "id": "brightness",
+      "name": "Brightness",
+      "category": "custom",
+      "description": "Infliggi 20 danni aggiuntivi al Wither mentre ti trovi in condizioni di scarsa illuminazione.",
+      "maxLevel": 5,
+      "rarity": "Comune",
+      "applicableTo": [
+        "sword"
+      ],
+      "targetScope": "specific_items",
+      "requirements": [],
+      "conflicts": [
+        "Introversion",
+        "Slaughter"
+      ],
+      "unique": false,
+      "maxPerItem": null,
+      "anvilCost": 2
+    },
+    {
+      "id": "caffeinated",
+      "name": "Caffeinated",
+      "category": "custom",
+      "description": "Infliggi il 20% di danni in più quando colpisci mentre corri.",
+      "maxLevel": 3,
+      "rarity": "Comune",
+      "applicableTo": [
+        "sword"
+      ],
+      "targetScope": "specific_items",
+      "requirements": [],
+      "conflicts": [],
+      "unique": false,
+      "maxPerItem": null,
+      "anvilCost": 5
+    },
+    {
+      "id": "carve",
+      "name": "Carve",
+      "category": "custom",
+      "description": "Quando colpisci, infliggi 6 danni a tutte le entita entro 5 blocchi dal bersaglio.",
+      "maxLevel": 4,
+      "rarity": "Epico",
+      "applicableTo": [
+        "axe"
+      ],
+      "targetScope": "specific_items",
+      "requirements": [],
+      "conflicts": [],
+      "unique": false,
+      "maxPerItem": null,
+      "anvilCost": 11
+    },
+    {
+      "id": "catalyst",
+      "name": "Catalyst",
+      "category": "custom",
+      "description": "70% di probabilità di moltiplicare i drop di minerali, ghiaia, argilla, lumite e ametista come con Fortuna V. Non funziona sui blocchi piazzati.",
+      "maxLevel": 3,
+      "rarity": "Leggendario",
+      "applicableTo": [
+        "pick",
+        "axe",
+        "shovel"
+      ],
+      "targetScope": "multiple_items",
+      "requirements": [],
+      "conflicts": [
+        "Silk Touch",
+        "Fortune"
+      ],
+      "unique": false,
+      "maxPerItem": null,
+      "anvilCost": 15
+    },
+    {
+      "id": "chain-strike",
+      "name": "Chain Strike",
+      "category": "custom",
+      "description": "I colpi hanno il 35% di probabilità di scatenare un fulmine: 5 danni al bersaglio e 3 danni ai nemici ogni 6 blocchi lungo la catena. Ricarica: 1 secondo.",
+      "maxLevel": 3,
+      "rarity": "Epico",
+      "applicableTo": [
+        "sword",
+        "axe"
+      ],
+      "targetScope": "multiple_items",
+      "requirements": [],
+      "conflicts": [],
+      "unique": false,
+      "maxPerItem": null,
+      "anvilCost": 12
+    },
+    {
+      "id": "charge",
+      "name": "Charge",
+      "category": "custom",
+      "description": "Click destro per scegliere la direzione e scattare con potenza 3, senza danni da caduta all'atterraggio. Ricarica: 20 secondi.",
+      "maxLevel": 2,
+      "rarity": "Epico",
+      "applicableTo": [
+        "sword"
+      ],
+      "targetScope": "specific_items",
+      "requirements": [],
+      "conflicts": [],
+      "unique": false,
+      "maxPerItem": null,
+      "anvilCost": 7
+    },
+    {
+      "id": "cluster-shot",
+      "name": "Cluster Shot",
+      "category": "custom",
+      "description": "Scocca 6 frecce a ventaglio consumando una sola freccia.",
+      "maxLevel": 3,
+      "rarity": "Epico",
+      "applicableTo": [
+        "bow",
+        "xbow"
+      ],
+      "targetScope": "multiple_items",
+      "requirements": [],
+      "conflicts": [],
+      "unique": true,
+      "maxPerItem": 1,
+      "anvilCost": 13
+    },
+    {
+      "id": "confusion",
+      "name": "Confusion",
+      "category": "custom",
+      "description": "12% di probabilità di stordire il giocatore colpito, causando nausea e visuale ruotata.",
+      "maxLevel": 4,
+      "rarity": "Epico",
+      "applicableTo": [
+        "sword"
+      ],
+      "targetScope": "specific_items",
+      "requirements": [],
+      "conflicts": [],
+      "unique": false,
+      "maxPerItem": null,
+      "anvilCost": 4
+    },
+    {
+      "id": "contagion",
+      "name": "Contagion",
+      "category": "custom",
+      "description": "10% di probabilità di creare una nube velenosa nel punto in cui atterra il tridente.",
+      "maxLevel": 2,
+      "rarity": "Epico",
+      "applicableTo": [
+        "trident"
+      ],
+      "targetScope": "specific_items",
+      "requirements": [],
+      "conflicts": [],
+      "unique": false,
+      "maxPerItem": null,
+      "anvilCost": 5
+    },
+    {
+      "id": "criticals",
+      "name": "Criticals",
+      "category": "custom",
+      "description": "Aumenta i danni critici del 30%.",
+      "maxLevel": 3,
+      "rarity": "Raro",
+      "applicableTo": [
+        "sword",
+        "axe"
+      ],
+      "targetScope": "multiple_items",
+      "requirements": [],
+      "conflicts": [],
+      "unique": false,
+      "maxPerItem": null,
+      "anvilCost": 8
+    },
+    {
+      "id": "cubism",
+      "name": "Cubism",
+      "category": "custom",
+      "description": "Infliggi il 35% di danni in più a slime e cubi di magma, in mischia e con le frecce.",
+      "maxLevel": 7,
+      "rarity": "Non comune",
+      "applicableTo": [
+        "sword",
+        "axe",
+        "bow",
+        "xbow"
+      ],
+      "targetScope": "multiple_items",
+      "requirements": [],
+      "conflicts": [],
+      "unique": false,
+      "maxPerItem": null,
+      "anvilCost": 2
+    },
+    {
+      "id": "curse-of-breaklessness",
+      "name": "Curse of Breaklessness",
+      "category": "custom",
+      "description": "15% di probabilità di non riuscire a rompere un blocco.",
+      "maxLevel": 1,
+      "rarity": "Leggendario",
+      "applicableTo": [
+        "axe",
+        "hoe",
+        "pick",
+        "shovel"
+      ],
+      "targetScope": "multiple_items",
+      "requirements": [],
+      "conflicts": [],
+      "unique": false,
+      "maxPerItem": null,
+      "anvilCost": 0
+    },
+    {
+      "id": "curse-of-harmlessness",
+      "name": "Curse of Harmlessness",
+      "category": "custom",
+      "description": "15% di probabilità che i tuoi attacchi non causino danni.",
+      "maxLevel": 1,
+      "rarity": "Leggendario",
+      "applicableTo": [
+        "sword",
+        "axe"
+      ],
+      "targetScope": "multiple_items",
+      "requirements": [],
+      "conflicts": [],
+      "unique": false,
+      "maxPerItem": null,
+      "anvilCost": 0
+    },
+    {
+      "id": "curse-of-hunger",
+      "name": "Curse of Hunger",
+      "category": "custom",
+      "description": "Aumenta del 100% la perdita di sazieta.",
+      "maxLevel": 1,
+      "rarity": "Leggendario",
+      "applicableTo": [
+        "helmet"
+      ],
+      "targetScope": "specific_items",
+      "requirements": [],
+      "conflicts": [],
+      "unique": false,
+      "maxPerItem": null,
+      "anvilCost": 0
+    },
+    {
+      "id": "curse-of-misfortune",
+      "name": "Curse of Misfortune",
+      "category": "custom",
+      "description": "15% di probabilità che i blocchi non rilascino oggetti.",
+      "maxLevel": 1,
+      "rarity": "Leggendario",
+      "applicableTo": [
+        "hoe",
+        "shovel",
+        "pick",
+        "axe"
+      ],
+      "targetScope": "multiple_items",
+      "requirements": [],
+      "conflicts": [],
+      "unique": false,
+      "maxPerItem": null,
+      "anvilCost": 0
+    },
+    {
+      "id": "curse-of-permanence",
+      "name": "Curse of Permanence",
+      "category": "custom",
+      "description": "Impedisce di modificare questo oggetto nell'incudine.",
+      "maxLevel": 1,
+      "rarity": "Leggendario",
+      "applicableTo": [
+        "helmet",
+        "chest",
+        "legs",
+        "boots",
+        "sword",
+        "axe",
+        "mace",
+        "trident",
+        "bow",
+        "xbow",
+        "pick",
+        "shovel",
+        "hoe",
+        "rod",
+        "shears",
+        "flint",
+        "elytra",
+        "shield"
+      ],
+      "targetScope": "all_items",
+      "requirements": [],
+      "conflicts": [],
+      "unique": false,
+      "maxPerItem": null,
+      "anvilCost": 0
+    },
+    {
+      "id": "decapitator",
+      "name": "Decapitator",
+      "category": "custom",
+      "description": "1.50% di probabilità di ottenere la testa di zombi, scheletri, creeper e piglin che uccidi.",
+      "maxLevel": 3,
+      "rarity": "Leggendario",
+      "applicableTo": [
+        "sword",
+        "axe"
+      ],
+      "targetScope": "multiple_items",
+      "requirements": [],
+      "conflicts": [],
+      "unique": false,
+      "maxPerItem": null,
+      "anvilCost": 7
+    },
+    {
+      "id": "dexterity",
+      "name": "Dexterity",
+      "category": "custom",
+      "description": "Aumenta la velocità di attacco del 20%.",
+      "maxLevel": 2,
+      "rarity": "Non comune",
+      "applicableTo": [
+        "sword",
+        "axe"
+      ],
+      "targetScope": "multiple_items",
+      "requirements": [],
+      "conflicts": [],
+      "unique": false,
+      "maxPerItem": null,
+      "anvilCost": 7
+    },
+    {
+      "id": "dynamite",
+      "name": "Dynamite",
+      "category": "custom",
+      "description": "Accovacciato, fai click destro su un blocco per far saltare un cubo 9x9x9. Ricarica: 60 secondi.",
+      "maxLevel": 2,
+      "rarity": "Epico",
+      "applicableTo": [
+        "pick"
+      ],
+      "targetScope": "specific_items",
+      "requirements": [],
+      "conflicts": [
+        "Auger"
+      ],
+      "unique": false,
+      "maxPerItem": null,
+      "anvilCost": 10
+    },
+    {
+      "id": "end-affinity",
+      "name": "End Affinity",
+      "category": "custom",
+      "description": "Aumenta i danni inflitti nell'End del 60%.",
+      "maxLevel": 4,
+      "rarity": "Non comune",
+      "applicableTo": [
+        "sword",
+        "bow",
+        "trident"
+      ],
+      "targetScope": "multiple_items",
+      "requirements": [],
+      "conflicts": [
+        "Nether Affinity"
+      ],
+      "unique": false,
+      "maxPerItem": null,
+      "anvilCost": 6
+    },
+    {
+      "id": "ender-slayer",
+      "name": "Ender Slayer",
+      "category": "custom",
+      "description": "Infliggi 4 danni aggiuntivi in mischia a Enderman, Endermite, Shulker e all’Enderdrago.",
+      "maxLevel": 6,
+      "rarity": "Comune",
+      "applicableTo": [
+        "sword",
+        "axe"
+      ],
+      "targetScope": "multiple_items",
+      "requirements": [],
+      "conflicts": [],
+      "unique": false,
+      "maxPerItem": null,
+      "anvilCost": 3
+    },
+    {
+      "id": "escape",
+      "name": "Escape",
+      "category": "custom",
+      "description": "Quando un mob o un giocatore ti colpisce, ottieni +40% di velocità per 2 secondi. Ricarica: 3 secondi.",
+      "maxLevel": 2,
+      "rarity": "Non comune",
+      "applicableTo": [
+        "boots"
+      ],
+      "targetScope": "specific_items",
+      "requirements": [],
+      "conflicts": [
+        "Streamlining"
+      ],
+      "unique": false,
+      "maxPerItem": null,
+      "anvilCost": 4
+    },
+    {
+      "id": "ethereal-arrow",
+      "name": "Ethereal Arrow",
+      "category": "custom",
+      "description": "Da accovacciato, le tue frecce non fanno danni e ti teletrasportano dove colpiscono. Resta accovacciato fino all’impatto. Ricarica: 5 secondi.",
+      "maxLevel": 1,
+      "rarity": "Leggendario",
+      "applicableTo": [
+        "bow",
+        "xbow"
+      ],
+      "targetScope": "multiple_items",
+      "requirements": [],
+      "conflicts": [],
+      "unique": true,
+      "maxPerItem": 1,
+      "anvilCost": 8
+    },
+    {
+      "id": "excavation",
+      "name": "Excavation",
+      "category": "custom",
+      "description": "Scava 5 blocchi in più in linea dove guardi, saltando quelli più duri. Non funziona accovacciati.",
+      "maxLevel": 5,
+      "rarity": "Raro",
+      "applicableTo": [
+        "shovel"
+      ],
+      "targetScope": "specific_items",
+      "requirements": [],
+      "conflicts": [],
+      "unique": false,
+      "maxPerItem": null,
+      "anvilCost": 8
+    },
+    {
+      "id": "executioner",
+      "name": "Executioner",
+      "category": "custom",
+      "description": "Infliggi il doppio dei danni ai nemici sotto il 20% di salute.",
+      "maxLevel": 5,
+      "rarity": "Leggendario",
+      "applicableTo": [
+        "sword",
+        "axe"
+      ],
+      "targetScope": "multiple_items",
+      "requirements": [],
+      "conflicts": [
+        "Reaper"
+      ],
+      "unique": false,
+      "maxPerItem": null,
+      "anvilCost": 14
+    },
+    {
+      "id": "explosive-arrow",
+      "name": "Explosive Arrow",
+      "category": "custom",
+      "description": "Le frecce esplodono all’impatto, ferendo i mob e i giocatori vicini, ma non te, senza distruggere blocchi.",
+      "maxLevel": 3,
+      "rarity": "Epico",
+      "applicableTo": [
+        "bow",
+        "xbow"
+      ],
+      "targetScope": "multiple_items",
+      "requirements": [],
+      "conflicts": [
+        "Punch"
+      ],
+      "unique": false,
+      "maxPerItem": null,
+      "anvilCost": 10
+    },
+    {
+      "id": "feather-step",
+      "name": "Feather Step",
+      "category": "custom",
+      "description": "Evita di calpestare le coltivazioni mentre ti muovi accovacciato.",
+      "maxLevel": 1,
+      "rarity": "Comune",
+      "applicableTo": [
+        "boots"
+      ],
+      "targetScope": "specific_items",
+      "requirements": [],
+      "conflicts": [],
+      "unique": false,
+      "maxPerItem": null,
+      "anvilCost": 2
+    },
+    {
+      "id": "finishing",
+      "name": "Finishing",
+      "category": "custom",
+      "description": "Aumenta i danni inflitti dell’1% per ogni punto percentuale di salute mancante all’avversario.",
+      "maxLevel": 5,
+      "rarity": "Non comune",
+      "applicableTo": [
+        "sword",
+        "axe"
+      ],
+      "targetScope": "multiple_items",
+      "requirements": [],
+      "conflicts": [],
+      "unique": false,
+      "maxPerItem": null,
+      "anvilCost": 7
+    },
+    {
+      "id": "first-strike",
+      "name": "First Strike",
+      "category": "custom",
+      "description": "Infliggi il 50% di danni in più contro bersagli a salute piena.",
+      "maxLevel": 5,
+      "rarity": "Non comune",
+      "applicableTo": [
+        "sword",
+        "axe"
+      ],
+      "targetScope": "multiple_items",
+      "requirements": [],
+      "conflicts": [],
+      "unique": false,
+      "maxPerItem": null,
+      "anvilCost": 6
+    },
+    {
+      "id": "flashbang",
+      "name": "Flashbang",
+      "category": "custom",
+      "description": "Il 24% delle frecce infligge Cecità e Lentezza per 2,5 secondi.",
+      "maxLevel": 6,
+      "rarity": "Non comune",
+      "applicableTo": [
+        "bow",
+        "xbow"
+      ],
+      "targetScope": "multiple_items",
+      "requirements": [],
+      "conflicts": [],
+      "unique": false,
+      "maxPerItem": null,
+      "anvilCost": 5
+    },
+    {
+      "id": "foraging",
+      "name": "Foraging",
+      "category": "custom",
+      "description": "I meloni che rompi si moltiplicano in media del 210%.",
+      "maxLevel": 4,
+      "rarity": "Comune",
+      "applicableTo": [
+        "hoe"
+      ],
+      "targetScope": "specific_items",
+      "requirements": [],
+      "conflicts": [],
+      "unique": false,
+      "maxPerItem": null,
+      "anvilCost": 2
+    },
+    {
+      "id": "fortitude",
+      "name": "Fortitude",
+      "category": "custom",
+      "description": "Fornisce un bonus del 4% ai danni inflitti.",
+      "maxLevel": 2,
+      "rarity": "Epico",
+      "applicableTo": [
+        "chest",
+        "legs"
+      ],
+      "targetScope": "multiple_items",
+      "requirements": [],
+      "conflicts": [],
+      "unique": false,
+      "maxPerItem": null,
+      "anvilCost": 4
+    },
+    {
+      "id": "frost",
+      "name": "Frost",
+      "category": "custom",
+      "description": "Ha il 9% di probabilità di congelare l’avversario per 3 secondi.",
+      "maxLevel": 3,
+      "rarity": "Epico",
+      "applicableTo": [
+        "bow"
+      ],
+      "targetScope": "specific_items",
+      "requirements": [],
+      "conflicts": [
+        "Frost Arrow"
+      ],
+      "unique": false,
+      "maxPerItem": null,
+      "anvilCost": 4
+    },
+    {
+      "id": "frost-arrow",
+      "name": "Frost Arrow",
+      "category": "custom",
+      "description": "Ha il 50% di probabilità di congelare il bersaglio e infliggergli Lentezza IV per 6 secondi.",
+      "maxLevel": 3,
+      "rarity": "Raro",
+      "applicableTo": [
+        "bow",
+        "xbow"
+      ],
+      "targetScope": "multiple_items",
+      "requirements": [],
+      "conflicts": [
+        "Frost"
+      ],
+      "unique": false,
+      "maxPerItem": null,
+      "anvilCost": 7
+    },
+    {
+      "id": "frostbite",
+      "name": "Frostbite",
+      "category": "custom",
+      "description": "Ha il 25% di probabilità di congelare il bersaglio e infliggergli Lentezza IV per 4 secondi.",
+      "maxLevel": 3,
+      "rarity": "Raro",
+      "applicableTo": [
+        "sword"
+      ],
+      "targetScope": "specific_items",
+      "requirements": [],
+      "conflicts": [],
+      "unique": false,
+      "maxPerItem": null,
+      "anvilCost": 7
+    },
+    {
+      "id": "getaway",
+      "name": "Getaway",
+      "category": "custom",
+      "description": "Aumenta del 20% la velocità di movimento quando sei sotto il 20% di salute.",
+      "maxLevel": 2,
+      "rarity": "Comune",
+      "applicableTo": [
+        "boots"
+      ],
+      "targetScope": "specific_items",
+      "requirements": [],
+      "conflicts": [],
+      "unique": false,
+      "maxPerItem": null,
+      "anvilCost": 2
+    },
+    {
+      "id": "gill-lungs",
+      "name": "Gill Lungs",
+      "category": "custom",
+      "description": "Fornisce respirazione subacquea infinita e Potere del Condotto, così l’oceano non ti trattiene.",
+      "maxLevel": 1,
+      "rarity": "Leggendario",
+      "applicableTo": [
+        "helmet"
+      ],
+      "targetScope": "specific_items",
+      "requirements": [],
+      "conflicts": [
+        "Aqua Affinity",
+        "Night Stalker"
+      ],
+      "unique": true,
+      "maxPerItem": 1,
+      "anvilCost": 8
+    },
+    {
+      "id": "glacier-stomp",
+      "name": "Glacier Stomp",
+      "category": "custom",
+      "description": "I danni da caduta generano nuovo ghiaccio che congela i mob ostili entro 5 blocchi e infligge Lentezza III per 5 secondi. Ricarica: 5 secondi. Inoltre aumenta i danni da caduta.",
+      "maxLevel": 2,
+      "rarity": "Raro",
+      "applicableTo": [
+        "boots"
+      ],
+      "targetScope": "specific_items",
+      "requirements": [],
+      "conflicts": [
+        "Bouncy"
+      ],
+      "unique": false,
+      "maxPerItem": null,
+      "anvilCost": 6
+    },
+    {
+      "id": "goliath",
+      "name": "Goliath",
+      "category": "custom",
+      "description": "Infliggi +40% danni per ogni 100% di salute in più del bersaglio rispetto a te, fino a +100%. La salute massima del bersaglio è limitata a 60.",
+      "maxLevel": 6,
+      "rarity": "Raro",
+      "applicableTo": [
+        "sword"
+      ],
+      "targetScope": "specific_items",
+      "requirements": [],
+      "conflicts": [],
+      "unique": false,
+      "maxPerItem": null,
+      "anvilCost": 8
+    },
+    {
+      "id": "graviton",
+      "name": "Graviton",
+      "category": "custom",
+      "description": "I colpi in mischia creano un vortice che attira verso di te i mob ostili entro 5 blocchi. Ricarica: 4 secondi.",
+      "maxLevel": 2,
+      "rarity": "Raro",
+      "applicableTo": [
+        "chest"
+      ],
+      "targetScope": "specific_items",
+      "requirements": [],
+      "conflicts": [],
+      "unique": false,
+      "maxPerItem": null,
+      "anvilCost": 5
+    },
+    {
+      "id": "green-thumb",
+      "name": "Green Thumb",
+      "category": "custom",
+      "description": "Le coltivazioni mature e raccolte vengono ripiantate automaticamente.",
+      "maxLevel": 1,
+      "rarity": "Leggendario",
+      "applicableTo": [
+        "hoe"
+      ],
+      "targetScope": "specific_items",
+      "requirements": [],
+      "conflicts": [
+        "Replenish"
+      ],
+      "unique": false,
+      "maxPerItem": null,
+      "anvilCost": 7
+    },
+    {
+      "id": "guided",
+      "name": "Guided",
+      "category": "custom",
+      "description": "Le frecce scoccate inseguono il mob ostile più vicino entro 40 blocchi.",
+      "maxLevel": 2,
+      "rarity": "Raro",
+      "applicableTo": [
+        "bow",
+        "xbow"
+      ],
+      "targetScope": "multiple_items",
+      "requirements": [],
+      "conflicts": [],
+      "unique": false,
+      "maxPerItem": null,
+      "anvilCost": 6
+    },
+    {
+      "id": "haunting",
+      "name": "Haunting",
+      "category": "custom",
+      "description": "Quando muori, tutte le entità entro 3 blocchi subiscono 9 danni.",
+      "maxLevel": 2,
+      "rarity": "Comune",
+      "applicableTo": [
+        "helmet"
+      ],
+      "targetScope": "specific_items",
+      "requirements": [],
+      "conflicts": [],
+      "unique": false,
+      "maxPerItem": null,
+      "anvilCost": 2
+    },
+    {
+      "id": "hemorrhage",
+      "name": "Hemorrhage",
+      "category": "custom",
+      "description": "I colpi fanno sanguinare il bersaglio, infliggendo 2,5 danni per 6 volte.",
+      "maxLevel": 4,
+      "rarity": "Epico",
+      "applicableTo": [
+        "sword",
+        "axe"
+      ],
+      "targetScope": "multiple_items",
+      "requirements": [],
+      "conflicts": [
+        "Bleed"
+      ],
+      "unique": false,
+      "maxPerItem": null,
+      "anvilCost": 14
+    },
+    {
+      "id": "ignis-furnace",
+      "name": "Ignis Furnace",
+      "category": "custom",
+      "description": "I minerali di ferro, oro, rame e detriti antichi che estrai cadono già fusi.",
+      "maxLevel": 1,
+      "rarity": "Leggendario",
+      "applicableTo": [
+        "pick"
+      ],
+      "targetScope": "specific_items",
+      "requirements": [],
+      "conflicts": [
+        "Silk Touch",
+        "Infernal Touch"
+      ],
+      "unique": true,
+      "maxPerItem": 1,
+      "anvilCost": 8
+    },
+    {
+      "id": "ignis-fury",
+      "name": "Ignis Fury",
+      "category": "custom",
+      "description": "Il 50% di probabilità di dare fuoco al bersaglio per 5 secondi e infliggere 8 danni ai nemici attorno a lui entro 5 blocchi. Ricarica: 2 secondi.",
+      "maxLevel": 2,
+      "rarity": "Epico",
+      "applicableTo": [
+        "sword",
+        "axe"
+      ],
+      "targetScope": "multiple_items",
+      "requirements": [],
+      "conflicts": [],
+      "unique": false,
+      "maxPerItem": null,
+      "anvilCost": 14
+    },
+    {
+      "id": "infernal-touch",
+      "name": "Infernal Touch",
+      "category": "custom",
+      "description": "La sabbia diventa vetro, l’ardesia profonda viene estratta intera e l’argilla diventa terracotta. Non funziona sui blocchi piazzati.",
+      "maxLevel": 1,
+      "rarity": "Leggendario",
+      "applicableTo": [
+        "pick",
+        "shovel"
+      ],
+      "targetScope": "multiple_items",
+      "requirements": [],
+      "conflicts": [
+        "Silk Touch",
+        "Ignis Furnace"
+      ],
+      "unique": false,
+      "maxPerItem": null,
+      "anvilCost": 7
+    },
+    {
+      "id": "introversion",
+      "name": "Introversion",
+      "category": "custom",
+      "description": "Fornisce un bonus di 3,75 danni da mischia contro i giocatori.",
+      "maxLevel": 5,
+      "rarity": "Comune",
+      "applicableTo": [
+        "sword"
+      ],
+      "targetScope": "specific_items",
+      "requirements": [],
+      "conflicts": [
+        "Sharpness",
+        "Smite",
+        "Bane of Arthropods",
+        "Slaughter",
+        "Brightness"
+      ],
+      "unique": false,
+      "maxPerItem": null,
+      "anvilCost": 4
+    },
+    {
+      "id": "iron-stance",
+      "name": "Iron Stance",
+      "category": "custom",
+      "description": "Mentre sei a terra, subisci il 21% di danni in meno da ogni fonte.",
+      "maxLevel": 3,
+      "rarity": "Raro",
+      "applicableTo": [
+        "legs"
+      ],
+      "targetScope": "specific_items",
+      "requirements": [],
+      "conflicts": [],
+      "unique": false,
+      "maxPerItem": null,
+      "anvilCost": 10
+    },
+    {
+      "id": "jumpshot",
+      "name": "Jumpshot",
+      "category": "custom",
+      "description": "Le frecce infliggono il 30% di danni in più se sei in aria quando colpiscono.",
+      "maxLevel": 3,
+      "rarity": "Non comune",
+      "applicableTo": [
+        "bow",
+        "xbow"
+      ],
+      "targetScope": "multiple_items",
+      "requirements": [],
+      "conflicts": [],
+      "unique": false,
+      "maxPerItem": null,
+      "anvilCost": 4
+    },
+    {
+      "id": "lifesteal",
+      "name": "Lifesteal",
+      "category": "custom",
+      "description": "Ti cura del 30% dei danni inflitti.",
+      "maxLevel": 6,
+      "rarity": "Raro",
+      "applicableTo": [
+        "sword"
+      ],
+      "targetScope": "specific_items",
+      "requirements": [],
+      "conflicts": [
+        "Vampirism"
+      ],
+      "unique": false,
+      "maxPerItem": null,
+      "anvilCost": 12
+    },
+    {
+      "id": "lumberjack",
+      "name": "Lumberjack",
+      "category": "custom",
+      "description": "Probabilità del 18% che i tronchi naturali cadano doppi (non quelli piazzati).",
+      "maxLevel": 6,
+      "rarity": "Raro",
+      "applicableTo": [
+        "axe"
+      ],
+      "targetScope": "specific_items",
+      "requirements": [],
+      "conflicts": [
+        "Timber"
+      ],
+      "unique": false,
+      "maxPerItem": null,
+      "anvilCost": 8
+    },
+    {
+      "id": "metabolism",
+      "name": "Metabolism",
+      "category": "custom",
+      "description": "Il cibo ripristina il 25% di fame in più (arrotondato per eccesso, minimo +1 punto).",
+      "maxLevel": 2,
+      "rarity": "Comune",
+      "applicableTo": [
+        "chest"
+      ],
+      "targetScope": "specific_items",
+      "requirements": [],
+      "conflicts": [],
+      "unique": false,
+      "maxPerItem": null,
+      "anvilCost": 2
+    },
+    {
+      "id": "molten-heart",
+      "name": "Molten Heart",
+      "category": "custom",
+      "description": "9% di probabilità di incendiare chi ti colpisce in mischia e infliggergli Debolezza I per 5 secondi.",
+      "maxLevel": 3,
+      "rarity": "Raro",
+      "applicableTo": [
+        "chest"
+      ],
+      "targetScope": "specific_items",
+      "requirements": [],
+      "conflicts": [],
+      "unique": false,
+      "maxPerItem": null,
+      "anvilCost": 8
+    },
+    {
+      "id": "nether-affinity",
+      "name": "Nether Affinity",
+      "category": "custom",
+      "description": "Aumenta i danni inflitti nel Nether del 60%.",
+      "maxLevel": 4,
+      "rarity": "Non comune",
+      "applicableTo": [
+        "sword",
+        "bow",
+        "trident"
+      ],
+      "targetScope": "multiple_items",
+      "requirements": [],
+      "conflicts": [
+        "End Affinity"
+      ],
+      "unique": false,
+      "maxPerItem": null,
+      "anvilCost": 6
+    },
+    {
+      "id": "nether-prospector",
+      "name": "Nether Prospector",
+      "category": "custom",
+      "description": "I detriti antichi naturali rendono in media il 110% in più (non quelli piazzati dai giocatori).",
+      "maxLevel": 2,
+      "rarity": "Raro",
+      "applicableTo": [
+        "pick"
+      ],
+      "targetScope": "specific_items",
+      "requirements": [],
+      "conflicts": [
+        "Fortune",
+        "Silk Touch"
+      ],
+      "unique": false,
+      "maxPerItem": null,
+      "anvilCost": 7
+    },
+    {
+      "id": "night-stalker",
+      "name": "Night Stalker",
+      "category": "custom",
+      "description": "Dà Visione Notturna permanente e Velocità II di notte, perché la notte è tua alleata.",
+      "maxLevel": 2,
+      "rarity": "Raro",
+      "applicableTo": [
+        "helmet"
+      ],
+      "targetScope": "specific_items",
+      "requirements": [],
+      "conflicts": [
+        "Gill Lungs"
+      ],
+      "unique": false,
+      "maxPerItem": null,
+      "anvilCost": 8
+    },
+    {
+      "id": "ninja",
+      "name": "Ninja",
+      "category": "custom",
+      "description": "Infliggi +3 danni mentre sei accovacciato.",
+      "maxLevel": 5,
+      "rarity": "Non comune",
+      "applicableTo": [
+        "sword"
+      ],
+      "targetScope": "specific_items",
+      "requirements": [],
+      "conflicts": [],
+      "unique": false,
+      "maxPerItem": null,
+      "anvilCost": 4
+    },
+    {
+      "id": "one-for-all",
+      "name": "One for All",
+      "category": "custom",
+      "description": "Aumenta i danni del 100%, ma va in conflitto con tutti gli altri incantesimi.",
+      "maxLevel": 1,
+      "rarity": "Molto speciale",
+      "applicableTo": [
+        "sword",
+        "axe"
+      ],
+      "targetScope": "multiple_items",
+      "requirements": [],
+      "conflicts": [
+        "Tutti gli altri incantesimi"
+      ],
+      "unique": true,
+      "maxPerItem": 1,
+      "anvilCost": 24
+    },
+    {
+      "id": "overclock",
+      "name": "Overclock",
+      "category": "custom",
+      "description": "Aumenta la velocità di scavo del 24%.",
+      "maxLevel": 3,
+      "rarity": "Raro",
+      "applicableTo": [
+        "pick",
+        "axe",
+        "shovel"
+      ],
+      "targetScope": "multiple_items",
+      "requirements": [],
+      "conflicts": [],
+      "unique": false,
+      "maxPerItem": null,
+      "anvilCost": 8
+    },
+    {
+      "id": "perforation",
+      "name": "Perforation",
+      "category": "custom",
+      "description": "Le frecce infliggono il 40% di danni in più.",
+      "maxLevel": 4,
+      "rarity": "Epico",
+      "applicableTo": [
+        "bow",
+        "xbow"
+      ],
+      "targetScope": "multiple_items",
+      "requirements": [],
+      "conflicts": [],
+      "unique": false,
+      "maxPerItem": null,
+      "anvilCost": 12
+    },
+    {
+      "id": "phantom-strike",
+      "name": "Phantom Strike",
+      "category": "custom",
+      "description": "I colpi critici infliggono il 60% di danno critico in più.",
+      "maxLevel": 2,
+      "rarity": "Leggendario",
+      "applicableTo": [
+        "sword"
+      ],
+      "targetScope": "specific_items",
+      "requirements": [],
+      "conflicts": [],
+      "unique": false,
+      "maxPerItem": null,
+      "anvilCost": 17
+    },
+    {
+      "id": "phoenix-heart",
+      "name": "Phoenix Heart",
+      "category": "custom",
+      "description": "Ogni 10 minuti, sopravvivi a un colpo fatale: recuperi 5 cuori e ottieni Resistenza IV e Resistenza al fuoco per 5 secondi.",
+      "maxLevel": 1,
+      "rarity": "Molto speciale",
+      "applicableTo": [
+        "chest"
+      ],
+      "targetScope": "specific_items",
+      "requirements": [],
+      "conflicts": [],
+      "unique": true,
+      "maxPerItem": 1,
+      "anvilCost": 24
+    },
+    {
+      "id": "poison-ivy",
+      "name": "Poison Ivy",
+      "category": "custom",
+      "description": "Avvelena chi ti attacca per 1 secondo per ogni cuore di danno inflitto, fino a 6 secondi.",
+      "maxLevel": 2,
+      "rarity": "Non comune",
+      "applicableTo": [
+        "legs"
+      ],
+      "targetScope": "specific_items",
+      "requirements": [],
+      "conflicts": [
+        "Thorns",
+        "Static Barrier"
+      ],
+      "unique": false,
+      "maxPerItem": null,
+      "anvilCost": 4
+    },
+    {
+      "id": "prospector",
+      "name": "Prospector",
+      "category": "custom",
+      "description": "Scavando ardesia profonda, tufo, granito, diorite e andesite naturali hai il 9% di trovare un lingotto o una gemma a caso.",
+      "maxLevel": 3,
+      "rarity": "Raro",
+      "applicableTo": [
+        "pick"
+      ],
+      "targetScope": "specific_items",
+      "requirements": [],
+      "conflicts": [
+        "Silk Touch"
+      ],
+      "unique": false,
+      "maxPerItem": null,
+      "anvilCost": 8
+    },
+    {
+      "id": "rapid",
+      "name": "Rapid",
+      "category": "custom",
+      "description": "Ti permette di scoccare frecce alla massima velocità con l’arco al 40% di tensione.",
+      "maxLevel": 6,
+      "rarity": "Raro",
+      "applicableTo": [
+        "bow"
+      ],
+      "targetScope": "specific_items",
+      "requirements": [],
+      "conflicts": [],
+      "unique": false,
+      "maxPerItem": null,
+      "anvilCost": 10
+    },
+    {
+      "id": "reaper",
+      "name": "Reaper",
+      "category": "custom",
+      "description": "I bersagli sotto il 14% di vita subiscono il 20% di danni in mischia (vita massima considerata fino a 100).",
+      "maxLevel": 3,
+      "rarity": "Leggendario",
+      "applicableTo": [
+        "sword"
+      ],
+      "targetScope": "specific_items",
+      "requirements": [],
+      "conflicts": [
+        "Executioner"
+      ],
+      "unique": false,
+      "maxPerItem": null,
+      "anvilCost": 15
+    },
+    {
+      "id": "rebounding",
+      "name": "Rebounding",
+      "category": "custom",
+      "description": "Parare un colpo in mischia rimanda il 50% del danno all’attaccante.",
+      "maxLevel": 3,
+      "rarity": "Raro",
+      "applicableTo": [
+        "shield"
+      ],
+      "targetScope": "specific_items",
+      "requirements": [],
+      "conflicts": [],
+      "unique": false,
+      "maxPerItem": null,
+      "anvilCost": 6
+    },
+    {
+      "id": "repairing",
+      "name": "Repairing",
+      "category": "custom",
+      "description": "Questo oggetto recupera 3 di durabilità ogni 1,5 secondi, se non è in mano o indossato.",
+      "maxLevel": 3,
+      "rarity": "Molto speciale",
+      "applicableTo": [
+        "helmet",
+        "chest",
+        "legs",
+        "boots",
+        "sword",
+        "axe",
+        "mace",
+        "trident",
+        "bow",
+        "xbow",
+        "pick",
+        "shovel",
+        "hoe",
+        "rod",
+        "shears",
+        "flint",
+        "elytra",
+        "shield"
+      ],
+      "targetScope": "all_items",
+      "requirements": [],
+      "conflicts": [
+        "Mending"
+      ],
+      "unique": true,
+      "maxPerItem": 1,
+      "anvilCost": 17
+    },
+    {
+      "id": "replenish",
+      "name": "Replenish",
+      "category": "custom",
+      "description": "Le coltivazioni mature raccolte vengono ripiantate da sole, consumando un seme.",
+      "maxLevel": 1,
+      "rarity": "Leggendario",
+      "applicableTo": [
+        "hoe"
+      ],
+      "targetScope": "specific_items",
+      "requirements": [],
+      "conflicts": [
+        "Green Thumb"
+      ],
+      "unique": false,
+      "maxPerItem": null,
+      "anvilCost": 7
+    },
+    {
+      "id": "resonance",
+      "name": "Resonance",
+      "category": "custom",
+      "description": "15% di probabilità di ottenere 3 punti esperienza extra per ogni blocco scavato (non piazzato).",
+      "maxLevel": 3,
+      "rarity": "Non comune",
+      "applicableTo": [
+        "pick",
+        "axe",
+        "shovel",
+        "hoe"
+      ],
+      "targetScope": "multiple_items",
+      "requirements": [],
+      "conflicts": [
+        "Wisdom"
+      ],
+      "unique": false,
+      "maxPerItem": null,
+      "anvilCost": 3
+    },
+    {
+      "id": "rocket-saver",
+      "name": "Rocket Saver",
+      "category": "custom",
+      "description": "Ha una probabilità del 60% di non consumare i fuochi d’artificio durante la spinta con l’elitra.",
+      "maxLevel": 3,
+      "rarity": "Comune",
+      "applicableTo": [
+        "elytra"
+      ],
+      "targetScope": "specific_items",
+      "requirements": [],
+      "conflicts": [],
+      "unique": false,
+      "maxPerItem": null,
+      "anvilCost": 3
+    },
+    {
+      "id": "rumble",
+      "name": "Rumble",
+      "category": "custom",
+      "description": "Click destro: infligge 9 danni a tutte le entità entro 5 blocchi da te. Ricarica: 20 secondi.",
+      "maxLevel": 3,
+      "rarity": "Epico",
+      "applicableTo": [
+        "sword"
+      ],
+      "targetScope": "specific_items",
+      "requirements": [],
+      "conflicts": [],
+      "unique": false,
+      "maxPerItem": null,
+      "anvilCost": 9
+    },
+    {
+      "id": "satiety",
+      "name": "Satiety",
+      "category": "custom",
+      "description": "Ripristina ogni punto di fame perso al costo di 2 punti esperienza (serve il livello 1+).",
+      "maxLevel": 2,
+      "rarity": "Non comune",
+      "applicableTo": [
+        "helmet"
+      ],
+      "targetScope": "specific_items",
+      "requirements": [],
+      "conflicts": [],
+      "unique": false,
+      "maxPerItem": null,
+      "anvilCost": 3
+    },
+    {
+      "id": "shadow-step",
+      "name": "Shadow Step",
+      "category": "custom",
+      "description": "Sotto il 30% di vita, 20% di probabilità di annullare un colpo, recuperare 10 punti vita e ottenere Velocità III (3 s) e Resistenza II (2 s). Ricarica: 90 s.",
+      "maxLevel": 2,
+      "rarity": "Leggendario",
+      "applicableTo": [
+        "legs"
+      ],
+      "targetScope": "specific_items",
+      "requirements": [],
+      "conflicts": [],
+      "unique": true,
+      "maxPerItem": 1,
+      "anvilCost": 14
+    },
+    {
+      "id": "shulker-harvest",
+      "name": "Shulker Harvest",
+      "category": "custom",
+      "description": "Dà un aumento del 210% ai drop degli shulker.",
+      "maxLevel": 3,
+      "rarity": "Comune",
+      "applicableTo": [
+        "sword"
+      ],
+      "targetScope": "specific_items",
+      "requirements": [],
+      "conflicts": [
+        "Looting"
+      ],
+      "unique": false,
+      "maxPerItem": null,
+      "anvilCost": 2
+    },
+    {
+      "id": "shura",
+      "name": "Shura",
+      "category": "custom",
+      "description": "Dà un bonus di 1,50x ai danni critici quando sei sotto metà vita.",
+      "maxLevel": 3,
+      "rarity": "Raro",
+      "applicableTo": [
+        "axe"
+      ],
+      "targetScope": "specific_items",
+      "requirements": [],
+      "conflicts": [
+        "Berserker"
+      ],
+      "unique": false,
+      "maxPerItem": null,
+      "anvilCost": 7
+    },
+    {
+      "id": "skull-puncture",
+      "name": "Skull Puncture",
+      "category": "custom",
+      "description": "Aumenta i danni dei colpi alla testa del 30%.",
+      "maxLevel": 3,
+      "rarity": "Non comune",
+      "applicableTo": [
+        "bow",
+        "xbow"
+      ],
+      "targetScope": "multiple_items",
+      "requirements": [],
+      "conflicts": [],
+      "unique": false,
+      "maxPerItem": null,
+      "anvilCost": 4
+    },
+    {
+      "id": "slaughter",
+      "name": "Slaughter",
+      "category": "custom",
+      "description": "Infliggi +12,50 danni in mischia agli animali da fattoria e passivi (tranne animali domestici e pesci).",
+      "maxLevel": 5,
+      "rarity": "Comune",
+      "applicableTo": [
+        "sword"
+      ],
+      "targetScope": "specific_items",
+      "requirements": [],
+      "conflicts": [
+        "Introversion",
+        "Brightness"
+      ],
+      "unique": false,
+      "maxPerItem": null,
+      "anvilCost": 2
+    },
+    {
+      "id": "slipstream",
+      "name": "Slipstream",
+      "category": "custom",
+      "description": "Dà un aumento del 24% alla velocità di movimento mentre planifichi.",
+      "maxLevel": 3,
+      "rarity": "Non comune",
+      "applicableTo": [
+        "trident"
+      ],
+      "targetScope": "specific_items",
+      "requirements": [],
+      "conflicts": [],
+      "unique": false,
+      "maxPerItem": null,
+      "anvilCost": 4
+    },
+    {
+      "id": "snipe",
+      "name": "Snipe",
+      "category": "custom",
+      "description": "Le frecce infliggono +12% di danni ogni 20 blocchi di distanza dal bersaglio (massimo +60%).",
+      "maxLevel": 4,
+      "rarity": "Raro",
+      "applicableTo": [
+        "bow",
+        "xbow"
+      ],
+      "targetScope": "multiple_items",
+      "requirements": [],
+      "conflicts": [],
+      "unique": false,
+      "maxPerItem": null,
+      "anvilCost": 6
+    },
+    {
+      "id": "soul-storm",
+      "name": "Soul Storm",
+      "category": "custom",
+      "description": "Click destro: +150% di danni per 25 secondi, ma -3 cuori massimi. Ricarica: 3 minuti.",
+      "maxLevel": 2,
+      "rarity": "Epico",
+      "applicableTo": [
+        "sword"
+      ],
+      "targetScope": "specific_items",
+      "requirements": [],
+      "conflicts": [],
+      "unique": false,
+      "maxPerItem": null,
+      "anvilCost": 13
+    },
+    {
+      "id": "soulbound",
+      "name": "Soulbound",
+      "category": "custom",
+      "description": "Conserva questo oggetto quando muori.",
+      "maxLevel": 1,
+      "rarity": "Molto speciale",
+      "applicableTo": [
+        "helmet",
+        "chest",
+        "legs",
+        "boots",
+        "sword",
+        "axe",
+        "mace",
+        "trident",
+        "bow",
+        "xbow",
+        "pick",
+        "shovel",
+        "hoe",
+        "rod",
+        "shears",
+        "flint",
+        "elytra",
+        "shield"
+      ],
+      "targetScope": "all_items",
+      "requirements": [],
+      "conflicts": [],
+      "unique": true,
+      "maxPerItem": 1,
+      "anvilCost": 19
+    },
+    {
+      "id": "sparks",
+      "name": "Sparks",
+      "category": "custom",
+      "description": "Agganciare un nemico mentre piove dà il 50% di probabilità di colpirlo con un fulmine da 6 danni.",
+      "maxLevel": 5,
+      "rarity": "Non comune",
+      "applicableTo": [
+        "rod"
+      ],
+      "targetScope": "specific_items",
+      "requirements": [],
+      "conflicts": [],
+      "unique": false,
+      "maxPerItem": null,
+      "anvilCost": 2
+    },
+    {
+      "id": "stamina",
+      "name": "Stamina",
+      "category": "custom",
+      "description": "Riduce la perdita di sazietà mentre corri dell’80%.",
+      "maxLevel": 4,
+      "rarity": "Comune",
+      "applicableTo": [
+        "chest"
+      ],
+      "targetScope": "specific_items",
+      "requirements": [],
+      "conflicts": [],
+      "unique": false,
+      "maxPerItem": null,
+      "anvilCost": 2
+    },
+    {
+      "id": "static-barrier",
+      "name": "Static Barrier",
+      "category": "custom",
+      "description": "Dà una probabilità del 45% di scaricarsi su chi ti attacca, applicando Cecità e Lentezza II per 4 secondi.",
+      "maxLevel": 3,
+      "rarity": "Raro",
+      "applicableTo": [
+        "legs"
+      ],
+      "targetScope": "specific_items",
+      "requirements": [],
+      "conflicts": [
+        "Poison Ivy"
+      ],
+      "unique": false,
+      "maxPerItem": null,
+      "anvilCost": 9
+    },
+    {
+      "id": "stun",
+      "name": "Stun",
+      "category": "custom",
+      "description": "Dà una probabilità del 10% di stordire i mob colpiti per 2 secondi (non i boss).",
+      "maxLevel": 3,
+      "rarity": "Non comune",
+      "applicableTo": [
+        "sword",
+        "bow",
+        "trident",
+        "xbow"
+      ],
+      "targetScope": "multiple_items",
+      "requirements": [],
+      "conflicts": [],
+      "unique": false,
+      "maxPerItem": null,
+      "anvilCost": 5
+    },
+    {
+      "id": "telekinesis",
+      "name": "Telekinesis",
+      "category": "custom",
+      "description": "Drop ed esperienza vanno dritti nel tuo inventario, così nulla tocca terra.",
+      "maxLevel": 1,
+      "rarity": "Raro",
+      "applicableTo": [
+        "pick",
+        "axe",
+        "shovel",
+        "hoe",
+        "sword"
+      ],
+      "targetScope": "multiple_items",
+      "requirements": [],
+      "conflicts": [],
+      "unique": false,
+      "maxPerItem": null,
+      "anvilCost": 5
+    },
+    {
+      "id": "thor",
+      "name": "Thor",
+      "category": "custom",
+      "description": "Dà al bersaglio una probabilità del 6% di essere colpito da un fulmine da 15 danni.",
+      "maxLevel": 6,
+      "rarity": "Raro",
+      "applicableTo": [
+        "bow",
+        "xbow"
+      ],
+      "targetScope": "multiple_items",
+      "requirements": [],
+      "conflicts": [],
+      "unique": false,
+      "maxPerItem": null,
+      "anvilCost": 6
+    },
+    {
+      "id": "thrive",
+      "name": "Thrive",
+      "category": "custom",
+      "description": "Aumenta la salute massima di 1 cuore.",
+      "maxLevel": 2,
+      "rarity": "Epico",
+      "applicableTo": [
+        "chest",
+        "legs"
+      ],
+      "targetScope": "multiple_items",
+      "requirements": [],
+      "conflicts": [],
+      "unique": false,
+      "maxPerItem": null,
+      "anvilCost": 7
+    },
+    {
+      "id": "timber",
+      "name": "Timber",
+      "category": "custom",
+      "description": "Abbatti fino a 16 tronchi collegati degli alberi naturali in un colpo (non da accovacciato).",
+      "maxLevel": 2,
+      "rarity": "Raro",
+      "applicableTo": [
+        "axe"
+      ],
+      "targetScope": "specific_items",
+      "requirements": [],
+      "conflicts": [
+        "Lumberjack",
+        "Veinminer"
+      ],
+      "unique": true,
+      "maxPerItem": 1,
+      "anvilCost": 7
+    },
+    {
+      "id": "transmission",
+      "name": "Transmission",
+      "category": "custom",
+      "description": "Click destro: teletrasporto fino a 7 blocchi dove guardi, fermandoti ai muri, poi Caduta lenta per 2 s. Ricarica: 30 s.",
+      "maxLevel": 2,
+      "rarity": "Epico",
+      "applicableTo": [
+        "sword"
+      ],
+      "targetScope": "specific_items",
+      "requirements": [],
+      "conflicts": [],
+      "unique": false,
+      "maxPerItem": null,
+      "anvilCost": 7
+    },
+    {
+      "id": "tripleshot",
+      "name": "Tripleshot",
+      "category": "custom",
+      "description": "Scocca 3 frecce invece di 1.",
+      "maxLevel": 1,
+      "rarity": "Leggendario",
+      "applicableTo": [
+        "bow"
+      ],
+      "targetScope": "specific_items",
+      "requirements": [],
+      "conflicts": [],
+      "unique": false,
+      "maxPerItem": null,
+      "anvilCost": 14
+    },
+    {
+      "id": "vampirism",
+      "name": "Vampirism",
+      "category": "custom",
+      "description": "Converte il 30% dei danni che infliggi in vita e ti cura di 3 cuori a ogni uccisione.",
+      "maxLevel": 3,
+      "rarity": "Epico",
+      "applicableTo": [
+        "sword",
+        "axe"
+      ],
+      "targetScope": "multiple_items",
+      "requirements": [],
+      "conflicts": [
+        "Lifesteal"
+      ],
+      "unique": false,
+      "maxPerItem": null,
+      "anvilCost": 12
+    },
+    {
+      "id": "veinminer",
+      "name": "Veinminer",
+      "category": "custom",
+      "description": "Estrai fino a 14 minerali collegati dello stesso tipo in un colpo solo (anche pietra luminosa e pietra nera dorata).",
+      "maxLevel": 4,
+      "rarity": "Raro",
+      "applicableTo": [
+        "pick"
+      ],
+      "targetScope": "specific_items",
+      "requirements": [],
+      "conflicts": [
+        "Blast Mining",
+        "Auger"
+      ],
+      "unique": false,
+      "maxPerItem": null,
+      "anvilCost": 10
+    },
+    {
+      "id": "vitality",
+      "name": "Vitality",
+      "category": "custom",
+      "description": "Click destro con il 60% di vita o meno per tornare a vita piena. Ricarica: 750 minuti.",
+      "maxLevel": 1,
+      "rarity": "Speciale",
+      "applicableTo": [
+        "sword",
+        "axe",
+        "pick",
+        "shovel"
+      ],
+      "targetScope": "multiple_items",
+      "requirements": [],
+      "conflicts": [],
+      "unique": false,
+      "maxPerItem": null,
+      "anvilCost": 14
+    },
+    {
+      "id": "void-slash",
+      "name": "Void Slash",
+      "category": "custom",
+      "description": "Dà una probabilità del 15% di infliggere Cecità e Lentezza per 3 secondi quando colpisci.",
+      "maxLevel": 3,
+      "rarity": "Raro",
+      "applicableTo": [
+        "sword"
+      ],
+      "targetScope": "specific_items",
+      "requirements": [],
+      "conflicts": [],
+      "unique": false,
+      "maxPerItem": null,
+      "anvilCost": 6
+    },
+    {
+      "id": "warp-drive",
+      "name": "Warp Drive",
+      "category": "custom",
+      "description": "Colpire un bersaglio con una freccia ti teletrasporta lì, con Caduta lenta per 3 s (non funziona sui mob volanti).",
+      "maxLevel": 1,
+      "rarity": "Molto speciale",
+      "applicableTo": [
+        "bow"
+      ],
+      "targetScope": "specific_items",
+      "requirements": [],
+      "conflicts": [],
+      "unique": true,
+      "maxPerItem": 1,
+      "anvilCost": 17
+    },
+    {
+      "id": "wisdom",
+      "name": "Wisdom",
+      "category": "custom",
+      "description": "Aumenta l’esperienza che ottieni del 30% mentre impugni questo oggetto.",
+      "maxLevel": 3,
+      "rarity": "Non comune",
+      "applicableTo": [
+        "sword",
+        "axe",
+        "pick",
+        "shovel",
+        "hoe",
+        "bow",
+        "xbow",
+        "trident"
+      ],
+      "targetScope": "multiple_items",
+      "requirements": [],
+      "conflicts": [
+        "Resonance"
+      ],
+      "unique": false,
+      "maxPerItem": null,
+      "anvilCost": 4
+    },
+    {
+      "id": "wound",
+      "name": "Wound",
+      "category": "custom",
+      "description": "Le frecce hanno il 21% di probabilità di causare sanguinamento: 1,50 danno ogni 0,75 s per 6,75 secondi.",
+      "maxLevel": 7,
+      "rarity": "Epico",
+      "applicableTo": [
+        "bow",
+        "xbow"
+      ],
+      "targetScope": "multiple_items",
+      "requirements": [],
+      "conflicts": [
+        "Sharpness"
+      ],
+      "unique": false,
+      "maxPerItem": null,
+      "anvilCost": 9
+    },
+    {
+      "id": "wyvern",
+      "name": "Wyvern",
+      "category": "custom",
+      "description": "Dà un bonus del 30% ai danni da mischia.",
+      "maxLevel": 2,
+      "rarity": "Raro",
+      "applicableTo": [
+        "elytra"
+      ],
+      "targetScope": "specific_items",
+      "requirements": [],
+      "conflicts": [],
+      "unique": false,
+      "maxPerItem": null,
+      "anvilCost": 6
+    },
+    {
+      "id": "xray",
+      "name": "Xray",
+      "category": "custom",
+      "description": "Click destro: i minerali entro 9 blocchi brillano attraverso i muri per 4 secondi. Ricarica: 90 s.",
+      "maxLevel": 3,
+      "rarity": "Speciale",
+      "applicableTo": [
+        "pick"
+      ],
+      "targetScope": "specific_items",
+      "requirements": [],
+      "conflicts": [],
+      "unique": false,
+      "maxPerItem": null,
+      "anvilCost": 14
+    },
+    {
+      "id": "streamlining",
+      "name": "Streamlining",
+      "category": "custom",
+      "description": "Dà un aumento del 20% alla velocità di movimento.",
+      "maxLevel": 4,
+      "rarity": "Raro",
+      "applicableTo": [
+        "boots"
+      ],
+      "targetScope": "specific_items",
+      "requirements": [],
+      "conflicts": [
+        "Escape"
+      ],
+      "unique": false,
+      "maxPerItem": null,
+      "anvilCost": 8
+    },
+    {
+      "id": "vanish",
+      "name": "Vanish",
+      "category": "custom",
+      "description": "Dà una probabilità del 4% di farti sparire per 4 secondi dopo aver subito danni.",
+      "maxLevel": 2,
+      "rarity": "Raro",
+      "applicableTo": [
+        "helmet",
+        "chest",
+        "legs",
+        "boots"
+      ],
+      "targetScope": "armor_set",
+      "requirements": [],
+      "conflicts": [],
+      "unique": false,
+      "maxPerItem": null,
+      "anvilCost": 4
+    }
+  ],
+  "minecraftVersion": "Java Edition 1.21.10",
+  "itemLimits": {
+    "maxEnchantmentsPerItem": 12,
+    "maxUniqueEnchantmentsPerItem": 1,
+    "maxCopiesPerEnchantmentPerItem": 1
+  }
+}

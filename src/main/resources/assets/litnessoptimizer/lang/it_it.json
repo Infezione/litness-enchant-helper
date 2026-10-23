@@ -1,0 +1,11 @@
+{
+  "key.litnessoptimizer.open_gui": "Apri Ottimizzatore & Catalogo Litness",
+  "category.litnessoptimizer.title": "Litness Optimizer",
+  "gui.litnessoptimizer.title": "Litness — Guida & Ottimizzatore",
+  "gui.litnessoptimizer.tab.catalog": "Catalogo Incantesimi",
+  "gui.litnessoptimizer.tab.calculator": "Calcolatore Incudine",
+  "gui.litnessoptimizer.search.placeholder": "Cerca incantesimo...",
+  "gui.litnessoptimizer.calculate": "Calcola Sequenza",
+  "gui.litnessoptimizer.too_expensive": "Troppo costoso! (>39 livelli)",
+  "gui.litnessoptimizer.anvil_button_tooltip": "Apri Ottimizzatore Litness [N]"
+}

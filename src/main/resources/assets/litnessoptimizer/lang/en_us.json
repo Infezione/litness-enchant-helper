@@ -1,0 +1,11 @@
+{
+  "key.litnessoptimizer.open_gui": "Open Litness Enchant Helper",
+  "category.litnessoptimizer.title": "Litness Enchant Helper",
+  "gui.litnessoptimizer.title": "Litness Enchant Helper — made by Waaxey",
+  "gui.litnessoptimizer.tab.catalog": "Enchantment Catalog",
+  "gui.litnessoptimizer.tab.calculator": "Anvil Calculator",
+  "gui.litnessoptimizer.search.placeholder": "Search enchantment...",
+  "gui.litnessoptimizer.calculate": "Calculate Sequence",
+  "gui.litnessoptimizer.too_expensive": "Too Expensive! (>39 levels)",
+  "gui.litnessoptimizer.anvil_button_tooltip": "Open Litness Enchant Helper [N]"
+}

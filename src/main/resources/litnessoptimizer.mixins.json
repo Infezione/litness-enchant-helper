@@ -1,0 +1,13 @@
+{
+  "required": true,
+  "package": "com.litness.optimizer.mixin",
+  "compatibilityLevel": "JAVA_21",
+  "client": [
+    "AnvilScreenMixin",
+    "HudMixin",
+    "ItemStackMixin"
+  ],
+  "injectors": {
+    "defaultRequire": 1
+  }
+}
