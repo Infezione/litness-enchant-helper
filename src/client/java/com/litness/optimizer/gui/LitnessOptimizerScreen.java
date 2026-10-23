@@ -58,7 +58,10 @@ public class LitnessOptimizerScreen extends Screen {
     private EditBox searchField;
     private String categoryFilter = "ALL";
     private final List<EnchantmentEntry> filteredEnchantments = new ArrayList<>();
-    private static final int ITEMS_PER_PAGE = 15;
+    private int getItemsPerPage() {
+        int avail = this.height - 96;
+        return Math.max(6, Math.min(13, avail / 19));
+    }
     private int catalogPage = 0;
 
     // Stato calcolatore & simulatore: Spada e Armature (Elmo, Corazza, Gambali, Stivali)
@@ -245,7 +248,7 @@ public class LitnessOptimizerScreen extends Screen {
         }).bounds(this.width / 2 - 270, navY, 85, 18).build());
 
         this.addRenderableWidget(Button.builder(Component.literal("Successiva ▶"), b -> {
-            int totalP = Math.max(1, (int) Math.ceil((double) filteredEnchantments.size() / ITEMS_PER_PAGE));
+            int totalP = Math.max(1, (int) Math.ceil((double) filteredEnchantments.size() / getItemsPerPage()));
             if (catalogPage < totalP - 1) catalogPage++;
         }).bounds(this.width / 2 + 185, navY, 85, 18).build());
 
@@ -1215,7 +1218,8 @@ public class LitnessOptimizerScreen extends Screen {
     }
 
     private void renderCatalogTab(GuiGraphicsExtractor extractor, int mouseX, int mouseY) {
-        int maxPages = Math.max(1, (int) Math.ceil((double) filteredEnchantments.size() / ITEMS_PER_PAGE));
+        int itemsPerPage = getItemsPerPage();
+        int maxPages = Math.max(1, (int) Math.ceil((double) filteredEnchantments.size() / itemsPerPage));
         if (catalogPage >= maxPages) catalogPage = maxPages - 1;
 
         String pageInfo = "Pagina " + (catalogPage + 1) + " / " + maxPages + "  (" + filteredEnchantments.size() + " incantesimi)";
@@ -1225,8 +1229,8 @@ public class LitnessOptimizerScreen extends Screen {
         int cardWidth = Math.min(640, this.width - 24);
         int cardX = (this.width - cardWidth) / 2;
 
-        int startIdx = catalogPage * ITEMS_PER_PAGE;
-        int endIdx = Math.min(startIdx + ITEMS_PER_PAGE, filteredEnchantments.size());
+        int startIdx = catalogPage * itemsPerPage;
+        int endIdx = Math.min(startIdx + itemsPerPage, filteredEnchantments.size());
 
         EnchantmentEntry hoveredEntry = null;
 
