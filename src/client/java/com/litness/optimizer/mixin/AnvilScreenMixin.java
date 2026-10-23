@@ -87,10 +87,10 @@ public abstract class AnvilScreenMixin extends ItemCombinerScreen<AnvilMenu> {
             openOptimizer();
         }).bounds(sideX, btnY, sideW, 20).build());
 
-        // 2. Tasto rapido direttamente accanto all'intestazione dell'incudine
-        int topBtnW = 76;
-        int topBtnX = this.leftPos + this.imageWidth - topBtnW - 4;
-        int topBtnY = this.topPos + 4;
+        // 2. Tasto rapido direttamente sopra l'incudine (nessuna sovrapposizione con il titolo)
+        int topBtnW = 80;
+        int topBtnX = this.leftPos + this.imageWidth - topBtnW;
+        int topBtnY = this.topPos - 18;
         this.addRenderableWidget(Button.builder(Component.literal("📋 Guida Passi"), button -> {
             openOptimizer();
         }).bounds(topBtnX, topBtnY, topBtnW, 16).build());
@@ -613,7 +613,7 @@ public abstract class AnvilScreenMixin extends ItemCombinerScreen<AnvilMenu> {
     private void openOptimizer() {
         if (this.minecraft != null) {
             this.minecraft.setScreenAndShow(new LitnessOptimizerScreen(
-                Component.translatable("gui.litnessoptimizer.title"), this, this.menu
+                Component.translatable("gui.litnessoptimizer.title"), this, this.menu, this.cachedSolution
             ));
         }
     }
