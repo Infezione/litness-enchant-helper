@@ -345,6 +345,7 @@ public class LitnessTooltipHandler {
             if (clean.equalsIgnoreCase("comune") || clean.equalsIgnoreCase("non comune")
                     || clean.equalsIgnoreCase("raro") || clean.equalsIgnoreCase("epico")
                     || clean.equalsIgnoreCase("leggendario") || clean.equalsIgnoreCase("speciale")
+                    || clean.equalsIgnoreCase("molto speciale")
                     || clean.toLowerCase().startsWith("rarit") || clean.toLowerCase().startsWith("rarity")) {
                 return true;
             }
@@ -864,6 +865,7 @@ public class LitnessTooltipHandler {
             case "epico", "epic" -> "§d";
             case "leggendario", "legendary" -> "§6";
             case "speciale", "special" -> "§c";
+            case "molto speciale", "very special" -> "§4";
             default -> "§f";
         };
     }
