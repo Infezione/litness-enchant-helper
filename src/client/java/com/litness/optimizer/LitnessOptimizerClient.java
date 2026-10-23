@@ -38,6 +38,13 @@ public class LitnessOptimizerClient implements ClientModInitializer {
             }
         });
 
+        // Messaggio discreto all'ingresso nel server per ricordare il tasto [N]
+        net.fabricmc.fabric.api.client.networking.v1.ClientPlayConnectionEvents.JOIN.register((handler, sender, client) -> {
+            if (client.player != null) {
+                client.player.sendSystemMessage(Component.literal("§6⚡ §eLitness Enchant Helper §7attivo! Premi §a[N] §7per aprire il menu."));
+            }
+        });
+
         // Pre-caricamento del database degli incantesimi
         EnchantmentDatabase.load();
 
