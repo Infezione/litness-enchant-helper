@@ -817,7 +817,7 @@ public class LitnessOptimizerScreen extends Screen {
             extractor.fill(panelX, startY, panelX + panelWidth, startY + emptyH, 0xEE141422);
             extractor.outline(panelX, startY, panelWidth, emptyH, 0xFF2A2A3E);
             extractor.centeredText(this.font, "§7Nessun set salvato.", panelX + panelWidth / 2, startY + 12, 0xFFA1A1AA);
-            extractor.centeredText(this.font, "§aClicca su '➕ Crea Nuovo Set' in alto a destra per creare il tuo primo set!", panelX + panelWidth / 2, startY + 28, 0xFF34D399);
+            extractor.centeredText(this.font, "§aClicca su '➕ Crea Nuovo Set Futuro' in alto a sinistra per creare il tuo set!", panelX + panelWidth / 2, startY + 28, 0xFF34D399);
             return;
         }
 
