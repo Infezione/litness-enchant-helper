@@ -102,23 +102,6 @@ Sul server Litness, forgiare spade, archi o armature "God-Set" con 10–12 incan
 
 ---
 
-## 🛠️ Compilazione dai Sorgenti
-
-Se desideri compilare la mod autonomamente a partire dal codice sorgente:
-
-```bash
-# 1. Clona il repository
-git clone https://github.com/Infezione/litness-enchant-helper.git
-cd litness-enchant-helper
-
-# 2. Compila con Gradle (richiede JDK 21 o superiore)
-gradle build
-```
-
-Il file `.jar` compilato sarà generato all'interno della cartella `build/libs/LitnessEnchantHelper-1.0.0.jar`.
-
----
-
 ## 👤 Autore & Crediti
 
 - **Sviluppato da**: **Waaxey**
