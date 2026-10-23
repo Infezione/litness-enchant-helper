@@ -22,6 +22,7 @@ Sul server Litness, forgiare spade, archi o armature "God-Set" con 10–12 incan
 ## 🎯 Funzionalità Dettagliate
 
 ### 1. ⚡ Assistente Incudine in Tempo Reale
+![Assistente Incudine](https://github.com/Infezione/litness-enchant-helper/releases/download/v1.0.0/preview_anvil.png)
 - **Sidebar integrata**: non appena apri un'incudine di gioco, compare lateralmente una schermata pulita in stile *dark glass* che si adatta perfettamente alla GUI di Minecraft.
 - **Rilevamento istantaneo**: riconosce automaticamente l'oggetto inserito nel primo slot (o tenuto in mano), la sua penalità attuale e i libri presenti nel tuo inventario.
 - **Istruzioni chiare**:
@@ -31,6 +32,7 @@ Sul server Litness, forgiare spade, archi o armature "God-Set" con 10–12 incan
 ---
 
 ### 2. 🔨 Guida alla Fusione Passo-Passo (Albero Ottimale)
+![Guida alla Fusione](https://github.com/Infezione/litness-enchant-helper/releases/download/v1.0.0/preview_guide.png)
 - **Calcolo istantaneo**: visualizza ogni singolo passaggio con gli slot dell'incudine (Slot 1, Slot 2 e Risultato), con icone grafiche per ciascun pezzo.
 - **Indicatore inventario**: su ogni passaggio della guida, un badge verde `✔ In Borsa` ti segnala se possiedi già quel libro nella tua borsa.
 - **Costi trasparenti**: mostra il costo in livelli di ciascun singolo step e il picco massimo di livelli richiesti.
@@ -48,12 +50,14 @@ Sul server Litness, forgiare spade, archi o armature "God-Set" con 10–12 incan
 ---
 
 ### 4. ⚠️ Sistema Anti-Errore e Rilevamento Conflitti
+![Creatore Set Futuri e Anti-Conflitti](https://github.com/Infezione/litness-enchant-helper/releases/download/v1.0.0/preview_set_builder.png)
 - **Triangolo di pericolo `⚠️`**: quando selezioni un incantesimo incompatibile con altri già scelti (es. *Affilatezza* vs *Anatema*, *Protezione* vs *Protezione dal fuoco*, ecc.), la mod mostra un triangolo di allerta e indica con precisione contro quale incantesimo va in conflitto.
 - **Prevenzione sprechi**: impedisce di sprecare libri rari e preziosi in combinazioni non permesse dal gioco o dal regolamento del server.
 
 ---
 
 ### 5. 📌 HUD a Schermo in Tempo Reale (Zero Lag)
+![HUD in Gioco](https://github.com/Infezione/litness-enchant-helper/releases/download/v1.0.0/preview_hud.png)
 - **Fissa la tua lista a schermo**: cliccando su `📌 Pin HUD`, tutti gli incantesimi del set attivo o salvato compaiono in un box elegante nell'angolo in alto a sinistra dello schermo.
 - **Feedback visivo intelligente**:
   - 🟢 **`✔ <Nome>` (Verde)**: Possiedi il libro incantato nella tua borsa, pronto per essere fuso.
@@ -65,6 +69,7 @@ Sul server Litness, forgiare spade, archi o armature "God-Set" con 10–12 incan
 ---
 
 ### 6. 📖 Catalogo Completo degli Incantesimi (Vanilla & Custom)
+![Catalogo Incantesimi](https://github.com/Infezione/litness-enchant-helper/releases/download/v1.0.0/preview_catalog.png)
 - **Tutti gli incantesimi di Litness**: include l'intero archivio degli incantesimi Custom del server e quelli Vanilla di Minecraft.
 - **Filtri rapidi**: ricerca testuale istantanea (con supporto per nomi italiani e alias inglesi) e filtri *Tutti / Vanilla / Custom*.
 - **Schede informative**: visualizza rarità (*Comune, Non comune, Raro, Epico, Leggendario, Speciale*), descrizione completa, livello massimo, pezzi compatibili e costo base dell'incudine.
