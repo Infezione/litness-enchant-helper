@@ -443,6 +443,9 @@ public class LitnessTooltipHandler {
             String maxRoman = AnvilOptimizer.toRoman(ee.maxLevel);
 
             String maxTag = isMax ? " §8[§a✓ Max " + maxRoman + "§8]" : " §8[§eMax " + maxRoman + "§8]";
+            String rarityBadge = (isCustom && ee.rarity != null && !ee.rarity.isEmpty())
+                    ? " " + getRarityColorCode(ee.rarity) + "[" + ee.rarity.toUpperCase() + "]"
+                    : "";
 
             String icon = isCustom ? "§6⚡ " : "§9✦ ";
             int insertOffset = 1;
@@ -450,11 +453,11 @@ public class LitnessTooltipHandler {
             if (targetLineIdx >= 0) {
                 String fullText = lines.get(targetLineIdx).getString().replace('\u00A0', ' ').trim();
                 String displayBase = fullText.replaceAll("^[§0-9a-fk-orx\\s]*[✦⚡•»►*#\\-◆★✧✨⚔⚜✪✯⚙☠🗡🛡🏹⛏]+\\s*", "").trim();
-                lines.set(targetLineIdx, Component.literal(icon + displayBase + maxTag));
+                lines.set(targetLineIdx, Component.literal(icon + displayBase + maxTag + rarityBadge));
             } else {
                 targetLineIdx = Math.min(1, lines.size());
                 String displayName = ee.name + " " + AnvilOptimizer.toRoman(lvl);
-                lines.add(targetLineIdx, Component.literal(icon + displayName + maxTag));
+                lines.add(targetLineIdx, Component.literal(icon + displayName + maxTag + rarityBadge));
             }
 
             // Info custom costo incudine (senza indicazione di rarità)
@@ -533,6 +536,9 @@ public class LitnessTooltipHandler {
 
             // Tag Max Enchant e Costo:
             String maxTag = isMax ? " §8[§a✓ Max " + maxRoman + "§8]" : " §8[§eMax " + maxRoman + "§8]";
+            String rarityBadge = (isCustom && ee.rarity != null && !ee.rarity.isEmpty())
+                    ? " " + getRarityColorCode(ee.rarity) + "[" + ee.rarity.toUpperCase() + "]"
+                    : "";
 
             // Trova l'indice attuale della riga originale nella lista 'lines'
             int targetIdx = -1;
@@ -545,7 +551,7 @@ public class LitnessTooltipHandler {
 
             String displayBase = fullText.replaceAll("^[§0-9a-fk-orx\\s]*[✦⚡•»►*#\\-◆★✧✨⚔⚜✪✯⚙☠🗡🛡🏹⛏]+\\s*", "").trim();
             String icon = isCustom ? "§6⚡ " : "§9✦ ";
-            String headerLine = icon + displayBase + maxTag;
+            String headerLine = icon + displayBase + maxTag + rarityBadge;
 
             if (targetIdx >= 0) {
                 lines.set(targetIdx, Component.literal(headerLine));
@@ -847,6 +853,19 @@ public class LitnessTooltipHandler {
             default:
                 return ItemStack.EMPTY;
         }
+    }
+
+    public static String getRarityColorCode(String rarity) {
+        if (rarity == null) return "§7";
+        return switch (rarity.toLowerCase().trim()) {
+            case "comune", "common" -> "§7";
+            case "non comune", "uncommon" -> "§a";
+            case "raro", "rare" -> "§b";
+            case "epico", "epic" -> "§d";
+            case "leggendario", "legendary" -> "§6";
+            case "speciale", "special" -> "§c";
+            default -> "§f";
+        };
     }
 
     private static String normalize(String s) {
