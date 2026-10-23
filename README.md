@@ -86,9 +86,10 @@ Sul server Litness, forgiare spade, archi o armature "God-Set" con 10–12 incan
 ### 7. 🔮 Tooltip Arricchiti nell'Inventario (Lore & Info Live)
 ![Tooltip Lore e Conflitti](https://github.com/Infezione/litness-enchant-helper/releases/download/v1.0.0/preview_lore_tooltip.png)
 - **Info immediate sui libri**: passando il cursore su qualsiasi libro incantato nella tua borsa o nelle casse, la mod arricchisce automaticamente la lore di gioco con:
-  - ⚔️ **Icone strumenti compatibili**: visualizza subito su quali oggetti è possibile applicarlo (es. spade, asce, picconi, armature).
-  - ⚡ **Livello Massimo**: indica il livello massimo raggiungibile dell'incantesimo (es. `[Max III]`).
-  - ⚠️ **Rilevamento Conflitti**: segnala istantaneamente le incompatibilità con altri incantesimi (es. `※ Conflitti: Lifesteal`).
+  - 🏷️ **Grado di Rarità**: visualizza il badge colorato della rarità ufficiale (*[COMUNE]*, *[NON COMUNE]*, *[RARO]*, *[EPICO]*, *[LEGGENDARIO]*, *[SPECIALE]*, *[MOLTO SPECIALE]*).
+  - ⚡ **Livello Massimo**: indica se l'incantesimo ha raggiunto il cap (`[✓ Max II]`) o il livello massimo disponibile.
+  - 🛡️ **Icone strumenti compatibili**: visualizza subito l'icona grafica dell'oggetto su cui è applicabile (es. armature, spade, asce, picconi).
+  - ⚠️ **Rilevamento Conflitti**: segnala istantaneamente le incompatibilità dirette (es. `※ Conflitti: Spine, Static Barrier`).
   - 💰 **Costo Base Incudine**: calcola in anticipo il costo netto in livelli di XP per applicare quel libro.
 
 ---
