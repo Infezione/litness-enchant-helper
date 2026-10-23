@@ -26,6 +26,7 @@ import net.minecraft.world.item.Item;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.Items;
 import net.minecraft.world.item.TooltipFlag;
+import net.minecraft.world.item.component.ItemLore;
 import net.minecraft.world.item.enchantment.ItemEnchantments;
 import org.lwjgl.glfw.GLFW;
 
@@ -122,18 +123,29 @@ public class LitnessOptimizerScreen extends Screen {
     private final List<Button> savedSetButtons = new ArrayList<>();
 
     public LitnessOptimizerScreen(Component title) {
-        this(title, null, null);
+        this(title, null, null, null);
     }
 
     public LitnessOptimizerScreen(Component title, Screen parentScreen, AnvilMenu anvilMenu) {
+        this(title, parentScreen, anvilMenu, null);
+    }
+
+    public LitnessOptimizerScreen(Component title, Screen parentScreen, AnvilMenu anvilMenu, Solution initialSolution) {
         super(title);
         this.parentScreen = parentScreen;
         this.anvilMenu = anvilMenu;
-        if (anvilMenu != null) {
+        if (initialSolution != null && !initialSolution.steps.isEmpty()) {
+            this.currentSolution = initialSolution;
             this.currentTab = Tab.CALCULATOR;
-            this.calcMode = CalcMode.SIMULATOR;
+            this.calcMode = CalcMode.INVENTORY;
             this.simView = SimView.GUIDE;
+        } else if (anvilMenu != null) {
+            this.currentTab = Tab.CALCULATOR;
+            this.calcMode = CalcMode.INVENTORY;
+            this.simView = SimView.GUIDE;
+        }
 
+        if (anvilMenu != null) {
             ItemStack slot0 = anvilMenu.getSlot(0).getItem();
             if (!slot0.isEmpty()) {
                 String descId = slot0.getItem().getDescriptionId().toLowerCase();
@@ -356,10 +368,20 @@ public class LitnessOptimizerScreen extends Screen {
         }
 
         if (currentSolution == null) {
-            if (simulatorSelectedEnchants.isEmpty()) {
-                applyDefaultRecommendedEnchants();
+            if (this.anvilMenu != null) {
+                scanFromGameEnvironment();
+                if (!this.currentScannedBooks.isEmpty()) {
+                    this.calcMode = CalcMode.INVENTORY;
+                    runCalculation();
+                }
             }
-            runCalculation();
+            if (currentSolution == null) {
+                this.calcMode = CalcMode.SIMULATOR;
+                if (simulatorSelectedEnchants.isEmpty()) {
+                    applyDefaultRecommendedEnchants();
+                }
+                runCalculation();
+            }
         }
     }
 
@@ -1013,35 +1035,7 @@ public class LitnessOptimizerScreen extends Screen {
         }
 
         BookInput book = new BookInput(priorWork);
-
-        // Vanilla stored enchants
-        ItemEnchantments stored = stack.getOrDefault(DataComponents.STORED_ENCHANTMENTS, ItemEnchantments.EMPTY);
-        for (var entry : stored.entrySet()) {
-            String rawId = entry.getKey().unwrapKey().map(k -> k.identifier().getPath()).orElse("");
-            int lvl = entry.getIntValue();
-            EnchantmentEntry ee = EnchantmentDatabase.getEnchantment(rawId);
-            if (ee != null) {
-                book.enchantments.add(new EnchantApplied(ee.id, lvl));
-            }
-        }
-
-        // Custom lore enchants
-        List<Component> lines = stack.getTooltipLines(Item.TooltipContext.EMPTY, null, TooltipFlag.NORMAL);
-        for (Component c : lines) {
-            LitnessTooltipHandler.MatchedEnchantment match = LitnessTooltipHandler.matchEnchantment(c.getString());
-            if (match != null && match.entry != null) {
-                boolean alreadyAdded = false;
-                for (EnchantApplied ea : book.enchantments) {
-                    if (ea.id.equalsIgnoreCase(match.entry.id)) {
-                        alreadyAdded = true;
-                        break;
-                    }
-                }
-                if (!alreadyAdded) {
-                    book.enchantments.add(new EnchantApplied(match.entry.id, match.level > 0 ? match.level : match.entry.maxLevel));
-                }
-            }
-        }
+        book.enchantments = extractAllEnchantmentsFromItem(stack);
 
         int loreCost = InventoryTracker.extractAnvilCostFromLore(stack);
         book.explicitCost = loreCost;
@@ -1152,6 +1146,14 @@ public class LitnessOptimizerScreen extends Screen {
             String id = ee != null ? ee.id : rawId;
             if (!id.isEmpty() && seen.add(id)) {
                 list.add(new EnchantApplied(id, lvl));
+            }
+        }
+
+        ItemLore lore = stack.getOrDefault(DataComponents.LORE, ItemLore.EMPTY);
+        for (Component comp : lore.lines()) {
+            LitnessTooltipHandler.MatchedEnchantment match = LitnessTooltipHandler.matchEnchantment(comp.getString());
+            if (match != null && match.entry != null && seen.add(match.entry.id)) {
+                list.add(new EnchantApplied(match.entry.id, match.level > 0 ? match.level : 1));
             }
         }
 
@@ -1390,12 +1392,17 @@ public class LitnessOptimizerScreen extends Screen {
             String peakTxt = "⚡ Picco: " + currentSolution.peakCost + "/39 liv. " + (safe ? "✔" : "✖");
             extractor.text(this.font, peakTxt, panelX + 80, bannerY + 6, safe ? 0xFF818CF8 : 0xFFEF4444, false);
 
-            int totalNeeded = simulatorSelectedEnchants.size();
-            int inInvCount = InventoryTracker.countInInventory(simulatorSelectedEnchants);
-            String inInvTxt = inInvCount == totalNeeded && totalNeeded > 0
-                    ? "§a📦 " + inInvCount + "/" + totalNeeded + " In Borsa ✔"
-                    : "§e📦 " + inInvCount + "/" + totalNeeded + " In Borsa";
-            extractor.text(this.font, inInvTxt, panelX + 195, bannerY + 6, inInvCount == totalNeeded ? 0xFF34D399 : 0xFFFBBF24, false);
+            String inInvTxt;
+            if (calcMode == CalcMode.INVENTORY) {
+                inInvTxt = "§a📦 " + currentScannedBooks.size() + " Libri Rilevati in Borsa";
+            } else {
+                int totalNeeded = simulatorSelectedEnchants.size();
+                int inInvCount = InventoryTracker.countInInventory(simulatorSelectedEnchants);
+                inInvTxt = inInvCount == totalNeeded && totalNeeded > 0
+                        ? "§a📦 " + inInvCount + "/" + totalNeeded + " In Borsa ✔"
+                        : "§e📦 " + inInvCount + "/" + totalNeeded + " In Borsa";
+            }
+            extractor.text(this.font, inInvTxt, panelX + 195, bannerY + 6, 0xFF34D399, false);
 
             int totalSteps = currentSolution.steps.size();
             int stepsPerPage = 4;
