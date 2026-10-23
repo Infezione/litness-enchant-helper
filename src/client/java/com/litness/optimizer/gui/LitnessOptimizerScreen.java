@@ -1207,7 +1207,8 @@ public class LitnessOptimizerScreen extends Screen {
             }
 
             // Firma autore strictly made by Waaxey
-            extractor.text(this.font, "made by Waaxey", 10, this.height - 12, 0x88818CF8, false);
+            int signW = this.font.width("made by Waaxey");
+            extractor.text(this.font, "made by Waaxey", (this.width - signW) / 2, this.height - 11, 0x88818CF8, false);
         } catch (Throwable t) {
             t.printStackTrace();
         }
@@ -1385,24 +1386,14 @@ public class LitnessOptimizerScreen extends Screen {
             extractor.fill(panelX, bannerY, panelX + 3, bannerY + 20, 0xFF10B981);
             extractor.outline(panelX, bannerY, bannerW, 20, 0xFF2A2A3E);
 
+            int curBannerX = panelX + 10;
             String costTxt = "💰 " + currentSolution.totalCost + " liv.";
-            extractor.text(this.font, costTxt, panelX + 8, bannerY + 6, 0xFF34D399, false);
+            extractor.text(this.font, costTxt, curBannerX, bannerY + 6, 0xFF34D399, false);
+            curBannerX += this.font.width(costTxt) + 16;
 
             boolean safe = currentSolution.peakCost <= 39;
             String peakTxt = "⚡ Picco: " + currentSolution.peakCost + "/39 liv. " + (safe ? "✔" : "✖");
-            extractor.text(this.font, peakTxt, panelX + 80, bannerY + 6, safe ? 0xFF818CF8 : 0xFFEF4444, false);
-
-            String inInvTxt;
-            if (calcMode == CalcMode.INVENTORY) {
-                inInvTxt = "§a📦 " + currentScannedBooks.size() + " Libri Rilevati in Borsa";
-            } else {
-                int totalNeeded = simulatorSelectedEnchants.size();
-                int inInvCount = InventoryTracker.countInInventory(simulatorSelectedEnchants);
-                inInvTxt = inInvCount == totalNeeded && totalNeeded > 0
-                        ? "§a📦 " + inInvCount + "/" + totalNeeded + " In Borsa ✔"
-                        : "§e📦 " + inInvCount + "/" + totalNeeded + " In Borsa";
-            }
-            extractor.text(this.font, inInvTxt, panelX + 195, bannerY + 6, 0xFF34D399, false);
+            extractor.text(this.font, peakTxt, curBannerX, bannerY + 6, safe ? 0xFF818CF8 : 0xFFEF4444, false);
 
             int totalSteps = currentSolution.steps.size();
             int stepsPerPage = 4;
@@ -1412,7 +1403,8 @@ public class LitnessOptimizerScreen extends Screen {
 
             String pagInfo = "Passi " + (guideStepPage * stepsPerPage + 1) + "-" + Math.min((guideStepPage + 1) * stepsPerPage, totalSteps) 
                     + " di " + totalSteps;
-            extractor.text(this.font, pagInfo, panelX + 310, bannerY + 6, 0xFFA5B4FC, false);
+            int pagInfoX = panelX + bannerW - this.font.width(pagInfo) - 10;
+            extractor.text(this.font, pagInfo, Math.max(curBannerX + this.font.width(peakTxt) + 16, pagInfoX), bannerY + 6, 0xFFA5B4FC, false);
 
             if (btnCopyGuide != null) {
                 btnCopyGuide.visible = true;
