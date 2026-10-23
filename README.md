@@ -112,7 +112,7 @@ git clone https://github.com/Infezione/litness-enchant-helper.git
 cd litness-enchant-helper
 
 # 2. Compila con Gradle (richiede JDK 21 o superiore)
-./gradlew build
+gradle build
 ```
 
 Il file `.jar` compilato sarà generato all'interno della cartella `build/libs/LitnessEnchantHelper-1.0.0.jar`.
