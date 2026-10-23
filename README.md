@@ -74,7 +74,7 @@ Sul server Litness, forgiare spade, archi o armature "God-Set" con 10–12 incan
 ![Catalogo Incantesimi](https://github.com/Infezione/litness-enchant-helper/releases/download/v1.0.0/preview_catalog.png)
 - **Tutti gli incantesimi di Litness**: include l'intero archivio degli incantesimi Custom del server e quelli Vanilla di Minecraft.
 - **Filtri rapidi**: ricerca testuale istantanea (con supporto per nomi italiani e alias inglesi) e filtri *Tutti / Vanilla / Custom*.
-- **Schede informative**: visualizza rarità (*Comune, Non comune, Raro, Epico, Leggendario, Speciale*), descrizione completa, livello massimo, pezzi compatibili e costo base dell'incudine.
+- **Schede informative**: visualizza rarità (*Comune, Non comune, Raro, Epico, Leggendario, Speciale, Molto speciale*), descrizione completa, livello massimo, pezzi compatibili e costo base dell'incudine.
 
 ---
 
