@@ -52,7 +52,6 @@ Sul server Litness, forgiare spade, archi o armature "God-Set" con 10–12 incan
 - **Lista da zero**: quando crei un nuovo set, la lista parte completamente pulita per permetterti di selezionare fino a 12 incantesimi desiderati.
 - **Salvataggio persistente**: assegna un nome al set (es. *Spada Dungeon Boss*, *Corazza PvP*, *Piccone Farm*) e salvalo in memoria locale.
 - **Guida teorica immediata**: cliccando `⚡ Guida` su qualsiasi set salvato, la mod genera immediatamente tutti i passaggi di fusione teorici anche se non possiedi ancora tutti i libri nel tuo inventario.
-- **God-Set inclusi**: include configurazioni God-Set preimpostate per spada e armatura pronte all'uso.
 
 ---
 
