@@ -100,45 +100,6 @@ public class SavedSetsManager {
         return false;
     }
 
-    public static List<String> getPresetEnchantments(String itemKey) {
-        if (itemKey == null) return Collections.emptyList();
-        switch (itemKey.toLowerCase()) {
-            case "sword":
-                return List.of("sharpness", "first-strike", "criticals", "phantom-strike", "berserker", "dexterity", "bleed", "executioner", "goliath", "lifesteal", "ignis-fury", "mending");
-            case "helmet":
-                return List.of("protection", "respiration", "aqua_affinity", "thorns", "unbreaking", "mending", "arcane-defense", "night-stalker", "satiety", "block-breather");
-            case "chest":
-                return List.of("protection", "thorns", "unbreaking", "mending", "phoenix-heart", "thrive", "fortitude", "arcane-defense", "aura", "molten-heart", "stamina", "metabolism");
-            case "legs":
-                return List.of("protection", "thorns", "swift_sneak", "unbreaking", "mending", "iron-stance", "shadow-step", "static-barrier", "thrive", "fortitude", "arcane-defense", "aura");
-            case "boots":
-                return List.of("protection", "bouncy", "depth_strider", "soul_speed", "thorns", "unbreaking", "mending", "streamlining", "getaway", "arcane-defense", "feather-step");
-            default:
-                return Collections.emptyList();
-        }
-    }
-
-    public static boolean isPresetPinned(String itemKey) {
-        List<String> preset = getPresetEnchantments(itemKey);
-        if (preset.isEmpty()) return false;
-        for (String id : preset) {
-            if (!PinnedEnchantmentsManager.isPinned(id)) return false;
-        }
-        return true;
-    }
-
-    public static void togglePinPreset(String itemKey) {
-        List<String> preset = getPresetEnchantments(itemKey);
-        if (preset.isEmpty()) return;
-        if (isPresetPinned(itemKey)) {
-            for (String id : preset) {
-                PinnedEnchantmentsManager.setPinned(id, false);
-            }
-        } else {
-            PinnedEnchantmentsManager.clearAll();
-            PinnedEnchantmentsManager.pinAll(preset);
-        }
-    }
 
     public static boolean isSetPinned(Collection<String> enchantIds) {
         if (enchantIds == null || enchantIds.isEmpty()) return false;
