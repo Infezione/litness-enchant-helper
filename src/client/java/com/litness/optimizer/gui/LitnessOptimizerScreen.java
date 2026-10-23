@@ -288,29 +288,26 @@ public class LitnessOptimizerScreen extends Screen {
                 .bounds(curX, row1Y, 64, 18).build());
         curX += 66;
 
-        // [⚡ God-Set] + [📌 Pin HUD] + [❌ Reset]
-        int remainingRow1 = startX + panelWidth - curX - 26;
-        int pinPresetW = 76;
-        int godSetW = Math.max(70, remainingRow1 - pinPresetW - 4);
+        // [📌 Pin HUD] + [❌ Reset]
+        int pinBtnW = 82;
+        int resetBtnW = 24;
+        int pinX = startX + panelWidth - pinBtnW - resetBtnW - 4;
 
-        this.addRenderableWidget(Button.builder(Component.literal("§6⚡ God-Set"), b -> {
-            applyPreset(ITEM_KEYS[selectedItemIndex]);
-        }).bounds(curX, row1Y, godSetW, 18).build());
-        curX += godSetW + 2;
-
-        boolean isPresetPinned = SavedSetsManager.isPresetPinned(ITEM_KEYS[selectedItemIndex]);
-        String pinPresetTxt = isPresetPinned ? "§6★ Pinnato" : "📌 Pin HUD";
-        this.addRenderableWidget(Button.builder(Component.literal(pinPresetTxt), b -> {
-            String key = ITEM_KEYS[selectedItemIndex];
-            SavedSetsManager.togglePinPreset(key);
-            boolean pinned = SavedSetsManager.isPresetPinned(key);
-            statusMessage = pinned 
-                ? "§aSet " + ITEM_NAMES[selectedItemIndex] + " pinnato in alto a sinistra!" 
-                : "§7Pin rimosso per " + ITEM_NAMES[selectedItemIndex] + ".";
+        boolean isPinned = !simulatorSelectedEnchants.isEmpty() && SavedSetsManager.isSetPinned(simulatorSelectedEnchants);
+        String pinTxt = isPinned ? "§6★ Pinnato" : "📌 Pin HUD";
+        this.addRenderableWidget(Button.builder(Component.literal(pinTxt), b -> {
+            if (simulatorSelectedEnchants.isEmpty()) {
+                statusMessage = "§cNessun incantesimo selezionato da pinnare.";
+            } else {
+                SavedSetsManager.togglePinSet(simulatorSelectedEnchants);
+                boolean pinned = SavedSetsManager.isSetPinned(simulatorSelectedEnchants);
+                statusMessage = pinned 
+                    ? "§aSet pinnato in alto a sinistra!" 
+                    : "§7Set rimosso dai pinnati.";
+            }
             this.clearWidgets();
             this.init();
-        }).bounds(curX, row1Y, pinPresetW, 18).build());
-        curX += pinPresetW + 2;
+        }).bounds(pinX, row1Y, pinBtnW, 18).build());
 
         // [❌ Reset]
         this.addRenderableWidget(Button.builder(Component.literal("❌"), b -> {
@@ -320,7 +317,7 @@ public class LitnessOptimizerScreen extends Screen {
             runCalculation();
             this.clearWidgets();
             this.init();
-        }).bounds(curX, row1Y, 24, 18).build());
+        }).bounds(startX + panelWidth - resetBtnW, row1Y, resetBtnW, 18).build());
 
         // RIGA 2: VISTA PRINCIPALE (Sub-Tab: 1. Guida vs 2. I Miei Set & God-Set)
         int row2Y = row1Y + 21; // Y = 50
@@ -485,32 +482,6 @@ public class LitnessOptimizerScreen extends Screen {
         return getConflictWithCollection(ee, isCreatingSet ? creatingSetEnchants : simulatorSelectedEnchants);
     }
 
-    private void applyPreset(String type) {
-        selectedPenaltyIndex = 0; // 0 liv.
-        guideStepPage = 0;
-        this.calcMode = CalcMode.SIMULATOR;
-        simulatorSelectedEnchants.clear();
-        simView = SimView.GUIDE;
-
-        for (int i = 0; i < ITEM_KEYS.length; i++) {
-            if (ITEM_KEYS[i].equalsIgnoreCase(type)) {
-                selectedItemIndex = i;
-                break;
-            }
-        }
-
-        List<String> preset = SavedSetsManager.getPresetEnchantments(type);
-        if (!preset.isEmpty()) {
-            simulatorSelectedEnchants.addAll(preset);
-            statusMessage = "Preset " + ITEM_NAMES[selectedItemIndex] + " God-Set: " + preset.size() + "/12 incantesimi ottimali!";
-        } else {
-            applyDefaultRecommendedEnchants();
-        }
-
-        runCalculation();
-        this.clearWidgets();
-        this.init();
-    }
 
     private void initSavedSetsViewWidgets(int startX, int panelWidth, int contentY) {
         if (isCreatingSet) {
@@ -732,40 +703,6 @@ public class LitnessOptimizerScreen extends Screen {
 
         List<SavedSetsManager.CustomSet> sets = SavedSetsManager.getSavedSets();
         if (sets.isEmpty()) {
-            int cardH = 34;
-            int gap = 4;
-            int listY = startY + 20;
-
-            for (int i = 0; i < 5; i++) {
-                final int itemIdx = i;
-                final String itemKey = ITEM_KEYS[itemIdx];
-                int y = listY + i * (cardH + gap);
-
-                // [⚡ Carica Preset]
-                Button loadBtn = Button.builder(Component.literal("⚡ Carica"), b -> {
-                    selectItem(itemIdx);
-                    applyPreset(itemKey);
-                    simView = SimView.GUIDE;
-                    this.clearWidgets();
-                    this.init();
-                }).bounds(startX + panelWidth - 150, y + 8, 68, 18).build();
-                this.addRenderableWidget(loadBtn);
-                savedSetButtons.add(loadBtn);
-
-                // [📌 Pin Preset]
-                boolean pinned = SavedSetsManager.isPresetPinned(itemKey);
-                String pinText = pinned ? "§6★ Pinnato" : "📌 Pin HUD";
-                Button pinBtn = Button.builder(Component.literal(pinText), b -> {
-                    SavedSetsManager.togglePinPreset(itemKey);
-                    statusMessage = SavedSetsManager.isPresetPinned(itemKey)
-                        ? "§aPreset " + ITEM_NAMES[itemIdx] + " pinnato in alto a sinistra!"
-                        : "§7Preset " + ITEM_NAMES[itemIdx] + " rimosso dai pinnati.";
-                    this.clearWidgets();
-                    this.init();
-                }).bounds(startX + panelWidth - 78, y + 8, 74, 18).build();
-                this.addRenderableWidget(pinBtn);
-                savedSetButtons.add(pinBtn);
-            }
             return;
         }
 
@@ -876,35 +813,11 @@ public class LitnessOptimizerScreen extends Screen {
         List<SavedSetsManager.CustomSet> sets = SavedSetsManager.getSavedSets();
 
         if (sets.isEmpty()) {
-            extractor.fill(panelX, startY - 2, panelX + panelWidth, startY + 16, 0xEE141422);
-            extractor.text(this.font, "§6⚡ Nessun set personalizzato salvato: ecco i Preset God-Set ufficiali:", panelX + 8, startY + 2, 0xFFFBBF24, false);
-
-            int cardH = 34;
-            int gap = 4;
-            int listY = startY + 20;
-
-            for (int i = 0; i < 5; i++) {
-                int y = listY + i * (cardH + gap);
-                String itemKey = ITEM_KEYS[i];
-                List<String> presetEnchants = SavedSetsManager.getPresetEnchantments(itemKey);
-                boolean isPinned = SavedSetsManager.isPresetPinned(itemKey);
-                int inInv = InventoryTracker.countInInventory(presetEnchants);
-
-                int stripeColor = isPinned ? 0xFFF59E0B : 0xFF10B981;
-                extractor.fill(panelX, y, panelX + panelWidth, y + cardH, 0xEE12121E);
-                extractor.fill(panelX, y, panelX + 3, y + cardH, stripeColor);
-                extractor.outline(panelX, y, panelWidth, cardH, 0xFF2A2A3E);
-
-                extractor.fakeItem(getItemStackForType(itemKey), panelX + 8, y + 9);
-
-                String title = "Preset " + ITEM_NAMES[i] + " God-Set §8(" + presetEnchants.size() + "/12)";
-                extractor.text(this.font, title, panelX + 32, y + 6, 0xFFFFFFFF, false);
-
-                String inInvTxt = inInv == presetEnchants.size() 
-                    ? "§a📦 " + inInv + "/" + presetEnchants.size() + " In Borsa ✔"
-                    : "§e📦 " + inInv + "/" + presetEnchants.size() + " In Borsa";
-                extractor.text(this.font, inInvTxt, panelX + 32, y + 18, 0xFFA1A1AA, false);
-            }
+            int emptyH = 50;
+            extractor.fill(panelX, startY, panelX + panelWidth, startY + emptyH, 0xEE141422);
+            extractor.outline(panelX, startY, panelWidth, emptyH, 0xFF2A2A3E);
+            extractor.centeredText(this.font, "§7Nessun set salvato.", panelX + panelWidth / 2, startY + 12, 0xFFA1A1AA);
+            extractor.centeredText(this.font, "§aClicca su '➕ Crea Nuovo Set' in alto a destra per creare il tuo primo set!", panelX + panelWidth / 2, startY + 28, 0xFF34D399);
             return;
         }
 
