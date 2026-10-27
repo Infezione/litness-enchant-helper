@@ -1,12 +1,14 @@
 # ⚡ Litness Enchant Helper
 
 [![DOWNLOAD MOD (.JAR)](https://img.shields.io/badge/⬇️%20SCARICA%20SUBITO%20LA%20MOD%20(.JAR)-VERSIONE%201.1.1-22c55e?style=for-the-badge&logo=curseforge&logoColor=white)](https://github.com/Infezione/litness-enchant-helper/releases/download/v1.1.1/LitnessEnchantHelper-1.1.1.jar)
+[![DOWNLOAD .JAR](https://img.shields.io/github/downloads/Infezione/litness-enchant-helper/total?style=for-the-badge&logo=curseforge&logoColor=white&label=DOWNLOAD%20.JAR&color=22c55e)](https://github.com/Infezione/litness-enchant-helper/releases)
 [![ULTIMI AGGIORNAMENTI](https://img.shields.io/badge/🔄%20ULTIMI%20AGGIORNAMENTI-VEDI%20LE%20NOVITÀ-6366f1?style=for-the-badge&logo=sparkles&logoColor=white)](#-ultimi-aggiornamenti)
 
 ![Minecraft](https://img.shields.io/badge/Minecraft-26.2-brightgreen.svg)
 ![Fabric](https://img.shields.io/badge/ModLoader-Fabric-blue.svg)
 ![Lunar Client](https://img.shields.io/badge/Lunar%20Client-Compatible-informational.svg)
 ![Release](https://img.shields.io/badge/Release-v1.1.1-blueviolet.svg)
+![Downloads](https://img.shields.io/github/downloads/Infezione/litness-enchant-helper/total?label=Downloads%20.JAR&color=22c55e&logo=curseforge)
 ![Author](https://img.shields.io/badge/Author-Waaxey-purple.svg)
 
 > [!TIP]
@@ -31,7 +33,7 @@ Sul server Litness, forgiare spade, archi, picconi o armature con 10–12 incant
 ## 🎯 Funzionalità Dettagliate
 
 ### 1. ⚡ Assistente Incudine in Tempo Reale
-![Assistente Incudine](https://github.com/Infezione/litness-enchant-helper/releases/download/v1.0.0/preview_anvil.png)
+![Assistente Incudine](docs/images/preview_anvil.png)
 - **Sidebar integrata**: non appena apri un'incudine di gioco, compare lateralmente una schermata pulita in stile *dark glass* che si adatta perfettamente alla GUI di Minecraft.
 - **Rilevamento istantaneo**: riconosce automaticamente l'oggetto inserito nel primo slot (o tenuto in mano), la sua penalità attuale e i libri presenti nel tuo inventario.
 - **Istruzioni chiare**:
@@ -41,7 +43,7 @@ Sul server Litness, forgiare spade, archi, picconi o armature con 10–12 incant
 ---
 
 ### 2. 🔨 Guida alla Fusione Passo-Passo (Albero Ottimale)
-![Guida alla Fusione](https://github.com/Infezione/litness-enchant-helper/releases/download/v1.0.0/preview_guide.png)
+![Guida alla Fusione](docs/images/preview_guide.png)
 - **Calcolo istantaneo**: visualizza ogni singolo passaggio con gli slot dell'incudine (Slot 1, Slot 2 e Risultato), con icone grafiche per ciascun pezzo.
 - **Indicatore inventario**: su ogni passaggio della guida, un badge verde `✔ In Inventario` ti segnala se possiedi già quel libro nel tuo inventario.
 - **Costi trasparenti**: mostra il costo in livelli di ciascun singolo step e il picco massimo di livelli richiesti.
@@ -58,7 +60,7 @@ Sul server Litness, forgiare spade, archi, picconi o armature con 10–12 incant
 ---
 
 ### 4. 📌 Pin HUD Checklist in Gioco (Real-Time Tracking)
-![Pin HUD In Gioco](https://github.com/Infezione/litness-enchant-helper/releases/download/v1.0.0/preview_hud.png)
+![Pin HUD In Gioco](docs/images/preview_hud.png)
 - **Checklist sempre attiva a schermo**: tieni d'occhio i tuoi progressi direttamente durante il gameplay senza dover riaprire il menu ogni volta.
 - **Tracking visivo intelligente**:
   - 🟢 `✔ In Inventario`: se possiedi già il libro incantato nell'inventario.
@@ -69,14 +71,14 @@ Sul server Litness, forgiare spade, archi, picconi o armature con 10–12 incant
 ---
 
 ### 5. ⚠️ Sistema Anti-Errore e Rilevamento Conflitti
-![Creatore Set Futuri e Anti-Conflitti](https://github.com/Infezione/litness-enchant-helper/releases/download/v1.0.0/preview_set_builder.png)
+![Creatore Set Futuri e Anti-Conflitti](docs/images/preview_set_builder.png)
 - **Triangolo di pericolo `⚠️`**: quando selezioni un incantesimo incompatibile con altri già scelti (es. *Affilatezza* vs *Anatema*, *Protezione* vs *Protezione dal fuoco*, ecc.), la mod mostra un triangolo di allerta e indica con precisione contro quale incantesimo va in conflitto.
 - **Prevenzione sprechi**: impedisce di sprecare libri rari e preziosi in combinazioni non permesse dal gioco o dal regolamento del server.
 
 ---
 
 ### 6. 📖 Catalogo Completo degli Incantesimi (Vanilla & Custom)
-![Catalogo Incantesimi](https://github.com/Infezione/litness-enchant-helper/releases/download/v1.0.0/preview_catalog.png)
+![Catalogo Incantesimi](docs/images/preview_catalog.png)
 - **Tutti gli incantesimi di Litness**: include l'intero archivio degli incantesimi Custom del server e quelli Vanilla di Minecraft.
 - **Filtri rapidi avanzati**: ricerca testuale istantanea (con supporto per nomi italiani e alias inglesi), filtri di categoria (*Tutti / Vanilla / Custom*) e **filtri rapidi per tipo di oggetto** (*⚔ Spada, ⛏ Piccone, 🛡 Armature, 🏹 Arco, 🪓 Ascia, 🌾 Zappa, 🔧 Altri*).
 - **Schede informative**: visualizza rarità (*Comune, Non comune, Raro, Epico, Leggendario, Speciale, Molto speciale*), descrizione completa, livello massimo, pezzi compatibili e costo base dell'incudine.
@@ -84,7 +86,7 @@ Sul server Litness, forgiare spade, archi, picconi o armature con 10–12 incant
 ---
 
 ### 7. 🔮 Tooltip Arricchiti nell'Inventario (Lore & Info Live)
-![Tooltip Lore e Conflitti](https://github.com/Infezione/litness-enchant-helper/releases/download/v1.0.0/preview_lore_tooltip.png)
+![Tooltip Lore e Conflitti](docs/images/preview_lore_tooltip.png)
 - **Info immediate sui libri**: passando il cursore su qualsiasi libro incantato nel tuo inventario o nelle casse, la mod arricchisce automaticamente la lore di gioco con:
   - 🏷️ **Grado di Rarità**: visualizza il badge colorato della rarità ufficiale (*[COMUNE]*, *[NON COMUNE]*, *[RARO]*, *[EPICO]*, *[LEGGENDARIO]*, *[SPECIALE]*, *[MOLTO SPECIALE]*).
   - ⚡ **Livello Massimo**: indica se l'incantesimo ha raggiunto il cap (`[✓ Max II]`) o il livello massimo disponibile.
