@@ -94,19 +94,20 @@ Sul server Litness, forgiare spade, archi, picconi o armature con 10–12 incant
 
 ---
 
-### 8. 🟢 Trova Subito gli Oggetti in AH & Evidenziazione in Tempo Reale
-![Ricerca Rapida ed Evidenziazione in AH](docs/images/preview_ah.png)
-- **Trova subito qualsiasi incantesimo all'Asta**: dal **Catalogo Incantesimi** (tasto `N`), basta cliccare sul pulsante **`[+ Cerca AH]`** accanto a qualsiasi incantesimo desiderato per attivare la ricerca e l'evidenziazione immediata.
-- **Spotting visivo istantaneo**: aprendo la Casa d'Aste (`/ah`) o il menu catalogo degli incantesimi (`/enchgui`), tutti i libri, armi, attrezzi o pezzi d'armatura che contengono quell'incantesimo vengono evidenziati all'istante con uno sfondo traslucido e un contorno verde smeraldo brillante.
+### 8. 🟢 Trova Subito gli Incantesimi in AH, Casse, Barili, Shulker ed Ender Chest!
+![Ricerca Rapida ed Evidenziazione in AH e Bauli](docs/images/preview_ah.png)
+- **Trova subito qualsiasi incantesimo in Asta e nei Bauli**: dal **Catalogo Incantesimi** (tasto `N`), basta cliccare sul pulsante **`[+ Cerca AH]`** accanto a qualsiasi incantesimo desiderato per attivare la ricerca e l'evidenziazione immediata.
+- **Spotting visivo istantaneo**: aprendo la Casa d'Aste (`/ah`), il menu catalogo (`/enchgui`), oppure qualsiasi **Cassa (singola o doppia)**, **Barile**, **Shulker Box** o **Ender Chest**, tutti i libri lisci corrispondenti vengono evidenziati all'istante con uno sfondo traslucido e un contorno verde smeraldo brillante.
+- **Rilevamento Profondo nelle Scatole di Shulker**: se in una cassa o nell'ender chest è presente una **Shulker Box** che contiene al suo interno il libro cercato, la Shulker Box stessa si illumina in verde, indicando all'istante dove si trova il libro senza dover aprire decine di shulker a caso!
 - **Supporto multi-selezione & Reset rapido**: puoi selezionare uno o più incantesimi contemporaneamente; nella parte superiore del Catalogo è sempre presente il pulsante rapido `[✕ Azzera AH]` per pulire le ricerche attive con un solo clic.
-- **Acquisti mirati**: niente più pagine sfogliate a vuoto o acquisti errati; individui a colpo d'occhio l'offerta giusta nel mare di libri all'asta!
-- **Zero interferenze**: l'evidenziazione visiva viene applicata unicamente sugli slot del menu del server, lasciando intatto e ordinato il tuo inventario personale.
+- **Zero interferenze**: l'evidenziazione visiva viene applicata unicamente sugli slot del contenitore o del mercato, lasciando intatto e ordinato il tuo inventario personale.
 
 ---
 
 <a id="ultimi-aggiornamenti"></a>
 ## 🔄 Ultimi Aggiornamenti
 
+- 📦 **Ricerca & Evidenziazione in Casse, Barili, Shulker ed Ender Chest**: La funzione di spotting verde smeraldo attivabile da Catalogo (`[+ Cerca AH]`) ora funziona non solo in `/ah` e `/enchgui`, ma anche dentro tutte le **Casse**, **Barili**, **Shulker Box** ed **Ender Chest**, con supporto al rilevamento automatico dei libri contenuti all'interno delle Shulker Box chiuse!
 - 🌟 **Nuova Sezione Vanilla+ nel Catalogo & Calcolatore**: Aggiunta la categoria speciale degli incantesimi Vanilla+ con livelli potenziati e costi dedicati all'incudine:
   - *Atterraggio morbido V* (`feather_falling_5`) - Costo: 5 liv.
   - *Affilatezza VI* (`sharpness_6`) - Costo: 6 liv.

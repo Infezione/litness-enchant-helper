@@ -12,6 +12,11 @@ import net.minecraft.client.gui.screens.Screen;
 import net.minecraft.client.gui.screens.inventory.AbstractContainerScreen;
 import net.minecraft.core.component.DataComponents;
 import net.minecraft.network.chat.Component;
+import net.minecraft.world.inventory.AbstractContainerMenu;
+import net.minecraft.world.inventory.ChestMenu;
+import net.minecraft.world.inventory.DispenserMenu;
+import net.minecraft.world.inventory.HopperMenu;
+import net.minecraft.world.inventory.ShulkerBoxMenu;
 import net.minecraft.world.inventory.Slot;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.component.ItemLore;
@@ -71,15 +76,14 @@ public abstract class ContainerScreenMixin extends Screen {
         // Escludi categoricamente l'inventario personale del giocatore
         if (slot.container == mc.player.getInventory()) return;
 
+        // Escludi l'incudine (ha la sua interfaccia laterale dedicata)
+        if (((Object) this) instanceof net.minecraft.client.gui.screens.inventory.AnvilScreen) return;
+
+        // Verifica che siamo in un contenitore supportato (Casse, Barili, Ender Chest, Shulker Box, /ah, /enchgui)
+        if (!isSupportedStorageContainer()) return;
+
         ItemStack stack = slot.getItem();
         if (stack.isEmpty()) return;
-
-        // Verifica che siamo in un menu server rilevante (/ah o /enchgui o item con lore server)
-        String titleStr = this.getTitle().getString();
-        boolean isTarget = isAuctionHouseOrEnchGui(titleStr);
-        if (!isTarget && !hasServerGuiOrAhLore(stack)) {
-            return;
-        }
 
         long now = System.currentTimeMillis();
         if (now - lastTargetCheck > 250) {
@@ -99,6 +103,16 @@ public abstract class ContainerScreenMixin extends Screen {
             extractor.fill(x - 1, y, x, y + 16, 0xFF00FF66);
             extractor.fill(x + 16, y, x + 17, y + 16, 0xFF00FF66);
         }
+    }
+
+    private boolean isSupportedStorageContainer() {
+        AbstractContainerMenu m = ((AbstractContainerScreen<?>) (Object) this).getMenu();
+        if (m instanceof ChestMenu) return true; // Casse singole/doppie, Barili, Ender Chest, /ah, /enchgui
+        if (m instanceof ShulkerBoxMenu) return true; // Scatole di Shulker aperte
+        if (m instanceof DispenserMenu) return true; // Dispenser e Dropper
+        if (m instanceof HopperMenu) return true; // Tramogge
+        String titleStr = this.getTitle().getString();
+        return isAuctionHouseOrEnchGui(titleStr);
     }
 
     private static boolean isAuctionHouseOrEnchGui(String title) {
@@ -145,6 +159,6 @@ public abstract class ContainerScreenMixin extends Screen {
     }
 
     private static boolean matchesAnyTargetEnchant(ItemStack stack, Set<String> targetEnchants) {
-        return com.litness.optimizer.gui.AhPriceManager.isCleanMatchingBook(stack, targetEnchants);
+        return com.litness.optimizer.gui.AhPriceManager.containsMatchingCleanBook(stack, targetEnchants);
     }
 }

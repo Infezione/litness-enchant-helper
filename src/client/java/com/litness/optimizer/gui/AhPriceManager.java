@@ -14,6 +14,8 @@ import net.minecraft.network.chat.Component;
 import net.minecraft.world.inventory.Slot;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.Items;
+import net.minecraft.world.item.component.BundleContents;
+import net.minecraft.world.item.component.ItemContainerContents;
 import net.minecraft.world.item.component.ItemLore;
 import net.minecraft.world.item.enchantment.ItemEnchantments;
 
@@ -196,6 +198,40 @@ public class AhPriceManager {
         if (distinct.size() != 1) return false;
         String singleId = distinct.iterator().next();
         return isEnchantInSet(singleId, targetEnchants);
+    }
+
+    /**
+     * Verifica se lo stack è un libro liscio corrispondente oppure una Shulker Box / Bundle contenente libri lisci corrispondenti
+     */
+    public static boolean containsMatchingCleanBook(ItemStack stack, Set<String> targetEnchants) {
+        if (stack == null || stack.isEmpty()) return false;
+
+        // 1. Libro liscio diretto
+        if (isCleanMatchingBook(stack, targetEnchants)) {
+            return true;
+        }
+
+        // 2. Scatola di Shulker / cassa / contenitore con DataComponents.CONTAINER
+        ItemContainerContents container = stack.getOrDefault(DataComponents.CONTAINER, ItemContainerContents.EMPTY);
+        if (container != ItemContainerContents.EMPTY) {
+            try {
+                if (container.nonEmptyItemCopyStream().anyMatch(inner -> isCleanMatchingBook(inner, targetEnchants))) {
+                    return true;
+                }
+            } catch (Exception ignored) {}
+        }
+
+        // 3. Bundle (fagotto) con DataComponents.BUNDLE_CONTENTS
+        BundleContents bundle = stack.getOrDefault(DataComponents.BUNDLE_CONTENTS, null);
+        if (bundle != null) {
+            try {
+                if (bundle.itemCopyStream().anyMatch(inner -> isCleanMatchingBook(inner, targetEnchants))) {
+                    return true;
+                }
+            } catch (Exception ignored) {}
+        }
+
+        return false;
     }
 
     public static long parseMoneyAmount(String str) {
