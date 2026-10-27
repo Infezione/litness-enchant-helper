@@ -64,19 +64,7 @@ Sul server Litness, forgiare spade, archi, picconi o armature con 10–12 incant
 
 ---
 
-### 5. 📌 HUD a Schermo in Tempo Reale (Zero Lag)
-![HUD in Gioco](https://github.com/Infezione/litness-enchant-helper/releases/download/v1.0.0/preview_hud.png)
-- **Fissa la tua lista a schermo**: cliccando su `📌 Pin HUD`, tutti gli incantesimi del set attivo o salvato compaiono in un box elegante nell'angolo in alto a sinistra dello schermo.
-- **Feedback visivo intelligente**:
-  - 🟢 **`✔ <Nome>` (Verde)**: Possiedi il libro incantato nel tuo inventario, pronto per essere fuso.
-  - 🔴 **`✖ <Nome>` (Rosso sbarrato)**: L'incantesimo è già stato applicato sull'arma che hai in mano, nell'incudine o sull'armatura indossata.
-  - ⚪ **`• <Nome>` (Grigio)**: Incantesimo mancante, non ancora trovato o acquistato.
-- **Rimozione automatica**: eliminando un set salvato, gli incantesimi vengono rimossi all'istante dall'HUD senza rimanere bloccati.
-- **Fluidità a 240+ FPS**: grazie al sistema di caching a versioning atomico (aggiornamento leggero ogni 250ms), il rendering per frame richiede meno di 0,005 millisecondi, garantendo zero cali di framerate e massima fluidità in gioco.
-
----
-
-### 6. 📖 Catalogo Completo degli Incantesimi (Vanilla & Custom)
+### 5. 📖 Catalogo Completo degli Incantesimi (Vanilla & Custom)
 ![Catalogo Incantesimi](https://github.com/Infezione/litness-enchant-helper/releases/download/v1.0.0/preview_catalog.png)
 - **Tutti gli incantesimi di Litness**: include l'intero archivio degli incantesimi Custom del server e quelli Vanilla di Minecraft.
 - **Filtri rapidi avanzati**: ricerca testuale istantanea (con supporto per nomi italiani e alias inglesi), filtri di categoria (*Tutti / Vanilla / Custom*) e **filtri rapidi per tipo di oggetto** (*⚔ Spada, ⛏ Piccone, 🛡 Armature, 🏹 Arco, 🪓 Ascia, 🌾 Zappa, 🔧 Altri*).
@@ -84,7 +72,7 @@ Sul server Litness, forgiare spade, archi, picconi o armature con 10–12 incant
 
 ---
 
-### 7. 🔮 Tooltip Arricchiti nell'Inventario (Lore & Info Live)
+### 6. 🔮 Tooltip Arricchiti nell'Inventario (Lore & Info Live)
 ![Tooltip Lore e Conflitti](https://github.com/Infezione/litness-enchant-helper/releases/download/v1.0.0/preview_lore_tooltip.png)
 - **Info immediate sui libri**: passando il cursore su qualsiasi libro incantato nel tuo inventario o nelle casse, la mod arricchisce automaticamente la lore di gioco con:
   - 🏷️ **Grado di Rarità**: visualizza il badge colorato della rarità ufficiale (*[COMUNE]*, *[NON COMUNE]*, *[RARO]*, *[EPICO]*, *[LEGGENDARIO]*, *[SPECIALE]*, *[MOLTO SPECIALE]*).
@@ -101,7 +89,6 @@ Sul server Litness, forgiare spade, archi, picconi o armature con 10–12 incant
 - 🔔 **Notifica Automatica Aggiornamenti in Chat con Link Diretto**: all'ingresso nel server, la mod verifica in background su GitHub se è disponibile una versione più recente e, se presente, invia un messaggio in chat con link cliccabile per scaricare istantaneamente il file `.jar` o consultare le note di rilascio.
 - ✏️ **Modifica Completa dei Set Salvati**: aggiunto il pulsante `[✏]` accanto a ogni set salvato in "I Miei Set" per modificarne all'istante nome, pezzo e incantesimi senza dover ricreare il set da zero.
 - 💾 **Persistenza della Selezione tra le Sessioni**: uscendo e rientrando dal server o riavviando il gioco, la selezione del simulatore e il tipo di oggetto non si azzerano più e rimangono salvati esattamente come li avevi lasciati.
-- 🔮 **Sincronizzazione Perfetta Incudine & GUI (Algoritmo Deterministico)**: l'albero di fusione dell'incudine (`AnvilOptimizer`) è ora matematicamente deterministico e stabile al 100%. La sidebar dell'incudine sincronizza i passaggi con il set pianificato (filtrando via i drop casuali) ed include lo switch di modalità `[🔮 Set Completo / 📦 Da Inventario]`.
 - 💰 **Persistenza dei Costi Custom**: i costi XP scoperti dai libri custom tramite lore vengono memorizzati su file e persistono tra i riavvii.
 - ⛏️ **Supporto al Piccone nel Simulatore**: integrato il piccone nella barra di selezione rapida del Calcolatore/Simulatore, con icone del Piccone di Diamante, calcolo dei passi ottimali e salvataggio set.
 - 🔍 **Nuova Barra Filtri per Oggetto nel Catalogo**: aggiunti pulsanti rapidi con evidenziazione verde attiva per filtrare gli incantesimi per *Spada*, *Piccone*, *Armature*, *Arco*, *Ascia*, *Zappa* e *Altri*.
@@ -117,7 +104,6 @@ Sul server Litness, forgiare spade, archi, picconi o armature con 10–12 incant
 | **`N`** | Apri la schermata principale (Catalogo / Guida Fusione / I Miei Set) |
 | **`[📋 Guida Passi]`** | Tasto rapido in cima all'interfaccia dell'incudine per aprire la guida |
 | **`[📋 Copia Passi]`** | Copia l'intera sequenza di fusione negli appunti |
-| **`[📌 Pin HUD]`** | Mostra / nasconde il tracker del set a schermo |
 | **`[Pen: +X]`** | Seleziona manualmente la penalità di lavoro precedente dell'oggetto (+0, +1, +3, +7, +15, +31) |
 | **`[ESC]`** | Chiudi la schermata e torna al gioco |
 
