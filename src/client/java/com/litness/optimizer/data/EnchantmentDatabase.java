@@ -264,6 +264,8 @@ public class EnchantmentDatabase {
 
     public static ItemEntry getItem(String id) {
         load();
+        if (id == null) return null;
+        if ("pickaxe".equalsIgnoreCase(id)) id = "pick";
         return itemsById.get(id);
     }
 
@@ -271,10 +273,12 @@ public class EnchantmentDatabase {
         if (ee == null || itemId == null) return false;
         if (ee.applicableTo == null || ee.applicableTo.isEmpty()) return true;
         String target = itemId.trim().toLowerCase();
+        if (target.equals("pickaxe")) target = "pick";
         for (String app : ee.applicableTo) {
             if (app == null) continue;
             String cleanApp = app.trim().toLowerCase();
             if (cleanApp.equals(target)) return true;
+            if (target.equals("pick") && (cleanApp.equals("pick") || cleanApp.equals("pickaxe") || cleanApp.equals("tools"))) return true;
             if (target.equals("chest") && (cleanApp.equals("chestplate") || cleanApp.equals("chest"))) return true;
             if (target.equals("legs") && (cleanApp.equals("leggings") || cleanApp.equals("legs"))) return true;
             if ((target.equals("sword") || target.equals("axe")) && cleanApp.equals("weapons")) return true;

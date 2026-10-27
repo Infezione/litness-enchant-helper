@@ -57,19 +57,20 @@ public class LitnessOptimizerScreen extends Screen {
     // Catalogo
     private EditBox searchField;
     private String categoryFilter = "ALL";
+    private String itemFilter = "ALL";
     private final List<EnchantmentEntry> filteredEnchantments = new ArrayList<>();
     private int getItemsPerPage() {
-        int avail = this.height - 96;
-        return Math.max(6, Math.min(13, avail / 19));
+        int avail = this.height - 116;
+        return Math.max(5, Math.min(12, avail / 19));
     }
     private int catalogPage = 0;
 
-    // Stato calcolatore & simulatore: Spada e Armature (Elmo, Corazza, Gambali, Stivali)
+    // Stato calcolatore & simulatore: Spada, Piccone e Armature (Elmo, Corazza, Gambali, Stivali)
     private static final String[] ITEM_KEYS = {
-        "sword", "helmet", "chest", "legs", "boots"
+        "sword", "pick", "helmet", "chest", "legs", "boots"
     };
     private static final String[] ITEM_NAMES = {
-        "Spada", "Elmo", "Corazza", "Gambali", "Stivali"
+        "Spada", "Piccone", "Elmo", "Corazza", "Gambali", "Stivali"
     };
     private static final int[] PENALTY_STEPS = {0, 1, 3, 7, 15, 31};
 
@@ -155,14 +156,16 @@ public class LitnessOptimizerScreen extends Screen {
                 String rawStr = slot0.getItem().toString().toLowerCase();
                 if (descId.contains("sword") || rawStr.contains("sword")) {
                     this.selectedItemIndex = 0;
-                } else if (descId.contains("helmet") || rawStr.contains("helmet")) {
+                } else if (descId.contains("pickaxe") || descId.contains("pick") || rawStr.contains("pickaxe") || rawStr.contains("pick")) {
                     this.selectedItemIndex = 1;
-                } else if (descId.contains("chestplate") || descId.contains("chest") || rawStr.contains("chestplate") || rawStr.contains("chest")) {
+                } else if (descId.contains("helmet") || rawStr.contains("helmet")) {
                     this.selectedItemIndex = 2;
-                } else if (descId.contains("leggings") || descId.contains("legs") || rawStr.contains("leggings") || rawStr.contains("legs")) {
+                } else if (descId.contains("chestplate") || descId.contains("chest") || rawStr.contains("chestplate") || rawStr.contains("chest")) {
                     this.selectedItemIndex = 3;
-                } else if (descId.contains("boots") || rawStr.contains("boots")) {
+                } else if (descId.contains("leggings") || descId.contains("legs") || rawStr.contains("leggings") || rawStr.contains("legs")) {
                     this.selectedItemIndex = 4;
+                } else if (descId.contains("boots") || rawStr.contains("boots")) {
+                    this.selectedItemIndex = 5;
                 }
 
                 int penalty = slot0.getOrDefault(DataComponents.REPAIR_COST, 0);
@@ -210,30 +213,33 @@ public class LitnessOptimizerScreen extends Screen {
     private void initCatalogWidgets(int topY) {
         int filterY = topY + 23;
 
-        // Filtri categoria
-        this.addRenderableWidget(Button.builder(Component.literal("Tutti"), b -> {
+        // RIGA 1: Filtri Categoria + Campo Ricerca
+        int catStartX = this.width / 2 - 270;
+        this.addRenderableWidget(Button.builder(Component.literal("ALL".equals(categoryFilter) ? "§aTutti" : "Tutti"), b -> {
             categoryFilter = "ALL";
             catalogPage = 0;
             updateSearch();
             rebuildWidgets();
-        }).bounds(this.width / 2 - 270, filterY, 45, 18).build());
+        }).bounds(catStartX, filterY, 45, 18).build());
 
-        this.addRenderableWidget(Button.builder(Component.literal("Vanilla"), b -> {
+        this.addRenderableWidget(Button.builder(Component.literal("VANILLA".equals(categoryFilter) ? "§aVanilla" : "Vanilla"), b -> {
             categoryFilter = "VANILLA";
             catalogPage = 0;
             updateSearch();
             rebuildWidgets();
-        }).bounds(this.width / 2 - 222, filterY, 55, 18).build());
+        }).bounds(catStartX + 49, filterY, 55, 18).build());
 
-        this.addRenderableWidget(Button.builder(Component.literal("Custom"), b -> {
+        this.addRenderableWidget(Button.builder(Component.literal("CUSTOM".equals(categoryFilter) ? "§aCustom" : "Custom"), b -> {
             categoryFilter = "CUSTOM";
             catalogPage = 0;
             updateSearch();
             rebuildWidgets();
-        }).bounds(this.width / 2 - 164, filterY, 52, 18).build());
+        }).bounds(catStartX + 108, filterY, 52, 18).build());
 
         // Campo ricerca
-        this.searchField = new EditBox(this.font, this.width / 2 - 105, filterY, 230, 18, Component.literal(""));
+        String oldText = this.searchField != null ? this.searchField.getValue() : "";
+        this.searchField = new EditBox(this.font, catStartX + 165, filterY, 230, 18, Component.literal(""));
+        this.searchField.setValue(oldText);
         this.searchField.setHint(Component.literal("Cerca per nome o effetto..."));
         this.searchField.setResponder(text -> {
             catalogPage = 0;
@@ -241,8 +247,83 @@ public class LitnessOptimizerScreen extends Screen {
         });
         this.addRenderableWidget(this.searchField);
 
-        // Barra paginazione (15 per pagina)
-        int navY = filterY + 22;
+        // RIGA 2: Filtri per Tipo di Oggetto
+        int itemFilterY = filterY + 21;
+        int curItemX = this.width / 2 - 265;
+
+        // [Tutti]
+        this.addRenderableWidget(Button.builder(Component.literal("ALL".equals(itemFilter) ? "§aTutti" : "Tutti"), b -> {
+            itemFilter = "ALL";
+            catalogPage = 0;
+            updateSearch();
+            rebuildWidgets();
+        }).bounds(curItemX, itemFilterY, 42, 18).build());
+        curItemX += 45;
+
+        // [⚔ Spada]
+        this.addRenderableWidget(Button.builder(Component.literal("sword".equals(itemFilter) ? "§a⚔ Spada" : "⚔ Spada"), b -> {
+            itemFilter = "sword";
+            catalogPage = 0;
+            updateSearch();
+            rebuildWidgets();
+        }).bounds(curItemX, itemFilterY, 62, 18).build());
+        curItemX += 65;
+
+        // [⛏ Piccone]
+        this.addRenderableWidget(Button.builder(Component.literal("pick".equals(itemFilter) ? "§a⛏ Piccone" : "⛏ Piccone"), b -> {
+            itemFilter = "pick";
+            catalogPage = 0;
+            updateSearch();
+            rebuildWidgets();
+        }).bounds(curItemX, itemFilterY, 68, 18).build());
+        curItemX += 71;
+
+        // [🛡 Armature]
+        this.addRenderableWidget(Button.builder(Component.literal("armor".equals(itemFilter) ? "§a🛡 Armature" : "🛡 Armature"), b -> {
+            itemFilter = "armor";
+            catalogPage = 0;
+            updateSearch();
+            rebuildWidgets();
+        }).bounds(curItemX, itemFilterY, 74, 18).build());
+        curItemX += 77;
+
+        // [🏹 Arco]
+        this.addRenderableWidget(Button.builder(Component.literal("bow".equals(itemFilter) ? "§a🏹 Arco" : "🏹 Arco"), b -> {
+            itemFilter = "bow";
+            catalogPage = 0;
+            updateSearch();
+            rebuildWidgets();
+        }).bounds(curItemX, itemFilterY, 58, 18).build());
+        curItemX += 61;
+
+        // [🪓 Ascia]
+        this.addRenderableWidget(Button.builder(Component.literal("axe".equals(itemFilter) ? "§a🪓 Ascia" : "🪓 Ascia"), b -> {
+            itemFilter = "axe";
+            catalogPage = 0;
+            updateSearch();
+            rebuildWidgets();
+        }).bounds(curItemX, itemFilterY, 60, 18).build());
+        curItemX += 63;
+
+        // [🌾 Zappa]
+        this.addRenderableWidget(Button.builder(Component.literal("hoe".equals(itemFilter) ? "§a🌾 Zappa" : "🌾 Zappa"), b -> {
+            itemFilter = "hoe";
+            catalogPage = 0;
+            updateSearch();
+            rebuildWidgets();
+        }).bounds(curItemX, itemFilterY, 60, 18).build());
+        curItemX += 63;
+
+        // [🔧 Altri]
+        this.addRenderableWidget(Button.builder(Component.literal("other".equals(itemFilter) ? "§a🔧 Altri" : "🔧 Altri"), b -> {
+            itemFilter = "other";
+            catalogPage = 0;
+            updateSearch();
+            rebuildWidgets();
+        }).bounds(curItemX, itemFilterY, 57, 18).build());
+
+        // RIGA 3: Barra paginazione
+        int navY = itemFilterY + 21;
         this.addRenderableWidget(Button.builder(Component.literal("◀ Precedente"), b -> {
             if (catalogPage > 0) catalogPage--;
         }).bounds(this.width / 2 - 270, navY, 85, 18).build());
@@ -262,31 +343,36 @@ public class LitnessOptimizerScreen extends Screen {
         int row1Y = topY + 22; // Y = 29
         int curX = startX;
 
-        // RIGA 1: SELEZIONE RAPIDA OGGETTO (Spada + Armature: Elmo, Corazza, Gambali, Stivali)
+        // RIGA 1: SELEZIONE RAPIDA OGGETTO (Spada, Piccone, Armature: Elmo, Corazza, Gambali, Stivali)
         // [⚔ Spada]
         this.addRenderableWidget(Button.builder(Component.literal(selectedItemIndex == 0 ? "§a⚔ Spada" : "⚔ Spada"), b -> selectItem(0))
-                .bounds(curX, row1Y, 58, 18).build());
-        curX += 60;
-
-        // [🪖 Elmo]
-        this.addRenderableWidget(Button.builder(Component.literal(selectedItemIndex == 1 ? "§a🪖 Elmo" : "🪖 Elmo"), b -> selectItem(1))
                 .bounds(curX, row1Y, 54, 18).build());
         curX += 56;
 
-        // [👕 Corazza]
-        this.addRenderableWidget(Button.builder(Component.literal(selectedItemIndex == 2 ? "§a👕 Corazza" : "👕 Corazza"), b -> selectItem(2))
-                .bounds(curX, row1Y, 68, 18).build());
-        curX += 70;
-
-        // [👖 Gambali]
-        this.addRenderableWidget(Button.builder(Component.literal(selectedItemIndex == 3 ? "§a👖 Gambali" : "👖 Gambali"), b -> selectItem(3))
-                .bounds(curX, row1Y, 68, 18).build());
-        curX += 70;
-
-        // [👢 Stivali]
-        this.addRenderableWidget(Button.builder(Component.literal(selectedItemIndex == 4 ? "§a👢 Stivali" : "👢 Stivali"), b -> selectItem(4))
+        // [⛏ Piccone]
+        this.addRenderableWidget(Button.builder(Component.literal(selectedItemIndex == 1 ? "§a⛏ Piccone" : "⛏ Piccone"), b -> selectItem(1))
                 .bounds(curX, row1Y, 64, 18).build());
         curX += 66;
+
+        // [🪖 Elmo]
+        this.addRenderableWidget(Button.builder(Component.literal(selectedItemIndex == 2 ? "§a🪖 Elmo" : "🪖 Elmo"), b -> selectItem(2))
+                .bounds(curX, row1Y, 52, 18).build());
+        curX += 54;
+
+        // [👕 Corazza]
+        this.addRenderableWidget(Button.builder(Component.literal(selectedItemIndex == 3 ? "§a👕 Corazza" : "👕 Corazza"), b -> selectItem(3))
+                .bounds(curX, row1Y, 64, 18).build());
+        curX += 66;
+
+        // [👖 Gambali]
+        this.addRenderableWidget(Button.builder(Component.literal(selectedItemIndex == 4 ? "§a👖 Gambali" : "👖 Gambali"), b -> selectItem(4))
+                .bounds(curX, row1Y, 64, 18).build());
+        curX += 66;
+
+        // [👢 Stivali]
+        this.addRenderableWidget(Button.builder(Component.literal(selectedItemIndex == 5 ? "§a👢 Stivali" : "👢 Stivali"), b -> selectItem(5))
+                .bounds(curX, row1Y, 60, 18).build());
+        curX += 62;
 
         // [📌 Pin HUD] + [❌ Reset]
         int pinBtnW = 82;
@@ -443,6 +529,8 @@ public class LitnessOptimizerScreen extends Screen {
         String key = ITEM_KEYS[selectedItemIndex];
         switch (key) {
             case "sword": return "Spada";
+            case "pick":
+            case "pickaxe": return "Piccone";
             case "helmet": return "Elmo";
             case "chest": return "Corazza";
             case "legs": return "Gambali";
@@ -883,15 +971,53 @@ public class LitnessOptimizerScreen extends Screen {
         simulatorSelectedEnchants.clear();
         String itemKey = ITEM_KEYS[selectedItemIndex];
         ItemEntry targetItem = EnchantmentDatabase.getItem(itemKey);
-        if (targetItem == null) targetItem = EnchantmentDatabase.getItem("sword");
+        String targetId = targetItem != null ? targetItem.id : itemKey;
 
         int added = 0;
         for (EnchantmentEntry ee : EnchantmentDatabase.getAllEnchantments()) {
-            if (ee.applicableTo.contains(targetItem.id)) {
+            if (EnchantmentDatabase.isApplicable(ee, targetId)) {
                 simulatorSelectedEnchants.add(ee.id);
                 added++;
                 if (added >= 5) break;
             }
+        }
+    }
+
+    private boolean matchesItemFilter(EnchantmentEntry ee) {
+        if ("ALL".equals(itemFilter)) return true;
+        if (ee == null) return false;
+
+        switch (itemFilter) {
+            case "sword":
+                return EnchantmentDatabase.isApplicable(ee, "sword");
+            case "pick":
+                return EnchantmentDatabase.isApplicable(ee, "pick");
+            case "armor":
+                return EnchantmentDatabase.isApplicable(ee, "helmet")
+                    || EnchantmentDatabase.isApplicable(ee, "chest")
+                    || EnchantmentDatabase.isApplicable(ee, "legs")
+                    || EnchantmentDatabase.isApplicable(ee, "boots");
+            case "bow":
+                return EnchantmentDatabase.isApplicable(ee, "bow")
+                    || (ee.applicableTo != null && (ee.applicableTo.contains("bow") || ee.applicableTo.contains("xbow") || ee.applicableTo.contains("crossbow")));
+            case "axe":
+                return EnchantmentDatabase.isApplicable(ee, "axe");
+            case "hoe":
+                return EnchantmentDatabase.isApplicable(ee, "hoe");
+            case "other":
+                boolean isMain = EnchantmentDatabase.isApplicable(ee, "sword")
+                    || EnchantmentDatabase.isApplicable(ee, "pick")
+                    || EnchantmentDatabase.isApplicable(ee, "helmet")
+                    || EnchantmentDatabase.isApplicable(ee, "chest")
+                    || EnchantmentDatabase.isApplicable(ee, "legs")
+                    || EnchantmentDatabase.isApplicable(ee, "boots")
+                    || EnchantmentDatabase.isApplicable(ee, "bow")
+                    || (ee.applicableTo != null && (ee.applicableTo.contains("bow") || ee.applicableTo.contains("xbow") || ee.applicableTo.contains("crossbow")))
+                    || EnchantmentDatabase.isApplicable(ee, "axe")
+                    || EnchantmentDatabase.isApplicable(ee, "hoe");
+                return !isMain;
+            default:
+                return true;
         }
     }
 
@@ -902,6 +1028,7 @@ public class LitnessOptimizerScreen extends Screen {
         for (EnchantmentEntry ee : EnchantmentDatabase.getAllEnchantments()) {
             if ("VANILLA".equals(categoryFilter) && !"vanilla".equalsIgnoreCase(ee.category)) continue;
             if ("CUSTOM".equals(categoryFilter) && !"custom".equalsIgnoreCase(ee.category)) continue;
+            if (!matchesItemFilter(ee)) continue;
 
             if (query.isEmpty()
                     || ee.name.toLowerCase().contains(query)
@@ -1136,9 +1263,9 @@ public class LitnessOptimizerScreen extends Screen {
         if (catalogPage >= maxPages) catalogPage = maxPages - 1;
 
         String pageInfo = "Pagina " + (catalogPage + 1) + " / " + maxPages + "  (" + filteredEnchantments.size() + " incantesimi)";
-        extractor.centeredText(this.font, pageInfo, this.width / 2, 58, 0xFF818CF8);
+        extractor.centeredText(this.font, pageInfo, this.width / 2, 77, 0xFF818CF8);
 
-        int startY = 74;
+        int startY = 94;
         int cardWidth = Math.min(640, this.width - 24);
         int cardX = (this.width - cardWidth) / 2;
 
@@ -1267,11 +1394,12 @@ public class LitnessOptimizerScreen extends Screen {
         if (type == null) return new ItemStack(Items.ENCHANTED_BOOK);
         switch (type.toLowerCase()) {
             case "sword": return new ItemStack(Items.DIAMOND_SWORD);
+            case "pick":
+            case "pickaxe": return new ItemStack(Items.DIAMOND_PICKAXE);
             case "helmet": return new ItemStack(Items.DIAMOND_HELMET);
             case "chest": return new ItemStack(Items.DIAMOND_CHESTPLATE);
             case "legs": return new ItemStack(Items.DIAMOND_LEGGINGS);
             case "boots": return new ItemStack(Items.DIAMOND_BOOTS);
-            case "pickaxe": return new ItemStack(Items.DIAMOND_PICKAXE);
             case "axe": return new ItemStack(Items.DIAMOND_AXE);
             case "shovel": return new ItemStack(Items.DIAMOND_SHOVEL);
             case "bow": return new ItemStack(Items.BOW);

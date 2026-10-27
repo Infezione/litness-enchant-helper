@@ -1551,7 +1551,7 @@
       "id": "foraging",
       "name": "Foraging",
       "category": "custom",
-      "description": "I meloni che rompi si moltiplicano in media del 210%.",
+      "description": "Le mele che cadono dalle foglie che rompi si moltiplicano: +210% in media",
       "maxLevel": 4,
       "rarity": "Comune",
       "applicableTo": [
