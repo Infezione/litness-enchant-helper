@@ -15,6 +15,7 @@ public class ActiveSessionManager {
         int activeItemIndex = 0;
         Map<String, List<String>> enchantsByItem = new HashMap<>();
         String activeSetId = null;
+        String pinnedSetId = null;
     }
 
     private static final File CONFIG_FILE = new File("config/litnessoptimizer/active_session.json");
@@ -105,6 +106,33 @@ public class ActiveSessionManager {
     public static synchronized void setActiveSetId(String id) {
         load();
         sessionData.activeSetId = id;
+        save();
+    }
+
+    public static synchronized String getPinnedSetId() {
+        load();
+        return sessionData.pinnedSetId;
+    }
+
+    public static synchronized void setPinnedSetId(String id) {
+        load();
+        sessionData.pinnedSetId = id;
+        save();
+    }
+
+    public static synchronized boolean isSetPinned(String id) {
+        if (id == null) return false;
+        load();
+        return id.equalsIgnoreCase(sessionData.pinnedSetId);
+    }
+
+    public static synchronized void togglePinSet(String id) {
+        load();
+        if (id != null && id.equalsIgnoreCase(sessionData.pinnedSetId)) {
+            sessionData.pinnedSetId = null;
+        } else {
+            sessionData.pinnedSetId = id;
+        }
         save();
     }
 }

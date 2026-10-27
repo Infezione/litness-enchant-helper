@@ -111,6 +111,9 @@ public class SavedSetsManager {
         }
         if (toDelete != null) {
             customSets.remove(toDelete);
+            if (id.equalsIgnoreCase(ActiveSessionManager.getPinnedSetId())) {
+                ActiveSessionManager.setPinnedSetId(null);
+            }
             save();
             return true;
         }

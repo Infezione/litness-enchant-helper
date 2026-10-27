@@ -840,10 +840,20 @@ public class LitnessOptimizerScreen extends Screen {
             int row = i - startIdx;
             int y = startY + row * (cardH + gap);
 
+            // [📌 Pin HUD] / [★ Pinnato]
+            boolean isPinned = ActiveSessionManager.isSetPinned(set.id);
+            Button pinBtn = Button.builder(Component.literal(isPinned ? "§6★ Pinnato" : "📌 Pin HUD"), b -> {
+                ActiveSessionManager.togglePinSet(set.id);
+                this.clearWidgets();
+                this.init();
+            }).bounds(startX + panelWidth - 180, y + 13, 62, 18).build();
+            this.addRenderableWidget(pinBtn);
+            savedSetButtons.add(pinBtn);
+
             // [⚡ Guida]
             Button loadBtn = Button.builder(Component.literal("⚡ Guida"), b -> {
                 loadSavedSetIntoSimulator(set);
-            }).bounds(startX + panelWidth - 120, y + 13, 62, 18).build();
+            }).bounds(startX + panelWidth - 114, y + 13, 56, 18).build();
             this.addRenderableWidget(loadBtn);
             savedSetButtons.add(loadBtn);
 
@@ -979,15 +989,19 @@ public class LitnessOptimizerScreen extends Screen {
                 }
             }
 
-            int stripeColor = (conflictFound != null) ? 0xFFEF4444 : 0xFF6366F1;
-            extractor.fill(panelX, y, panelX + panelWidth, y + cardH, 0xEE12121E);
+            boolean isPinned = ActiveSessionManager.isSetPinned(set.id);
+            int stripeColor = (conflictFound != null) ? 0xFFEF4444 : (isPinned ? 0xFFF59E0B : 0xFF6366F1);
+            int cardBg = isPinned ? 0xEE161528 : 0xEE12121E;
+            int cardOutline = (conflictFound != null) ? 0xFF7F1D1D : (isPinned ? 0xFFB45309 : 0xFF2A2A3E);
+            extractor.fill(panelX, y, panelX + panelWidth, y + cardH, cardBg);
             extractor.fill(panelX, y, panelX + 3, y + cardH, stripeColor);
-            extractor.outline(panelX, y, panelWidth, cardH, (conflictFound != null) ? 0xFF7F1D1D : 0xFF2A2A3E);
+            extractor.outline(panelX, y, panelWidth, cardH, cardOutline);
 
             extractor.fakeItem(getItemStackForType(set.itemKey), panelX + 8, y + 14);
 
             String warnIcon = (conflictFound != null) ? " §e⚠️" : "";
-            String title = "§f" + set.name + " §8[" + capitalize(set.itemKey) + " • " + set.enchantments.size() + "/12]" + warnIcon;
+            String pinPrefix = isPinned ? "§6★ " : "";
+            String title = pinPrefix + "§f" + set.name + " §8[" + capitalize(set.itemKey) + " • " + set.enchantments.size() + "/12]" + warnIcon;
             extractor.text(this.font, title, panelX + 32, y + 6, (conflictFound != null) ? 0xFFFBBF24 : 0xFFFFFFFF, false);
 
             String inInvTxt = (inInv == set.enchantments.size() && set.enchantments.size() > 0)
@@ -1003,7 +1017,7 @@ public class LitnessOptimizerScreen extends Screen {
                 EnchantmentEntry ee = EnchantmentDatabase.getEnchantment(enchId);
                 names.add(ee != null ? ee.name : enchId);
             }
-            String preview = trimToWidth("§8" + String.join(", ", names), panelWidth - 160);
+            String preview = trimToWidth("§8" + String.join(", ", names), panelWidth - 215);
             extractor.text(this.font, preview, panelX + 32, y + 30, 0xFF71717A, false);
         }
     }

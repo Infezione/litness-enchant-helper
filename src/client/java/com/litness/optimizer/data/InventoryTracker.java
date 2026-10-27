@@ -93,6 +93,82 @@ public class InventoryTracker {
     }
 
     /**
+     * Raccoglie gli incantesimi già applicati ESCLUSIVAMENTE sull'oggetto corrispondente al set (zero falsi positivi!)
+     */
+    public static Set<String> getAppliedEnchantmentsForItem(String itemKey) {
+        Set<String> set = new HashSet<>();
+        Minecraft mc = Minecraft.getInstance();
+        if (mc.player == null || itemKey == null) return set;
+        String key = itemKey.trim().toLowerCase();
+
+        // 1. Oggetto presente nell'Incudine nello slot 0 (se corrisponde alla categoria del set)
+        if (mc.player.containerMenu instanceof AnvilMenu anvilMenu) {
+            ItemStack slot0 = anvilMenu.getSlot(0).getItem();
+            if (!slot0.isEmpty() && matchesItemKey(slot0, key)) {
+                scanAppliedStack(slot0, set);
+            }
+        }
+
+        // 2. Oggetto tenuto nella mano principale (se Spada, Piccone o arma/attrezzo)
+        if (key.contains("sword") || key.contains("spada") || key.contains("pick") || key.contains("piccone") 
+                || key.contains("axe") || key.contains("ascia") || key.contains("bow") || key.contains("arco")) {
+            ItemStack main = mc.player.getMainHandItem();
+            if (!main.isEmpty() && matchesItemKey(main, key)) {
+                scanAppliedStack(main, set);
+            }
+        }
+
+        // 3. Pezzi di armatura: controlla SOLO ed esclusivamente lo slot corrispondente
+        if (key.contains("helmet") || key.contains("elmo") || key.contains("head")) {
+            ItemStack helmet = mc.player.getItemBySlot(EquipmentSlot.HEAD);
+            if (!helmet.isEmpty()) scanAppliedStack(helmet, set);
+        } else if (key.contains("chest") || key.contains("corazza")) {
+            ItemStack chest = mc.player.getItemBySlot(EquipmentSlot.CHEST);
+            if (!chest.isEmpty()) scanAppliedStack(chest, set);
+        } else if (key.contains("leg") || key.contains("gambali")) {
+            ItemStack legs = mc.player.getItemBySlot(EquipmentSlot.LEGS);
+            if (!legs.isEmpty()) scanAppliedStack(legs, set);
+        } else if (key.contains("boot") || key.contains("stivali") || key.contains("feet")) {
+            ItemStack boots = mc.player.getItemBySlot(EquipmentSlot.FEET);
+            if (!boots.isEmpty()) scanAppliedStack(boots, set);
+        }
+
+        return set;
+    }
+
+    public static boolean matchesItemKey(ItemStack stack, String key) {
+        if (stack == null || stack.isEmpty()) return false;
+        String descId = stack.getItem().getDescriptionId().toLowerCase();
+        String rawStr = stack.getItem().toString().toLowerCase();
+
+        if (key.contains("sword") || key.contains("spada")) {
+            return descId.contains("sword") || rawStr.contains("sword");
+        }
+        if (key.contains("pick") || key.contains("piccone")) {
+            return descId.contains("pickaxe") || descId.contains("pick") || rawStr.contains("pickaxe") || rawStr.contains("pick");
+        }
+        if (key.contains("helmet") || key.contains("elmo") || key.contains("head")) {
+            return descId.contains("helmet") || rawStr.contains("helmet") || descId.contains("cap");
+        }
+        if (key.contains("chest") || key.contains("corazza")) {
+            return descId.contains("chestplate") || descId.contains("chest") || rawStr.contains("chestplate") || rawStr.contains("chest") || descId.contains("tunic");
+        }
+        if (key.contains("leg") || key.contains("gambali")) {
+            return descId.contains("leggings") || descId.contains("legs") || rawStr.contains("leggings") || rawStr.contains("legs") || descId.contains("pants");
+        }
+        if (key.contains("boot") || key.contains("stivali") || key.contains("feet")) {
+            return descId.contains("boots") || rawStr.contains("boots");
+        }
+        if (key.contains("axe") || key.contains("ascia")) {
+            return descId.contains("axe") || rawStr.contains("axe");
+        }
+        if (key.contains("bow") || key.contains("arco")) {
+            return descId.contains("bow") || rawStr.contains("bow");
+        }
+        return false;
+    }
+
+    /**
      * Raccoglie tutti gli incantesimi già usati / applicati sull'oggetto da incantare (nell'incudine o in mano o indossato)
      */
     public static Set<String> getAppliedEnchantments() {
