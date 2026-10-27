@@ -106,7 +106,6 @@ Sul server Litness, forgiare spade, archi, picconi o armature con 10–12 incant
 - ⛏️ **Supporto al Piccone nel Simulatore**: integrato il piccone nella barra di selezione rapida del Calcolatore/Simulatore, con icone del Piccone di Diamante, calcolo dei passi ottimali e salvataggio set.
 - 🔍 **Nuova Barra Filtri per Oggetto nel Catalogo**: aggiunti pulsanti rapidi con evidenziazione verde attiva per filtrare gli incantesimi per *Spada*, *Piccone*, *Armature*, *Arco*, *Ascia*, *Zappa* e *Altri*.
 - 🌿 **Descrizione Foraging Aggiornata**: corretta la lore di *Foraging* fedele al server (*"Le mele che cadono dalle foglie che rompi si moltiplicano: +210% in media"*).
-- 🎒 **Uniformazione Terminologia Inventario**: eliminato ogni riferimento a "borsa", sostituito ovunque con "inventario" (incluso il badge `✔ In Inventario` nella guida e nella lista dei set).
 - 🧭 **Fix Direzione Set Futuro**: corretta l'indicazione di apertura "Crea Nuovo Set" in alto a sinistra.
 
 ---
