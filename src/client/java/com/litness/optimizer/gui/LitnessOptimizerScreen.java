@@ -277,7 +277,6 @@ public class LitnessOptimizerScreen extends Screen {
 
         this.btnClearAhSearch = Button.builder(Component.literal(ahBtnLabel), b -> {
             ActiveSessionManager.clearSearchEnchants();
-            com.litness.optimizer.mixin.ContainerScreenMixin.clearCache();
             refreshCatalogButtons();
             updateClearButtonState();
             statusMessage = "§aRicerche e filtri in /ah azzerati!";
@@ -416,7 +415,6 @@ public class LitnessOptimizerScreen extends Screen {
 
             Button searchBtn = Button.builder(Component.literal(label), b -> {
                 ActiveSessionManager.toggleSearchEnchant(ee.id);
-                com.litness.optimizer.mixin.ContainerScreenMixin.clearCache();
                 boolean nowSearching = ActiveSessionManager.isSearchEnchant(ee.id);
                 if (nowSearching) {
                     statusMessage = "§aEvidenziazione in /ah attivata per: " + ee.name;

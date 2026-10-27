@@ -106,11 +106,6 @@ public abstract class ContainerScreenMixin extends Screen {
         return false;
     }
 
-    public static void clearCache() {
-        cachedTargetEnchants = Collections.emptySet();
-        lastTargetCheck = 0;
-    }
-
     private static Set<String> getTargetEnchantments() {
         // Evidenzia in /ah e /enchgui esclusivamente gli incantesimi selezionati nel Catalogo con [+ Cerca AH]
         Set<String> searchEnchants = ActiveSessionManager.getSearchEnchants();
