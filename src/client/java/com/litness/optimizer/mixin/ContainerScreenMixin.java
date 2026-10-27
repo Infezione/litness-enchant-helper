@@ -33,6 +33,18 @@ public abstract class ContainerScreenMixin extends Screen {
         super(title);
     }
 
+    @Inject(method = "extractRenderState", at = @At("TAIL"))
+    private void litness_renderContainerTopLayer(GuiGraphicsExtractor extractor, int mouseX, int mouseY, float delta, CallbackInfo ci) {
+        if (((Object) this) instanceof net.minecraft.client.gui.screens.inventory.AnvilScreen anvil) {
+            com.litness.optimizer.gui.AnvilTooltipState.renderTopLayer(extractor, anvil, mouseX, mouseY);
+        }
+    }
+
+    @Inject(method = "removed", at = @At("HEAD"))
+    private void litness_onContainerRemoved(CallbackInfo ci) {
+        com.litness.optimizer.gui.AnvilTooltipState.clearHover();
+    }
+
     @Inject(method = "extractSlot", at = @At("TAIL"))
     private void litness_highlightSetSlots(GuiGraphicsExtractor extractor, Slot slot, int mouseX, int mouseY, CallbackInfo ci) {
         if (slot == null) return;
