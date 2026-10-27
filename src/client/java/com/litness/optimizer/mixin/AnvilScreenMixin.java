@@ -434,8 +434,14 @@ public abstract class AnvilScreenMixin extends ItemCombinerScreen<AnvilMenu> {
         for (var entry : stored.entrySet()) {
             String rawId = entry.getKey().unwrapKey().map(k -> k.identifier().getPath()).orElse("");
             int lvl = entry.getIntValue();
-            EnchantmentEntry ee = EnchantmentDatabase.getEnchantment(rawId);
-            String id = ee != null ? ee.id : rawId;
+            String vPlusId = EnchantmentDatabase.resolveVanillaPlusId(rawId, lvl);
+            String id;
+            if (vPlusId != null) {
+                id = vPlusId;
+            } else {
+                EnchantmentEntry ee = EnchantmentDatabase.getEnchantment(rawId);
+                id = ee != null ? ee.id : rawId;
+            }
             if (!id.isEmpty() && seen.add(id)) {
                 list.add(new EnchantApplied(id, lvl));
             }
@@ -446,8 +452,14 @@ public abstract class AnvilScreenMixin extends ItemCombinerScreen<AnvilMenu> {
         for (var entry : enchants.entrySet()) {
             String rawId = entry.getKey().unwrapKey().map(k -> k.identifier().getPath()).orElse("");
             int lvl = entry.getIntValue();
-            EnchantmentEntry ee = EnchantmentDatabase.getEnchantment(rawId);
-            String id = ee != null ? ee.id : rawId;
+            String vPlusId = EnchantmentDatabase.resolveVanillaPlusId(rawId, lvl);
+            String id;
+            if (vPlusId != null) {
+                id = vPlusId;
+            } else {
+                EnchantmentEntry ee = EnchantmentDatabase.getEnchantment(rawId);
+                id = ee != null ? ee.id : rawId;
+            }
             if (!id.isEmpty() && seen.add(id)) {
                 list.add(new EnchantApplied(id, lvl));
             }

@@ -150,6 +150,58 @@ public class LitnessTooltipHandler {
             putAlias("curse of misfortune", "curse-of-misfortune");
             putAlias("curse of permanence", "curse-of-permanence");
             putAlias("one for all", "one-for-all");
+
+            // Vanilla+ aliases
+            putAlias("feather falling 5", "feather_falling_5");
+            putAlias("feather falling v", "feather_falling_5");
+            putAlias("atterraggio morbido 5", "feather_falling_5");
+            putAlias("atterraggio morbido v", "feather_falling_5");
+            putAlias("caduta lenta 5", "feather_falling_5");
+            putAlias("caduta lenta v", "feather_falling_5");
+
+            putAlias("sharpness 6", "sharpness_6");
+            putAlias("sharpness vi", "sharpness_6");
+            putAlias("affilatezza 6", "sharpness_6");
+            putAlias("affilatezza vi", "sharpness_6");
+
+            putAlias("looting 4", "looting_4");
+            putAlias("looting iv", "looting_4");
+            putAlias("saccheggio 4", "looting_4");
+            putAlias("saccheggio iv", "looting_4");
+
+            putAlias("respiration 4", "respiration_4");
+            putAlias("respiration iv", "respiration_4");
+            putAlias("respirazione 4", "respiration_4");
+            putAlias("respirazione iv", "respiration_4");
+
+            putAlias("unbreaking 4", "unbreaking_4");
+            putAlias("unbreaking iv", "unbreaking_4");
+            putAlias("indistruttibilita 4", "unbreaking_4");
+            putAlias("indistruttibilita iv", "unbreaking_4");
+
+            putAlias("unbreaking 5", "unbreaking_5");
+            putAlias("unbreaking v", "unbreaking_5");
+            putAlias("indistruttibilita 5", "unbreaking_5");
+            putAlias("indistruttibilita v", "unbreaking_5");
+
+            putAlias("depth strider 4", "depth_strider_4");
+            putAlias("depth strider iv", "depth_strider_4");
+            putAlias("passo anfibio 4", "depth_strider_4");
+            putAlias("passo anfibio iv", "depth_strider_4");
+            putAlias("passo rapido 4", "depth_strider_4");
+            putAlias("passo rapido iv", "depth_strider_4");
+            putAlias("agilita acquatica 4", "depth_strider_4");
+            putAlias("agilita acquatica iv", "depth_strider_4");
+
+            putAlias("protection 5", "protection_5");
+            putAlias("protection v", "protection_5");
+            putAlias("protezione 5", "protection_5");
+            putAlias("protezione v", "protection_5");
+
+            putAlias("power 6", "power_6");
+            putAlias("power vi", "power_6");
+            putAlias("potenza 6", "power_6");
+            putAlias("potenza vi", "power_6");
         }
         return lookupMap;
     }

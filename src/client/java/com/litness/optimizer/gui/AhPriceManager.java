@@ -106,10 +106,16 @@ public class AhPriceManager {
         ItemEnchantments stored = stack.getOrDefault(DataComponents.STORED_ENCHANTMENTS, ItemEnchantments.EMPTY);
         for (var entry : stored.entrySet()) {
             String rawId = entry.getKey().unwrapKey().map(k -> k.identifier().getPath()).orElse("");
-            EnchantmentEntry ee = EnchantmentDatabase.getEnchantment(rawId);
-            String id = (ee != null) ? ee.id : rawId;
-            if (!id.isEmpty()) {
-                set.add(id.toLowerCase().trim());
+            int lvl = entry.getIntValue();
+            String vPlusId = EnchantmentDatabase.resolveVanillaPlusId(rawId, lvl);
+            if (vPlusId != null) {
+                set.add(vPlusId);
+            } else {
+                EnchantmentEntry ee = EnchantmentDatabase.getEnchantment(rawId);
+                String id = (ee != null) ? ee.id : rawId;
+                if (!id.isEmpty()) {
+                    set.add(id.toLowerCase().trim());
+                }
             }
         }
 
@@ -117,10 +123,16 @@ public class AhPriceManager {
         ItemEnchantments enchants = stack.getOrDefault(DataComponents.ENCHANTMENTS, ItemEnchantments.EMPTY);
         for (var entry : enchants.entrySet()) {
             String rawId = entry.getKey().unwrapKey().map(k -> k.identifier().getPath()).orElse("");
-            EnchantmentEntry ee = EnchantmentDatabase.getEnchantment(rawId);
-            String id = (ee != null) ? ee.id : rawId;
-            if (!id.isEmpty()) {
-                set.add(id.toLowerCase().trim());
+            int lvl = entry.getIntValue();
+            String vPlusId = EnchantmentDatabase.resolveVanillaPlusId(rawId, lvl);
+            if (vPlusId != null) {
+                set.add(vPlusId);
+            } else {
+                EnchantmentEntry ee = EnchantmentDatabase.getEnchantment(rawId);
+                String id = (ee != null) ? ee.id : rawId;
+                if (!id.isEmpty()) {
+                    set.add(id.toLowerCase().trim());
+                }
             }
         }
 
@@ -220,12 +232,17 @@ public class AhPriceManager {
         ItemEnchantments stored = stack.getOrDefault(DataComponents.STORED_ENCHANTMENTS, ItemEnchantments.EMPTY);
         for (var entry : stored.entrySet()) {
             String rawId = entry.getKey().unwrapKey().map(k -> k.identifier().getPath()).orElse("");
+            int lvl = entry.getIntValue();
+            String vPlusId = EnchantmentDatabase.resolveVanillaPlusId(rawId, lvl);
+            if (vPlusId != null && vPlusId.equalsIgnoreCase(enchantId)) {
+                return lvl;
+            }
             if (rawId.equalsIgnoreCase(enchantId)) {
-                return entry.getIntValue();
+                return lvl;
             }
             EnchantmentEntry ee = EnchantmentDatabase.getEnchantment(rawId);
             if (ee != null && ee.id.equalsIgnoreCase(enchantId)) {
-                return entry.getIntValue();
+                return lvl;
             }
         }
 

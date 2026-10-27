@@ -1,4 +1,4 @@
-{
+﻿{
   "schemaVersion": 1,
   "items": [
     {
@@ -2954,6 +2954,240 @@
       "unique": false,
       "maxPerItem": null,
       "anvilCost": 4
+    },
+    {
+      "id": "feather_falling_5",
+      "name": "Atterraggio morbido V",
+      "category": "vanilla_plus",
+      "description": "Riduce drasticamente i danni da caduta (Livello Vanilla+ V).",
+      "maxLevel": 5,
+      "rarity": "Vanilla+",
+      "applicableTo": [
+        "boots"
+      ],
+      "targetScope": "single_item",
+      "requirements": [],
+      "conflicts": [
+        "Atterraggio morbido",
+        "feather_falling"
+      ],
+      "unique": false,
+      "maxPerItem": 1,
+      "anvilCost": 5
+    },
+    {
+      "id": "sharpness_6",
+      "name": "Affilatezza VI",
+      "category": "vanilla_plus",
+      "description": "Aumenta drasticamente i danni in mischia (Livello Vanilla+ VI).",
+      "maxLevel": 6,
+      "rarity": "Vanilla+",
+      "applicableTo": [
+        "sword",
+        "axe"
+      ],
+      "targetScope": "multiple_items",
+      "requirements": [],
+      "conflicts": [
+        "Affilatezza",
+        "sharpness",
+        "Anatema",
+        "smite",
+        "Flagello degli artropodi",
+        "bane_of_arthropods",
+        "Densità",
+        "density",
+        "Breccia",
+        "breach"
+      ],
+      "unique": false,
+      "maxPerItem": 1,
+      "anvilCost": 6
+    },
+    {
+      "id": "looting_4",
+      "name": "Saccheggio IV",
+      "category": "vanilla_plus",
+      "description": "Aumenta notevolmente il bottino lasciato dai mob (Livello Vanilla+ IV).",
+      "maxLevel": 4,
+      "rarity": "Vanilla+",
+      "applicableTo": [
+        "sword"
+      ],
+      "targetScope": "single_item",
+      "requirements": [],
+      "conflicts": [
+        "Saccheggio",
+        "looting"
+      ],
+      "unique": false,
+      "maxPerItem": 1,
+      "anvilCost": 8
+    },
+    {
+      "id": "respiration_4",
+      "name": "Respirazione IV",
+      "category": "vanilla_plus",
+      "description": "Aumenta notevolmente il tempo di apnea sott'acqua (Livello Vanilla+ IV).",
+      "maxLevel": 4,
+      "rarity": "Vanilla+",
+      "applicableTo": [
+        "helmet"
+      ],
+      "targetScope": "single_item",
+      "requirements": [],
+      "conflicts": [
+        "Respirazione",
+        "respiration"
+      ],
+      "unique": false,
+      "maxPerItem": 1,
+      "anvilCost": 8
+    },
+    {
+      "id": "unbreaking_4",
+      "name": "Indistruttibilità IV",
+      "category": "vanilla_plus",
+      "description": "Aumenta notevolmente la durabilità dell'oggetto (Livello Vanilla+ IV).",
+      "maxLevel": 4,
+      "rarity": "Vanilla+",
+      "applicableTo": [
+        "sword",
+        "pick",
+        "axe",
+        "shovel",
+        "hoe",
+        "helmet",
+        "chest",
+        "legs",
+        "boots",
+        "bow",
+        "crossbow",
+        "elytra",
+        "fishing_rod",
+        "mace",
+        "shield",
+        "trident"
+      ],
+      "targetScope": "multiple_items",
+      "requirements": [],
+      "conflicts": [
+        "Indistruttibilità",
+        "unbreaking",
+        "Indistruttibilità V",
+        "unbreaking_5"
+      ],
+      "unique": false,
+      "maxPerItem": 1,
+      "anvilCost": 4
+    },
+    {
+      "id": "unbreaking_5",
+      "name": "Indistruttibilità V",
+      "category": "vanilla_plus",
+      "description": "Massimizza la durabilità dell'oggetto prima della rottura (Livello Vanilla+ V).",
+      "maxLevel": 5,
+      "rarity": "Vanilla+",
+      "applicableTo": [
+        "sword",
+        "pick",
+        "axe",
+        "shovel",
+        "hoe",
+        "helmet",
+        "chest",
+        "legs",
+        "boots",
+        "bow",
+        "crossbow",
+        "elytra",
+        "fishing_rod",
+        "mace",
+        "shield",
+        "trident"
+      ],
+      "targetScope": "multiple_items",
+      "requirements": [],
+      "conflicts": [
+        "Indistruttibilità",
+        "unbreaking",
+        "Indistruttibilità IV",
+        "unbreaking_4"
+      ],
+      "unique": false,
+      "maxPerItem": 1,
+      "anvilCost": 5
+    },
+    {
+      "id": "depth_strider_4",
+      "name": "Passo anfibio IV",
+      "category": "vanilla_plus",
+      "description": "Aumenta notevolmente la velocità di movimento sott'acqua (Livello Vanilla+ IV).",
+      "maxLevel": 4,
+      "rarity": "Vanilla+",
+      "applicableTo": [
+        "boots"
+      ],
+      "targetScope": "single_item",
+      "requirements": [],
+      "conflicts": [
+        "Passo anfibio",
+        "depth_strider",
+        "Passo gelato",
+        "frost_walker"
+      ],
+      "unique": false,
+      "maxPerItem": 1,
+      "anvilCost": 8
+    },
+    {
+      "id": "protection_5",
+      "name": "Protezione V",
+      "category": "vanilla_plus",
+      "description": "Riduce ulteriormente la maggior parte dei danni subiti (Livello Vanilla+ V).",
+      "maxLevel": 5,
+      "rarity": "Vanilla+",
+      "applicableTo": [
+        "helmet",
+        "chest",
+        "legs",
+        "boots"
+      ],
+      "targetScope": "multiple_items",
+      "requirements": [],
+      "conflicts": [
+        "Protezione",
+        "protection",
+        "Protezione dal fuoco",
+        "fire_protection",
+        "Protezione dalle esplosioni",
+        "blast_protection",
+        "Protezione dai proiettili",
+        "projectile_protection"
+      ],
+      "unique": false,
+      "maxPerItem": 1,
+      "anvilCost": 5
+    },
+    {
+      "id": "power_6",
+      "name": "Potenza VI",
+      "category": "vanilla_plus",
+      "description": "Aumenta drasticamente i danni inflitti dalle frecce (Livello Vanilla+ VI).",
+      "maxLevel": 6,
+      "rarity": "Vanilla+",
+      "applicableTo": [
+        "bow"
+      ],
+      "targetScope": "single_item",
+      "requirements": [],
+      "conflicts": [
+        "Potenza",
+        "power"
+      ],
+      "unique": false,
+      "maxPerItem": 1,
+      "anvilCost": 6
     }
   ],
   "minecraftVersion": "Java Edition 1.21.10",

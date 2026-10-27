@@ -157,16 +157,21 @@ public class EnchantmentDatabase {
             // Risoluzione bidirezionale dei conflitti (sia Vanilla che Custom)
             Map<String, Set<String>> conflictMap = new HashMap<>();
 
-            // 1. Gruppi di incompatibilità Vanilla standard
+            // 1. Gruppi di incompatibilità Vanilla & Vanilla+
             List<List<String>> vanillaGroups = List.of(
-                List.of("sharpness", "smite", "bane_of_arthropods", "density", "breach"),
-                List.of("protection", "fire_protection", "blast_protection", "projectile_protection"),
+                List.of("sharpness", "sharpness_6", "smite", "bane_of_arthropods", "density", "breach"),
+                List.of("protection", "protection_5", "fire_protection", "blast_protection", "projectile_protection"),
                 List.of("fortune", "silk_touch"),
                 List.of("infinity", "mending"),
                 List.of("multishot", "piercing"),
                 List.of("loyalty", "riptide"),
                 List.of("channeling", "riptide"),
-                List.of("depth_strider", "frost_walker")
+                List.of("depth_strider", "depth_strider_4", "frost_walker"),
+                List.of("feather_falling", "feather_falling_5"),
+                List.of("looting", "looting_4"),
+                List.of("respiration", "respiration_4"),
+                List.of("unbreaking", "unbreaking_4", "unbreaking_5"),
+                List.of("power", "power_6")
             );
 
             for (List<String> group : vanillaGroups) {
@@ -343,6 +348,22 @@ public class EnchantmentDatabase {
             eeAlt.anvilCost = cost;
         }
         saveCustomCosts();
+    }
+
+    public static String resolveVanillaPlusId(String baseId, int level) {
+        if (baseId == null) return null;
+        String id = baseId.toLowerCase().trim();
+        if (id.startsWith("minecraft:")) id = id.substring(10);
+        if ("sharpness".equals(id) && level >= 6) return "sharpness_6";
+        if ("feather_falling".equals(id) && level >= 5) return "feather_falling_5";
+        if ("looting".equals(id) && level >= 4) return "looting_4";
+        if ("respiration".equals(id) && level >= 4) return "respiration_4";
+        if ("unbreaking".equals(id) && level == 4) return "unbreaking_4";
+        if ("unbreaking".equals(id) && level >= 5) return "unbreaking_5";
+        if ("depth_strider".equals(id) && level >= 4) return "depth_strider_4";
+        if ("protection".equals(id) && level >= 5) return "protection_5";
+        if ("power".equals(id) && level >= 6) return "power_6";
+        return null;
     }
 
     public static int getEnchantmentCost(EnchantmentEntry ench, int level) {

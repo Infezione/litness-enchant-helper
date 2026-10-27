@@ -243,25 +243,32 @@ public class LitnessOptimizerScreen extends Screen {
             catalogPage = 0;
             updateSearch();
             rebuildWidgets();
-        }).bounds(catStartX, filterY, 45, 18).build());
+        }).bounds(catStartX, filterY, 42, 18).build());
 
         this.addRenderableWidget(Button.builder(Component.literal("VANILLA".equals(categoryFilter) ? "§aVanilla" : "Vanilla"), b -> {
             categoryFilter = "VANILLA";
             catalogPage = 0;
             updateSearch();
             rebuildWidgets();
-        }).bounds(catStartX + 49, filterY, 55, 18).build());
+        }).bounds(catStartX + 45, filterY, 50, 18).build());
+
+        this.addRenderableWidget(Button.builder(Component.literal("VANILLA_PLUS".equals(categoryFilter) ? "§aVanilla+" : "Vanilla+"), b -> {
+            categoryFilter = "VANILLA_PLUS";
+            catalogPage = 0;
+            updateSearch();
+            rebuildWidgets();
+        }).bounds(catStartX + 98, filterY, 60, 18).build());
 
         this.addRenderableWidget(Button.builder(Component.literal("CUSTOM".equals(categoryFilter) ? "§aCustom" : "Custom"), b -> {
             categoryFilter = "CUSTOM";
             catalogPage = 0;
             updateSearch();
             rebuildWidgets();
-        }).bounds(catStartX + 108, filterY, 52, 18).build());
+        }).bounds(catStartX + 161, filterY, 50, 18).build());
 
         // Campo ricerca
         String oldText = this.searchField != null ? this.searchField.getValue() : "";
-        this.searchField = new EditBox(this.font, catStartX + 165, filterY, 230, 18, Component.literal(""));
+        this.searchField = new EditBox(this.font, catStartX + 214, filterY, 185, 18, Component.literal(""));
         this.searchField.setValue(oldText);
         this.searchField.setHint(Component.literal("Cerca per nome o effetto..."));
         this.searchField.setResponder(text -> {
@@ -824,18 +831,19 @@ public class LitnessOptimizerScreen extends Screen {
             String conflict = getConflictWithCollection(ee, creatingSetEnchants);
             boolean hasConflict = (conflict != null);
             String maxRom = AnvilOptimizer.toRoman(ee.maxLevel);
-            String baseName = ee.name + " " + maxRom;
+            boolean alreadyHasRoman = ee.name.toUpperCase().endsWith(" " + maxRom);
+            String baseName = alreadyHasRoman ? ee.name : (ee.name + " " + maxRom);
 
             String label;
             if (isSelected) {
                 if (hasConflict) {
-                    label = "§e⚠️ §a✔ §f" + baseName + " §c(" + conflict + ")";
+                    label = "§e⚠️ §a✔ §c§m" + baseName + "§r §c(" + conflict + ")";
                 } else {
                     label = "§a✔ §f" + baseName;
                 }
             } else {
                 if (hasConflict) {
-                    label = "§e⚠️ §8[  ] §c" + baseName + " §8(vs " + conflict + ")";
+                    label = "§e⚠️ §8[  ] §c§m" + baseName + "§r §8(vs " + conflict + ")";
                 } else {
                     label = "§8[  ] §7" + baseName;
                 }
@@ -854,10 +862,22 @@ public class LitnessOptimizerScreen extends Screen {
                         statusMessage = "§cLimite massimo di 12 incantesimi raggiunto!";
                         return;
                     }
-                    if (hasConflict) {
-                        statusMessage = "§e⚠️ Attenzione: '" + ee.name + "' è incompatibile con '" + conflict + "'!";
+                    List<String> toRemove = new ArrayList<>();
+                    for (String selId : creatingSetEnchants) {
+                        EnchantmentEntry selEe = EnchantmentDatabase.getEnchantment(selId);
+                        if (selEe == null) continue;
+                        List<String> conflicts = EnchantmentDatabase.getResolvedConflicts(ee.id);
+                        List<String> selConflicts = EnchantmentDatabase.getResolvedConflicts(selId);
+                        if (conflicts.contains(selEe.name) || conflicts.contains(selEe.id) ||
+                            selConflicts.contains(ee.name) || selConflicts.contains(ee.id)) {
+                            toRemove.add(selId);
+                        }
+                    }
+                    if (!toRemove.isEmpty()) {
+                        creatingSetEnchants.removeAll(toRemove);
+                        statusMessage = "§eSostituito con: " + ee.name + (alreadyHasRoman ? "" : " " + maxRom);
                     } else {
-                        statusMessage = "Aggiunto al set futuro: " + ee.name + " " + maxRom;
+                        statusMessage = "Aggiunto al set futuro: " + ee.name + (alreadyHasRoman ? "" : " " + maxRom);
                     }
                     creatingSetEnchants.add(ee.id);
                 }
@@ -1167,6 +1187,7 @@ public class LitnessOptimizerScreen extends Screen {
 
         for (EnchantmentEntry ee : EnchantmentDatabase.getAllEnchantments()) {
             if ("VANILLA".equals(categoryFilter) && !"vanilla".equalsIgnoreCase(ee.category)) continue;
+            if ("VANILLA_PLUS".equals(categoryFilter) && !"vanilla_plus".equalsIgnoreCase(ee.category)) continue;
             if ("CUSTOM".equals(categoryFilter) && !"custom".equalsIgnoreCase(ee.category)) continue;
             if (!matchesItemFilter(ee)) continue;
 
@@ -1327,8 +1348,14 @@ public class LitnessOptimizerScreen extends Screen {
         for (var entry : stored.entrySet()) {
             String rawId = entry.getKey().unwrapKey().map(k -> k.identifier().getPath()).orElse("");
             int lvl = entry.getIntValue();
-            EnchantmentEntry ee = EnchantmentDatabase.getEnchantment(rawId);
-            String id = ee != null ? ee.id : rawId;
+            String vPlusId = EnchantmentDatabase.resolveVanillaPlusId(rawId, lvl);
+            String id;
+            if (vPlusId != null) {
+                id = vPlusId;
+            } else {
+                EnchantmentEntry ee = EnchantmentDatabase.getEnchantment(rawId);
+                id = ee != null ? ee.id : rawId;
+            }
             if (!id.isEmpty() && seen.add(id)) {
                 list.add(new EnchantApplied(id, lvl));
             }
@@ -1338,8 +1365,14 @@ public class LitnessOptimizerScreen extends Screen {
         for (var entry : enchants.entrySet()) {
             String rawId = entry.getKey().unwrapKey().map(k -> k.identifier().getPath()).orElse("");
             int lvl = entry.getIntValue();
-            EnchantmentEntry ee = EnchantmentDatabase.getEnchantment(rawId);
-            String id = ee != null ? ee.id : rawId;
+            String vPlusId = EnchantmentDatabase.resolveVanillaPlusId(rawId, lvl);
+            String id;
+            if (vPlusId != null) {
+                id = vPlusId;
+            } else {
+                EnchantmentEntry ee = EnchantmentDatabase.getEnchantment(rawId);
+                id = ee != null ? ee.id : rawId;
+            }
             if (!id.isEmpty() && seen.add(id)) {
                 list.add(new EnchantApplied(id, lvl));
             }
@@ -1436,7 +1469,8 @@ public class LitnessOptimizerScreen extends Screen {
 
             boolean isSearching = ActiveSessionManager.isSearchEnchant(e.id);
             boolean isCustom = "custom".equalsIgnoreCase(e.category);
-            int stripeColor = isSearching ? 0xFF00FF66 : (isCustom ? 0xFF10B981 : 0xFF6366F1);
+            boolean isVanillaPlus = "vanilla_plus".equalsIgnoreCase(e.category);
+            int stripeColor = isSearching ? 0xFF00FF66 : (isVanillaPlus ? 0xFFF59E0B : (isCustom ? 0xFF10B981 : 0xFF6366F1));
             int bgColor = isSearching ? (isHovered ? 0xEE163224 : 0xDD10241A) : (isHovered ? 0xEE1E1E2E : 0xDD141420);
 
             extractor.fill(cardX, y, cardX + cardWidth, y + 18, bgColor);
@@ -1446,19 +1480,20 @@ public class LitnessOptimizerScreen extends Screen {
                 extractor.fill(cardX, y + 17, cardX + cardWidth, y + 18, 0x8000FF66);
             }
 
-            String maxRoman = e.maxLevel > 1 ? " " + AnvilOptimizer.toRoman(e.maxLevel) : "";
+            boolean alreadyHasRoman = e.name.toUpperCase().endsWith(" " + AnvilOptimizer.toRoman(e.maxLevel));
+            String maxRoman = (e.maxLevel > 1 && !alreadyHasRoman) ? " " + AnvilOptimizer.toRoman(e.maxLevel) : "";
             String title = e.name + maxRoman;
             extractor.text(this.font, title, cardX + 6, y + 5, isSearching ? 0xFF86EFAC : 0xFFFFFFFF, false);
 
             int titleW = this.font.width(title);
             int badgeX = cardX + 12 + titleW;
 
-            String badge = isCustom ? "[" + (e.rarity != null ? e.rarity.toUpperCase() : "CUSTOM") + "]" : "[VANILLA]";
-            int badgeColor = isCustom ? 0xFF34D399 : 0xFF818CF8;
+            String badge = isVanillaPlus ? "[VANILLA+]" : (isCustom ? "[" + (e.rarity != null ? e.rarity.toUpperCase() : "CUSTOM") + "]" : "[VANILLA]");
+            int badgeColor = isVanillaPlus ? 0xFFF59E0B : (isCustom ? 0xFF34D399 : 0xFF818CF8);
             extractor.text(this.font, badge, badgeX, y + 5, badgeColor, false);
             int badgeW = this.font.width(badge);
 
-            String cost = isCustom ? "+" + e.getAnvilCostNumeric() + " liv." : "Vanilla";
+            String cost = (isCustom || isVanillaPlus) ? "+" + e.getAnvilCostNumeric() + " liv." : "Vanilla";
             String costText = "Costo: " + cost;
             int costW = this.font.width(costText);
             int costX = (cardX + cardWidth - btnW - 6) - costW - 6;
@@ -1489,9 +1524,11 @@ public class LitnessOptimizerScreen extends Screen {
         int innerW = tipW - 16;
 
         boolean isCustom = "custom".equalsIgnoreCase(e.category);
-        String title = (hasActiveConflict ? "§e⚠️ " : "") + e.name + " (Livello Massimo: " + AnvilOptimizer.toRoman(e.maxLevel) + ")";
-        String sub = (isCustom ? "Custom Litness (" + (e.rarity != null ? e.rarity : "Speciale") + ")" : "Incantesimo Vanilla") 
-                + " • Costo: " + (isCustom ? "+" + e.getAnvilCostNumeric() + " liv." : "Standard");
+        boolean isVanillaPlus = "vanilla_plus".equalsIgnoreCase(e.category);
+        String catName = isVanillaPlus ? "Vanilla+ Speciale" : (isCustom ? "Custom Litness (" + (e.rarity != null ? e.rarity : "Speciale") + ")" : "Incantesimo Vanilla");
+        boolean alreadyHasRoman = e.name.toUpperCase().endsWith(" " + AnvilOptimizer.toRoman(e.maxLevel));
+        String title = (hasActiveConflict ? "§e⚠️ " : "") + e.name + (alreadyHasRoman ? "" : " (Livello Massimo: " + AnvilOptimizer.toRoman(e.maxLevel) + ")");
+        String sub = catName + " • Costo: " + ((isCustom || isVanillaPlus) ? "+" + e.getAnvilCostNumeric() + " liv." : "Standard");
         String desc = (e.description != null && !e.description.isEmpty()) ? e.description : "Nessuna descrizione.";
 
         int descH = this.font.wordWrapHeight(Component.literal(desc), innerW);
@@ -1512,12 +1549,12 @@ public class LitnessOptimizerScreen extends Screen {
         int tipY = Math.max(8, Math.min(mouseY - 8, this.height - tipH - 8));
 
         extractor.fill(tipX, tipY, tipX + tipW, tipY + tipH, 0xFA0E0E18);
-        int topStripe = hasActiveConflict ? 0xFFF59E0B : (isCustom ? 0xFF10B981 : 0xFF6366F1);
+        int topStripe = hasActiveConflict ? 0xFFF59E0B : (isVanillaPlus ? 0xFFF59E0B : (isCustom ? 0xFF10B981 : 0xFF6366F1));
         extractor.fill(tipX, tipY, tipX + tipW, tipY + 1, topStripe);
         extractor.outline(tipX, tipY, tipW, tipH, hasActiveConflict ? 0xFFF59E0B : 0xFF2A2A3E);
 
         extractor.text(this.font, title, tipX + 8, tipY + 6, hasActiveConflict ? 0xFFFBBF24 : 0xFFFFFFFF, false);
-        extractor.text(this.font, sub, tipX + 8, tipY + 18, isCustom ? 0xFF34D399 : 0xFF818CF8, false);
+        extractor.text(this.font, sub, tipX + 8, tipY + 18, isVanillaPlus ? 0xFFFBBF24 : (isCustom ? 0xFF34D399 : 0xFF818CF8), false);
 
         int currentY = tipY + 31;
         if (hasActiveConflict) {
@@ -1791,9 +1828,10 @@ public class LitnessOptimizerScreen extends Screen {
             }
 
             boolean isCustom = "custom".equalsIgnoreCase(ee.category);
+            boolean isVanillaPlus = "vanilla_plus".equalsIgnoreCase(ee.category);
             String title = ee.name + " " + AnvilOptimizer.toRoman(ea.level);
-            String sub = (isCustom ? "Custom Litness (" + (ee.rarity != null ? ee.rarity : "Speciale") + ")" : "Incantesimo Vanilla")
-                    + " • Costo: " + (isCustom ? "+" + ee.getAnvilCostNumeric() + " liv." : "Standard");
+            String catName = isVanillaPlus ? "Vanilla+ Speciale" : (isCustom ? "Custom Litness (" + (ee.rarity != null ? ee.rarity : "Speciale") + ")" : "Incantesimo Vanilla");
+            String sub = catName + " • Costo: " + ((isCustom || isVanillaPlus) ? "+" + ee.getAnvilCostNumeric() + " liv." : "Standard");
             String penTxt = "Penalità lavoro libro: +" + slot.work + " liv.";
             String desc = (ee.description != null && !ee.description.isEmpty()) ? ee.description : "Nessuna descrizione.";
 
@@ -1815,11 +1853,12 @@ public class LitnessOptimizerScreen extends Screen {
             int tipY = Math.max(8, Math.min(mouseY - 8, this.height - tipH - 8));
 
             extractor.fill(tipX, tipY, tipX + tipW, tipY + tipH, 0xFA0E1510);
-            extractor.fill(tipX, tipY, tipX + tipW, tipY + 1, isCustom ? 0xFF10B981 : 0xFF6366F1);
+            int topStripe = isVanillaPlus ? 0xFFF59E0B : (isCustom ? 0xFF10B981 : 0xFF6366F1);
+            extractor.fill(tipX, tipY, tipX + tipW, tipY + 1, topStripe);
             extractor.outline(tipX, tipY, tipW, tipH, 0xFF227744);
 
             extractor.text(this.font, title, tipX + 8, tipY + 6, 0xFF34D399, false);
-            extractor.text(this.font, sub, tipX + 8, tipY + 18, isCustom ? 0xFF86EFAC : 0xFF93C5FD, false);
+            extractor.text(this.font, sub, tipX + 8, tipY + 18, isVanillaPlus ? 0xFFFBBF24 : (isCustom ? 0xFF86EFAC : 0xFF93C5FD), false);
             extractor.text(this.font, penTxt, tipX + 8, tipY + 29, 0xFFFBBF24, false);
 
             int currentY = tipY + 42;
@@ -1877,9 +1916,12 @@ public class LitnessOptimizerScreen extends Screen {
             EnchantApplied ea = slot.enchants.get(i);
             EnchantmentEntry ee = EnchantmentDatabase.getEnchantment(ea.id);
             boolean isCustom = ee != null && "custom".equalsIgnoreCase(ee.category);
+            boolean isVanillaPlus = ee != null && "vanilla_plus".equalsIgnoreCase(ee.category);
+            String catLabel = isVanillaPlus ? "Vanilla+" : (isCustom ? ee.rarity : "Vanilla");
             String nameText = "• " + (ee != null ? ee.name : ea.id) + " " + AnvilOptimizer.toRoman(ea.level) 
-                    + " §7(" + (isCustom ? ee.rarity : "Vanilla") + ")";
-            extractor.text(this.font, nameText, tipX + 8, curY, isCustom ? 0xFF86EFAC : 0xFF93C5FD, false);
+                    + " §7(" + catLabel + ")";
+            int textCol = isVanillaPlus ? 0xFFFBBF24 : (isCustom ? 0xFF86EFAC : 0xFF93C5FD);
+            extractor.text(this.font, nameText, tipX + 8, curY, textCol, false);
             curY += 11;
 
             String d = (ee != null && ee.description != null && !ee.description.isEmpty()) ? ee.description : null;

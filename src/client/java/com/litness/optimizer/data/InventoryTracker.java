@@ -220,9 +220,14 @@ public class InventoryTracker {
         for (var entry : stored.entrySet()) {
             String rawId = entry.getKey().unwrapKey().map(k -> k.identifier().getPath()).orElse("");
             int lvl = entry.getIntValue();
-            EnchantmentDatabase.EnchantmentEntry ee = EnchantmentDatabase.getEnchantment(rawId);
-            if (ee != null) {
-                map.merge(ee.id, lvl, Math::max);
+            String vPlusId = EnchantmentDatabase.resolveVanillaPlusId(rawId, lvl);
+            if (vPlusId != null) {
+                map.merge(vPlusId, lvl, Math::max);
+            } else {
+                EnchantmentDatabase.EnchantmentEntry ee = EnchantmentDatabase.getEnchantment(rawId);
+                if (ee != null) {
+                    map.merge(ee.id, lvl, Math::max);
+                }
             }
         }
 
@@ -248,10 +253,16 @@ public class InventoryTracker {
         ItemEnchantments enchants = stack.getOrDefault(DataComponents.ENCHANTMENTS, ItemEnchantments.EMPTY);
         for (var entry : enchants.entrySet()) {
             String rawId = entry.getKey().unwrapKey().map(k -> k.identifier().getPath()).orElse("");
-            EnchantmentDatabase.EnchantmentEntry ee = EnchantmentDatabase.getEnchantment(rawId);
-            String id = ee != null ? ee.id : rawId;
-            if (!id.isEmpty()) {
-                set.add(id.toLowerCase().trim());
+            int lvl = entry.getIntValue();
+            String vPlusId = EnchantmentDatabase.resolveVanillaPlusId(rawId, lvl);
+            if (vPlusId != null) {
+                set.add(vPlusId);
+            } else {
+                EnchantmentDatabase.EnchantmentEntry ee = EnchantmentDatabase.getEnchantment(rawId);
+                String id = ee != null ? ee.id : rawId;
+                if (!id.isEmpty()) {
+                    set.add(id.toLowerCase().trim());
+                }
             }
         }
 
