@@ -298,8 +298,8 @@ public abstract class AnvilScreenMixin extends ItemCombinerScreen<AnvilMenu> {
         }
     }
 
-    @Inject(method = "extractRenderState", at = @At("TAIL"))
-    private void litness_renderHoverTooltips(GuiGraphicsExtractor extractor, int mouseX, int mouseY, float delta, CallbackInfo ci) {
+    @Inject(method = "extractLabels", at = @At("TAIL"))
+    private void litness_renderHoverTooltips(GuiGraphicsExtractor extractor, int mouseX, int mouseY, CallbackInfo ci) {
         try {
             if (this.hoveredNextStep != null) {
                 renderStepTooltip(extractor, this.hoveredNextStep, this.hoverMouseX, this.hoverMouseY);

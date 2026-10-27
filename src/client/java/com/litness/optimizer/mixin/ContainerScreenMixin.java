@@ -8,12 +8,10 @@ import com.litness.optimizer.data.SavedSetsManager.CustomSet;
 import com.litness.optimizer.tooltip.LitnessTooltipHandler;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.GuiGraphicsExtractor;
+import net.minecraft.client.gui.screens.Screen;
 import net.minecraft.client.gui.screens.inventory.AbstractContainerScreen;
-import net.minecraft.client.gui.screens.inventory.ContainerScreen;
 import net.minecraft.core.component.DataComponents;
 import net.minecraft.network.chat.Component;
-import net.minecraft.world.entity.player.Inventory;
-import net.minecraft.world.inventory.ChestMenu;
 import net.minecraft.world.inventory.Slot;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.component.ItemLore;
@@ -25,20 +23,14 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 
 import java.util.*;
 
-@Mixin(ContainerScreen.class)
-public abstract class ContainerScreenMixin extends AbstractContainerScreen<ChestMenu> {
+@Mixin(AbstractContainerScreen.class)
+public abstract class ContainerScreenMixin extends Screen {
 
-    private boolean isTargetContainer = false;
-    private Set<String> cachedTargetEnchants = Collections.emptySet();
+    private static long lastTargetCheck = 0;
+    private static Set<String> cachedTargetEnchants = Collections.emptySet();
 
-    public ContainerScreenMixin(ChestMenu menu, Inventory playerInventory, Component title) {
-        super(menu, playerInventory, title);
-    }
-
-    @Inject(method = "extractRenderState", at = @At("HEAD"))
-    private void litness_updateContainerState(GuiGraphicsExtractor extractor, int mouseX, int mouseY, float delta, CallbackInfo ci) {
-        this.isTargetContainer = isAuctionHouseOrEnchGui(this.getTitle().getString());
-        this.cachedTargetEnchants = getTargetEnchantments();
+    protected ContainerScreenMixin(Component title) {
+        super(title);
     }
 
     @Inject(method = "extractSlot", at = @At("TAIL"))
@@ -53,13 +45,17 @@ public abstract class ContainerScreenMixin extends AbstractContainerScreen<Chest
         ItemStack stack = slot.getItem();
         if (stack.isEmpty()) return;
 
-        // Rilevamento dinamico: se il titolo non corrisponde ma gli oggetti hanno lore server AH o EnchGUI
-        if (!isTargetContainer) {
-            if (hasServerGuiOrAhLore(stack)) {
-                this.isTargetContainer = true;
-            } else {
-                return;
-            }
+        // Verifica che siamo in un menu server rilevante (/ah o /enchgui o item con lore server)
+        String titleStr = this.getTitle().getString();
+        boolean isTarget = isAuctionHouseOrEnchGui(titleStr);
+        if (!isTarget && !hasServerGuiOrAhLore(stack)) {
+            return;
+        }
+
+        long now = System.currentTimeMillis();
+        if (now - lastTargetCheck > 250) {
+            cachedTargetEnchants = getTargetEnchantments();
+            lastTargetCheck = now;
         }
 
         if (cachedTargetEnchants == null || cachedTargetEnchants.isEmpty()) return;
