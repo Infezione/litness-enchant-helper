@@ -1,12 +1,12 @@
 # ⚡ Litness Enchant Helper
 
-[![DOWNLOAD MOD (.JAR)](https://img.shields.io/badge/⬇️%20SCARICA%20SUBITO%20LA%20MOD%20(.JAR)-VERSIONE%201.1.5-22c55e?style=for-the-badge&logo=curseforge&logoColor=white)](https://github.com/Infezione/litness-enchant-helper/releases/download/v1.1.5/LitnessEnchantHelper-1.1.5.jar)
+[![DOWNLOAD MOD (.JAR)](https://img.shields.io/badge/⬇️%20SCARICA%20SUBITO%20LA%20MOD%20(.JAR)-VERSIONE%201.1.6-22c55e?style=for-the-badge&logo=curseforge&logoColor=white)](https://github.com/Infezione/litness-enchant-helper/releases/download/v1.1.6/LitnessEnchantHelper-1.1.6.jar)
 [![ULTIMI AGGIORNAMENTI](https://img.shields.io/badge/🔄%20ULTIMI%20AGGIORNAMENTI-VEDI%20LE%20NOVITÀ-6366f1?style=for-the-badge&logo=sparkles&logoColor=white)](#-ultimi-aggiornamenti)
 
 ![Minecraft](https://img.shields.io/badge/Minecraft-26.2-brightgreen.svg)
 ![Fabric](https://img.shields.io/badge/ModLoader-Fabric-blue.svg)
 ![Lunar Client](https://img.shields.io/badge/Lunar%20Client-Compatible-informational.svg)
-![Release](https://img.shields.io/badge/Release-v1.1.5-blueviolet.svg)
+![Release](https://img.shields.io/badge/Release-v1.1.6-blueviolet.svg)
 ![Author](https://img.shields.io/badge/Author-Waaxey-purple.svg)
 
 > [!TIP]
@@ -104,6 +104,7 @@ Sul server Litness, forgiare spade, archi, picconi o armature con 10–12 incant
 <a id="ultimi-aggiornamenti"></a>
 ## 🔄 Ultimi Aggiornamenti
 
+- 🛠️ **Fix Rendering Tooltip Sidebar Incudine**: risolto il problema di sovrapposizione visiva che faceva apparire slot o blocchi dell'inventario sopra il popup; il tooltip ora viene renderizzato sul livello superiore con layout compatto, pulito e titolo dinamico per ogni tipo di oggetto (es. Piccone, Spada, Armature).
 - 🟢 **Evidenziazione Verde in /ah e /enchgui**: gli oggetti, libri e armature contenenti incantesimi del tuo set pinnato (o attivo) vengono evidenziati con bordo e sfondo verde smeraldo all'interno dell'Asta (`/ah`) e del menu incantesimi (`/enchgui`) per individuarli e acquistarli a colpo d'occhio.
 - 📌 **Pin HUD Checklist in Gioco**: visualizza a schermo durante il gameplay la checklist in tempo reale degli incantesimi con tracking intelligente degli incantesimi mancanti, dei libri in inventario e di quelli già applicati sul pezzo corrispondente.
 - 🔔 **Notifica Automatica Aggiornamenti in Chat con Link Diretto**: all'ingresso nel server, la mod verifica in background su GitHub se è disponibile una versione più recente e, se presente, invia un messaggio in chat con link cliccabile per scaricare istantaneamente il file `.jar` o consultare le note di rilascio.
@@ -132,7 +133,7 @@ Sul server Litness, forgiare spade, archi, picconi o armature con 10–12 incant
 ## 📥 Installazione
 
 ### Metodo 1: Per Lunar Client (Consigliato)
-1. Scarica il file **`LitnessEnchantHelper-1.1.5.jar`** dall'area [Releases](../../releases).
+1. Scarica il file **`LitnessEnchantHelper-1.1.6.jar`** dall'area [Releases](../../releases).
 2. Premi sulla tastiera `Win + R`, incolla la seguente stringa e premi **Invio**:
    ```text
    %userprofile%\.lunarclient\profiles\26\mods\fabric-26.2\
@@ -142,7 +143,7 @@ Sul server Litness, forgiare spade, archi, picconi o armature con 10–12 incant
 
 ### Metodo 2: Per Fabric Launcher Standard
 1. Assicurati di avere installato **Fabric Loader** per Minecraft 26.2 e la **Fabric API**.
-2. Posiziona il file `LitnessEnchantHelper-1.1.5.jar` nella cartella `.minecraft/mods/`.
+2. Posiziona il file `LitnessEnchantHelper-1.1.6.jar` nella cartella `.minecraft/mods/`.
 3. Avvia il gioco.
 
 ---
