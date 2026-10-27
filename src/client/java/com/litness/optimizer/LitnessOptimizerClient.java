@@ -1,6 +1,7 @@
 package com.litness.optimizer;
 
 import com.litness.optimizer.data.EnchantmentDatabase;
+import com.litness.optimizer.data.UpdateChecker;
 import com.litness.optimizer.gui.LitnessOptimizerScreen;
 import com.litness.optimizer.tooltip.ApplicableItemsTooltipData;
 import com.litness.optimizer.tooltip.ClientApplicableItemsTooltip;
@@ -9,6 +10,7 @@ import com.mojang.blaze3d.platform.InputConstants;
 import net.fabricmc.api.ClientModInitializer;
 import net.fabricmc.fabric.api.client.event.lifecycle.v1.ClientTickEvents;
 import net.fabricmc.fabric.api.client.keymapping.v1.KeyMappingHelper;
+import net.fabricmc.fabric.api.client.networking.v1.ClientPlayConnectionEvents;
 import net.fabricmc.fabric.api.client.rendering.v1.ClientTooltipComponentCallback;
 import net.minecraft.client.KeyMapping;
 import net.minecraft.network.chat.Component;
@@ -20,6 +22,9 @@ public class LitnessOptimizerClient implements ClientModInitializer {
     @Override
     public void onInitializeClient() {
         System.out.println("[LitnessOptimizer] Inizializzazione mod client per Fabric 26.2...");
+
+        // Controllo asincrono aggiornamenti in background
+        UpdateChecker.checkForUpdatesAsync();
 
         // Registrazione del KeyMapping per il tasto 'N'
         openGuiKeyMapping = KeyMappingHelper.registerKeyMapping(new KeyMapping(
@@ -38,10 +43,11 @@ public class LitnessOptimizerClient implements ClientModInitializer {
             }
         });
 
-        // Messaggio discreto all'ingresso nel server per ricordare il tasto [N]
-        net.fabricmc.fabric.api.client.networking.v1.ClientPlayConnectionEvents.JOIN.register((handler, sender, client) -> {
+        // Messaggio all'ingresso nel server per ricordare il tasto [N] e notificare aggiornamenti
+        ClientPlayConnectionEvents.JOIN.register((handler, sender, client) -> {
             if (client.player != null) {
                 client.player.sendSystemMessage(Component.literal("§6⚡ §eLitness Enchant Helper §7attivo! Premi §a[N] §7per aprire il menu."));
+                UpdateChecker.notifyPlayerIfUpdateAvailable(client);
             }
         });
 

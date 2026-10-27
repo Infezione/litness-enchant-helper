@@ -98,6 +98,7 @@ Sul server Litness, forgiare spade, archi, picconi o armature con 10–12 incant
 <a id="ultimi-aggiornamenti"></a>
 ## 🔄 Ultimi Aggiornamenti
 
+- 🔔 **Notifica Automatica Aggiornamenti in Chat con Link Diretto**: all'ingresso nel server, la mod verifica in background su GitHub se è disponibile una versione più recente e, se presente, invia un messaggio in chat con link cliccabile per scaricare istantaneamente il file `.jar` o consultare le note di rilascio.
 - ✏️ **Modifica Completa dei Set Salvati**: aggiunto il pulsante `[✏]` accanto a ogni set salvato in "I Miei Set" per modificarne all'istante nome, pezzo e incantesimi senza dover ricreare il set da zero.
 - 💾 **Persistenza della Selezione tra le Sessioni**: uscendo e rientrando dal server o riavviando il gioco, la selezione del simulatore e il tipo di oggetto non si azzerano più e rimangono salvati esattamente come li avevi lasciati.
 - 🔮 **Sincronizzazione Perfetta Incudine & GUI (Algoritmo Deterministico)**: l'albero di fusione dell'incudine (`AnvilOptimizer`) è ora matematicamente deterministico e stabile al 100%. La sidebar dell'incudine sincronizza i passaggi con il set pianificato (filtrando via i drop casuali) ed include lo switch di modalità `[🔮 Set Completo / 📦 Da Inventario]`.

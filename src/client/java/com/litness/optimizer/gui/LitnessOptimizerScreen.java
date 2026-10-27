@@ -13,6 +13,7 @@ import com.litness.optimizer.data.InventoryTracker;
 import com.litness.optimizer.data.PinnedEnchantmentsManager;
 import com.litness.optimizer.data.SavedSetsManager;
 import com.litness.optimizer.data.SavedSetsManager.CustomSet;
+import com.litness.optimizer.data.UpdateChecker;
 import com.litness.optimizer.tooltip.LitnessTooltipHandler;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.GuiGraphicsExtractor;
@@ -196,6 +197,14 @@ public class LitnessOptimizerScreen extends Screen {
 
         int topY = 7;
         int tabWidth = 145;
+
+        // Notifica aggiornamento disponibile in alto a sinistra
+        if (UpdateChecker.isUpdateAvailable() && (this.width / 2 - tabWidth - 5) >= 115) {
+            String upTxt = "§6⚡ " + UpdateChecker.getLatestVersion();
+            this.addRenderableWidget(Button.builder(Component.literal(upTxt), b -> {
+                net.minecraft.util.Util.getPlatform().openUri(java.net.URI.create(UpdateChecker.getReleasePageUrl()));
+            }).bounds(8, topY, 105, 19).build());
+        }
 
         // 1. Tab Navigazione Superiore (Catalogo vs Simulatore/Calcolatore)
         this.addRenderableWidget(Button.builder(Component.literal("📖 Catalogo Incantesimi"), button -> {
