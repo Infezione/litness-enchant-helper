@@ -32,15 +32,11 @@ public class InventoryTracker {
             }
         }
 
-        // Se c'è un'incudine o contenitore aperto, scansiona anche gli slot se contengono libri
-        if (mc.player.containerMenu != null) {
-            for (var slot : mc.player.containerMenu.slots) {
-                if (slot.hasItem()) {
-                    ItemStack stack = slot.getItem();
-                    if (!stack.isEmpty() && (stack.is(Items.ENCHANTED_BOOK) || stack.is(Items.BOOK))) {
-                        scanBookStack(stack, map);
-                    }
-                }
+        // Se c'è un'incudine aperta, scansiona solo lo slot 1 (il libro inserito dal giocatore per la fusione)
+        if (mc.player.containerMenu instanceof AnvilMenu anvilMenu) {
+            ItemStack slot1 = anvilMenu.getSlot(1).getItem();
+            if (!slot1.isEmpty() && (slot1.is(Items.ENCHANTED_BOOK) || slot1.is(Items.BOOK))) {
+                scanBookStack(slot1, map);
             }
         }
 
