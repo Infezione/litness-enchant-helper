@@ -115,7 +115,6 @@ public class LitnessOptimizerScreen extends Screen {
     private Button btnPrevStep;
     private Button btnNextStep;
     private Button btnCopyGuide;
-    private Button btnToggleMode;
     private EnchantmentEntry hoveredCatalogEntry = null;
     private HoveredBookSlot hoveredGuideSlot = null;
     private EnchantmentEntry hoveredSelectionEntry = null;
@@ -482,23 +481,7 @@ public class LitnessOptimizerScreen extends Screen {
     }
 
     private void initGuideViewWidgets(int startX, int panelWidth, int contentY) {
-        // Toggle modalità Guida: Set Completo Pianificato vs Libri in Inventario
-        String modeLabel = (calcMode == CalcMode.SIMULATOR) ? "🔮 Set Completo" : "📦 Da Inventario";
-        this.btnToggleMode = Button.builder(Component.literal(modeLabel), b -> {
-            if (calcMode == CalcMode.SIMULATOR) {
-                calcMode = CalcMode.INVENTORY;
-                scanFromGameEnvironment();
-            } else {
-                calcMode = CalcMode.SIMULATOR;
-            }
-            guideStepPage = 0;
-            runCalculation();
-            this.clearWidgets();
-            this.init();
-        }).bounds(startX + panelWidth - 212, contentY + 1, 120, 18).build();
-        this.addRenderableWidget(this.btnToggleMode);
-
-        // Pulsante Copia Guida negli Appunti posizionato esattamente a destra del banner senza sovrapposizioni
+        // Pulsante Copia Guida negli Appunti posizionato saldamente a destra del banner
         this.btnCopyGuide = Button.builder(Component.literal("📋 Copia Passi"), b -> copyGuideToClipboard())
                 .bounds(startX + panelWidth - 88, contentY + 1, 86, 18).build();
         this.addRenderableWidget(this.btnCopyGuide);
@@ -840,22 +823,22 @@ public class LitnessOptimizerScreen extends Screen {
             int row = i - startIdx;
             int y = startY + row * (cardH + gap);
 
+            // [⚡ Guida]
+            Button loadBtn = Button.builder(Component.literal("⚡ Guida"), b -> {
+                loadSavedSetIntoSimulator(set);
+            }).bounds(startX + panelWidth - 176, y + 13, 56, 18).build();
+            this.addRenderableWidget(loadBtn);
+            savedSetButtons.add(loadBtn);
+
             // [📌 Pin HUD] / [★ Pinnato]
             boolean isPinned = ActiveSessionManager.isSetPinned(set.id);
             Button pinBtn = Button.builder(Component.literal(isPinned ? "§6★ Pinnato" : "📌 Pin HUD"), b -> {
                 ActiveSessionManager.togglePinSet(set.id);
                 this.clearWidgets();
                 this.init();
-            }).bounds(startX + panelWidth - 180, y + 13, 62, 18).build();
+            }).bounds(startX + panelWidth - 116, y + 13, 60, 18).build();
             this.addRenderableWidget(pinBtn);
             savedSetButtons.add(pinBtn);
-
-            // [⚡ Guida]
-            Button loadBtn = Button.builder(Component.literal("⚡ Guida"), b -> {
-                loadSavedSetIntoSimulator(set);
-            }).bounds(startX + panelWidth - 114, y + 13, 56, 18).build();
-            this.addRenderableWidget(loadBtn);
-            savedSetButtons.add(loadBtn);
 
             // [✏ Modifica Set]
             Button editBtn = Button.builder(Component.literal("✏"), b -> {
@@ -875,7 +858,7 @@ public class LitnessOptimizerScreen extends Screen {
                 statusMessage = "§eModifica del set '" + set.name + "' in corso...";
                 this.clearWidgets();
                 this.init();
-            }).bounds(startX + panelWidth - 54, y + 13, 26, 18).build();
+            }).bounds(startX + panelWidth - 52, y + 13, 24, 18).build();
             this.addRenderableWidget(editBtn);
             savedSetButtons.add(editBtn);
 
@@ -1498,7 +1481,7 @@ public class LitnessOptimizerScreen extends Screen {
         int bannerY = 72;
 
         if (currentSolution != null && !currentSolution.steps.isEmpty()) {
-            int bannerW = panelWidth - 216;
+            int bannerW = panelWidth - 92;
             // BANNER RIEPILOGO COSTI IN CIMA SENZA ALCUNA SOVRAPPOSIZIONE
             extractor.fill(panelX, bannerY, panelX + bannerW, bannerY + 20, 0xEE141422);
             extractor.fill(panelX, bannerY, panelX + 3, bannerY + 20, 0xFF10B981);
@@ -1523,12 +1506,6 @@ public class LitnessOptimizerScreen extends Screen {
                     + " di " + totalSteps;
             int pagInfoX = panelX + bannerW - this.font.width(pagInfo) - 10;
             extractor.text(this.font, pagInfo, Math.max(curBannerX + this.font.width(peakTxt) + 16, pagInfoX), bannerY + 6, 0xFFA5B4FC, false);
-
-            if (btnToggleMode != null) {
-                btnToggleMode.visible = true;
-                btnToggleMode.active = true;
-                btnToggleMode.setPosition(panelX + panelWidth - 212, bannerY + 1);
-            }
 
             if (btnCopyGuide != null) {
                 btnCopyGuide.visible = true;
@@ -1668,7 +1645,7 @@ public class LitnessOptimizerScreen extends Screen {
 
             this.hoveredGuideSlot = hoveredSlot;
         } else {
-            int bannerW = panelWidth - 128;
+            int bannerW = panelWidth;
             extractor.fill(panelX, bannerY, panelX + bannerW, bannerY + 24, 0xEE141422);
             extractor.outline(panelX, bannerY, bannerW, 24, 0xFF2A2A3E);
             extractor.text(this.font, statusMessage.isEmpty() ? "Nessun incantesimo selezionato." : statusMessage, panelX + 10, bannerY + 8, 0xFFA5B4FC, false);
@@ -1677,11 +1654,6 @@ public class LitnessOptimizerScreen extends Screen {
             if (btnCopyGuide != null) {
                 btnCopyGuide.visible = false;
                 btnCopyGuide.active = false;
-            }
-            if (btnToggleMode != null) {
-                btnToggleMode.visible = true;
-                btnToggleMode.active = true;
-                btnToggleMode.setPosition(panelX + panelWidth - 124, bannerY + 3);
             }
         }
     }
