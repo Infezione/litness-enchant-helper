@@ -17,14 +17,22 @@ import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.component.ItemLore;
 import net.minecraft.world.item.enchantment.ItemEnchantments;
 import org.spongepowered.asm.mixin.Mixin;
+import org.spongepowered.asm.mixin.Shadow;
 import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
+import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
+import net.minecraft.client.input.MouseButtonEvent;
 
 import java.util.*;
 
 @Mixin(AbstractContainerScreen.class)
 public abstract class ContainerScreenMixin extends Screen {
+
+    @Shadow protected int leftPos;
+    @Shadow protected int topPos;
+    @Shadow protected int imageWidth;
+    @Shadow protected int imageHeight;
 
     private static long lastTargetCheck = 0;
     private static Set<String> cachedTargetEnchants = Collections.emptySet();
@@ -37,6 +45,15 @@ public abstract class ContainerScreenMixin extends Screen {
     private void litness_renderContainerTopLayer(GuiGraphicsExtractor extractor, int mouseX, int mouseY, float delta, CallbackInfo ci) {
         if (((Object) this) instanceof net.minecraft.client.gui.screens.inventory.AnvilScreen anvil) {
             com.litness.optimizer.gui.AnvilTooltipState.renderTopLayer(extractor, anvil, mouseX, mouseY);
+        } else {
+            com.litness.optimizer.gui.AhPriceManager.renderAhSidebar(extractor, (AbstractContainerScreen<?>) (Object) this, this.leftPos, this.topPos, this.imageWidth, this.imageHeight, mouseX, mouseY);
+        }
+    }
+
+    @Inject(method = "mouseClicked", at = @At("HEAD"), cancellable = true)
+    private void litness_onContainerMouseClicked(MouseButtonEvent event, boolean isDown, CallbackInfoReturnable<Boolean> cir) {
+        if (com.litness.optimizer.gui.AhPriceManager.handleMouseClicked(event.x(), event.y(), event.button())) {
+            cir.setReturnValue(true);
         }
     }
 
@@ -128,85 +145,6 @@ public abstract class ContainerScreenMixin extends Screen {
     }
 
     private static boolean matchesAnyTargetEnchant(ItemStack stack, Set<String> targetEnchants) {
-        if (stack == null || stack.isEmpty() || targetEnchants == null || targetEnchants.isEmpty()) return false;
-
-        // 1. STORED_ENCHANTMENTS (libri incantati standard)
-        ItemEnchantments stored = stack.getOrDefault(DataComponents.STORED_ENCHANTMENTS, ItemEnchantments.EMPTY);
-        for (var entry : stored.entrySet()) {
-            String rawId = entry.getKey().unwrapKey().map(k -> k.identifier().getPath()).orElse("");
-            EnchantmentEntry ee = EnchantmentDatabase.getEnchantment(rawId);
-            String id = (ee != null) ? ee.id : rawId;
-            if (isEnchantInSet(id, targetEnchants)) return true;
-        }
-
-        // 2. ENCHANTMENTS (armi, armature e attrezzi già incantati)
-        ItemEnchantments enchants = stack.getOrDefault(DataComponents.ENCHANTMENTS, ItemEnchantments.EMPTY);
-        for (var entry : enchants.entrySet()) {
-            String rawId = entry.getKey().unwrapKey().map(k -> k.identifier().getPath()).orElse("");
-            EnchantmentEntry ee = EnchantmentDatabase.getEnchantment(rawId);
-            String id = (ee != null) ? ee.id : rawId;
-            if (isEnchantInSet(id, targetEnchants)) return true;
-        }
-
-        // 3. Nome oggetto (display name in /enchgui o /ah)
-        String hoverName = stack.getHoverName().getString();
-        if (checkLineForMatch(hoverName, targetEnchants)) {
-            return true;
-        }
-
-        // 4. Righe Lore
-        ItemLore lore = stack.getOrDefault(DataComponents.LORE, ItemLore.EMPTY);
-        for (Component c : lore.lines()) {
-            String line = c.getString();
-            if (checkLineForMatch(line, targetEnchants)) {
-                return true;
-            }
-        }
-
-        return false;
-    }
-
-    private static boolean checkLineForMatch(String text, Set<String> targetEnchants) {
-        if (text == null || text.isEmpty()) return false;
-
-        LitnessTooltipHandler.MatchedEnchantment match = LitnessTooltipHandler.matchEnchantment(text);
-        if (match != null && match.entry != null) {
-            if (isEnchantInSet(match.entry.id, targetEnchants)) {
-                return true;
-            }
-        }
-
-        // Rimuove eventuali prefissi server ("Incantesimo:", "Incanto:", "Enchant:")
-        String stripped = text.replaceAll("(?i)§[0-9a-fk-orx]", "")
-                .replaceAll("(?i)^(?:incantesimo|incanto|enchantment|enchant):?\\s*", "").trim();
-        if (!stripped.isEmpty() && !stripped.equalsIgnoreCase(text)) {
-            LitnessTooltipHandler.MatchedEnchantment matchStripped = LitnessTooltipHandler.matchEnchantment(stripped);
-            if (matchStripped != null && matchStripped.entry != null) {
-                if (isEnchantInSet(matchStripped.entry.id, targetEnchants)) {
-                    return true;
-                }
-            }
-        }
-
-        return false;
-    }
-
-    private static boolean isEnchantInSet(String enchantId, Set<String> targetEnchants) {
-        if (enchantId == null || targetEnchants == null || targetEnchants.isEmpty()) return false;
-        String cleanId = enchantId.trim().toLowerCase();
-        for (String target : targetEnchants) {
-            if (target == null) continue;
-            String t = target.trim().toLowerCase();
-            if (cleanId.equals(t)) return true;
-            if (cleanId.replace('-', '_').equals(t.replace('-', '_'))) return true;
-            if (cleanId.replace("defense", "defence").equals(t.replace("defense", "defence"))) return true;
-
-            EnchantmentEntry targetEe = EnchantmentDatabase.getEnchantment(t);
-            if (targetEe != null) {
-                if (targetEe.id.equalsIgnoreCase(cleanId)) return true;
-                if (cleanId.replace('-', '_').equalsIgnoreCase(targetEe.id.replace('-', '_'))) return true;
-            }
-        }
-        return false;
+        return com.litness.optimizer.gui.AhPriceManager.isCleanMatchingBook(stack, targetEnchants);
     }
 }
