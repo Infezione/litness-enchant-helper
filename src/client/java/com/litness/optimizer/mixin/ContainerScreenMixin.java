@@ -112,24 +112,12 @@ public abstract class ContainerScreenMixin extends Screen {
     }
 
     private static Set<String> getTargetEnchantments() {
-        Set<String> targets = new HashSet<>();
-
-        // 1. Incantesimi selezionati dal Catalogo per la ricerca rapida in AH
+        // Evidenzia in /ah e /enchgui esclusivamente gli incantesimi selezionati nel Catalogo con [+ Cerca AH]
         Set<String> searchEnchants = ActiveSessionManager.getSearchEnchants();
         if (searchEnchants != null && !searchEnchants.isEmpty()) {
-            targets.addAll(searchEnchants);
+            return new HashSet<>(searchEnchants);
         }
-
-        // 2. Set Pinnato nell'HUD
-        String pinnedId = ActiveSessionManager.getPinnedSetId();
-        if (pinnedId != null) {
-            CustomSet set = SavedSetsManager.getSetById(pinnedId);
-            if (set != null && set.enchantments != null && !set.enchantments.isEmpty()) {
-                targets.addAll(set.enchantments);
-            }
-        }
-
-        return targets;
+        return Collections.emptySet();
     }
 
     private static boolean matchesAnyTargetEnchant(ItemStack stack, Set<String> targetEnchants) {

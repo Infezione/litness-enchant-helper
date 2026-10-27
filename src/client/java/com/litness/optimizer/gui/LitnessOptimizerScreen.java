@@ -271,31 +271,18 @@ public class LitnessOptimizerScreen extends Screen {
         });
         this.addRenderableWidget(this.searchField);
 
-        // Tasto Rapido Azzera Filtri & Ricerche AH
-        boolean hasActiveFilter = (ActiveSessionManager.getSearchEnchants().size() > 0)
-                || (ActiveSessionManager.getPinnedSetId() != null)
-                || (!"ALL".equals(categoryFilter))
-                || (!"ALL".equals(itemFilter))
-                || (this.searchField != null && !this.searchField.getValue().isEmpty());
-
+        // Tasto Rapido Azzera Ricerche AH
         int ahCount = ActiveSessionManager.getSearchEnchants().size();
-        String ahBtnLabel = ahCount > 0 ? "§c✕ Azzera Filtri (" + ahCount + ")" : (hasActiveFilter ? "§c✕ Azzera Filtri" : "§8Filtri: Nessuno");
+        String ahBtnLabel = ahCount > 0 ? "§c✕ Azzera AH (" + ahCount + ")" : "§8Cerca AH: Nessuno";
 
         this.btnClearAhSearch = Button.builder(Component.literal(ahBtnLabel), b -> {
             ActiveSessionManager.clearSearchEnchants();
-            ActiveSessionManager.setPinnedSetId(null);
             com.litness.optimizer.mixin.ContainerScreenMixin.clearCache();
-            categoryFilter = "ALL";
-            itemFilter = "ALL";
-            if (this.searchField != null) {
-                this.searchField.setValue("");
-            }
-            catalogPage = 0;
-            updateSearch();
-            rebuildWidgets();
-            statusMessage = "§aTutti i filtri e le ricerche in /ah sono stati azzerati!";
+            refreshCatalogButtons();
+            updateClearButtonState();
+            statusMessage = "§aRicerche e filtri in /ah azzerati!";
         }).bounds(catStartX + 402, filterY, 138, 18).build();
-        this.btnClearAhSearch.active = hasActiveFilter;
+        this.btnClearAhSearch.active = (ahCount > 0);
         this.addRenderableWidget(this.btnClearAhSearch);
 
         // RIGA 2: Filtri per Tipo di Oggetto
@@ -447,15 +434,10 @@ public class LitnessOptimizerScreen extends Screen {
 
     private void updateClearButtonState() {
         if (btnClearAhSearch == null) return;
-        boolean hasActiveFilter = (ActiveSessionManager.getSearchEnchants().size() > 0)
-                || (ActiveSessionManager.getPinnedSetId() != null)
-                || (!"ALL".equals(categoryFilter))
-                || (!"ALL".equals(itemFilter))
-                || (this.searchField != null && !this.searchField.getValue().isEmpty());
         int count = ActiveSessionManager.getSearchEnchants().size();
-        String lbl = count > 0 ? "§c✕ Azzera Filtri (" + count + ")" : (hasActiveFilter ? "§c✕ Azzera Filtri" : "§8Filtri: Nessuno");
+        String lbl = count > 0 ? "§c✕ Azzera AH (" + count + ")" : "§8Cerca AH: Nessuno";
         btnClearAhSearch.setMessage(Component.literal(lbl));
-        btnClearAhSearch.active = hasActiveFilter;
+        btnClearAhSearch.active = (count > 0);
     }
 
     private void initCalculatorWidgets(int topY) {
