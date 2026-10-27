@@ -94,17 +94,20 @@ Sul server Litness, forgiare spade, archi, picconi o armature con 10–12 incant
 
 ---
 
-### 8. 🟢 Evidenziazione Oggetti Set in /ah e in /enchgui
-- **Spotting immediato**: quando apri la Casa d'Aste (`/ah`) o il menu catalogo degli incantesimi (`/enchgui`), tutti gli slot contenenti libri, armi o armature che possiedono uno degli incantesimi del tuo set pinnato (o attivo) vengono evidenziati con uno sfondo traslucido e un bordo verde smeraldo.
-- **Acquisti mirati**: niente più tempo perso a leggere dozzine di pagine o a rischiare di comprare libri inutili; vedi subito a colpo d'occhio quali offerte contengono gli incantesimi che ti mancano per completare il set.
-- **Zero interferenze**: evidenziazione visiva pulita applicata unicamente sugli slot del catalogo/asta, lasciando intatto e ordinato il tuo inventario personale.
+### 8. 🟢 Trova Subito gli Oggetti in AH & Evidenziazione in Tempo Reale
+![Ricerca Rapida ed Evidenziazione in AH](docs/images/preview_ah.png)
+- **Trova subito qualsiasi incantesimo all'Asta**: dal **Catalogo Incantesimi** (tasto `N`), basta cliccare sul pulsante **`[+ Cerca AH]`** accanto a qualsiasi incantesimo desiderato per attivare la ricerca e l'evidenziazione immediata.
+- **Spotting visivo istantaneo**: aprendo la Casa d'Aste (`/ah`) o il menu catalogo degli incantesimi (`/enchgui`), tutti i libri, armi, attrezzi o pezzi d'armatura che contengono quell'incantesimo vengono evidenziati all'istante con uno sfondo traslucido e un contorno verde smeraldo brillante.
+- **Supporto multi-selezione & Reset rapido**: puoi selezionare uno o più incantesimi contemporaneamente; nella parte superiore del Catalogo è sempre presente il pulsante rapido `[✕ Azzera AH]` per pulire le ricerche attive con un solo clic.
+- **Acquisti mirati**: niente più pagine sfogliate a vuoto o acquisti errati; individui a colpo d'occhio l'offerta giusta nel mare di libri all'asta!
+- **Zero interferenze**: l'evidenziazione visiva viene applicata unicamente sugli slot del menu del server, lasciando intatto e ordinato il tuo inventario personale.
 
 ---
 
 <a id="ultimi-aggiornamenti"></a>
 ## 🔄 Ultimi Aggiornamenti
 
-- 🟢 **Evidenziazione Verde in /ah e /enchgui**: gli oggetti, libri e armature contenenti incantesimi del tuo set pinnato (o attivo) vengono evidenziati con bordo e sfondo verde smeraldo all'interno dell'Asta (`/ah`) e del menu incantesimi (`/enchgui`) per individuarli e acquistarli a colpo d'occhio.
+- 🟢 **Ricerca Rapida & Evidenziazione in /ah dal Catalogo**: aggiunto il pulsante rapido `[+ Cerca AH]` nel Catalogo Incantesimi (`N`) per trovare istantaneamente libri e item desiderati evidenziati con contorno verde smeraldo nella Casa d'Aste (`/ah`) e in `/enchgui`, con tasto `[✕ Azzera AH]` per resettare i filtri con un clic.
 - 📌 **Pin HUD Checklist in Gioco**: visualizza a schermo durante il gameplay la checklist in tempo reale degli incantesimi con tracking intelligente degli incantesimi mancanti, dei libri in inventario e di quelli già applicati sul pezzo corrispondente.
 - 🔔 **Notifica Automatica Aggiornamenti in Chat con Link Diretto**: all'ingresso nel server, la mod verifica in background su GitHub se è disponibile una versione più recente e, se presente, invia un messaggio in chat con link cliccabile per scaricare istantaneamente il file `.jar` o consultare le note di rilascio.
 - ✏️ **Modifica Completa dei Set Salvati**: aggiunto il pulsante `[✏]` accanto a ogni set salvato in "I Miei Set" per modificarne all'istante nome, pezzo e incantesimi senza dover ricreare il set da zero.

@@ -280,7 +280,9 @@ public class LitnessOptimizerScreen extends Screen {
             refreshCatalogButtons();
             updateClearButtonState();
             statusMessage = "§aRicerche e filtri in /ah azzerati!";
-        }).bounds(catStartX + 402, filterY, 138, 18).build();
+        }).bounds(catStartX + 402, filterY, 138, 18).tooltip(net.minecraft.client.gui.components.Tooltip.create(
+            Component.literal("Azzera tutti gli incantesimi selezionati con [+ Cerca AH] per l'evidenziazione in asta")
+        )).build();
         this.btnClearAhSearch.active = (ahCount > 0);
         this.addRenderableWidget(this.btnClearAhSearch);
 
@@ -423,7 +425,11 @@ public class LitnessOptimizerScreen extends Screen {
                 }
                 refreshCatalogButtons();
                 updateClearButtonState();
-            }).bounds(btnX, btnY, btnW, btnH).build();
+            }).bounds(btnX, btnY, btnW, btnH).tooltip(net.minecraft.client.gui.components.Tooltip.create(
+                Component.literal(isSearching
+                    ? "§a✔ Già attivo in /ah. Clicca per disattivare."
+                    : "§e🔍 Clicca per trovare subito questo incantesimo in evidenza in /ah e /enchgui")
+            )).build();
 
             catalogRowButtons.add(searchBtn);
             this.addRenderableWidget(searchBtn);
@@ -436,6 +442,11 @@ public class LitnessOptimizerScreen extends Screen {
         String lbl = count > 0 ? "§c✕ Azzera AH (" + count + ")" : "§8Cerca AH: Nessuno";
         btnClearAhSearch.setMessage(Component.literal(lbl));
         btnClearAhSearch.active = (count > 0);
+        btnClearAhSearch.setTooltip(net.minecraft.client.gui.components.Tooltip.create(
+            Component.literal(count > 0
+                ? "Clicca per azzerare i " + count + " incantesimi selezionati per la ricerca in /ah"
+                : "Nessun incantesimo attualmente selezionato per la ricerca in /ah")
+        ));
     }
 
     private void initCalculatorWidgets(int topY) {
