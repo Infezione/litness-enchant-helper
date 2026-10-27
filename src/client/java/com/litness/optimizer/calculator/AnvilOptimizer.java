@@ -84,6 +84,13 @@ public class AnvilOptimizer {
         int mask;
         Node left;
         Node right;
+
+        String getSignature(List<BookInput> books) {
+            if (left == null || right == null) {
+                return formatMaskLabel(mask, books);
+            }
+            return "(" + left.getSignature(books) + "+" + right.getSignature(books) + ")";
+        }
     }
 
     private static class ApplyNode {
@@ -94,6 +101,24 @@ public class AnvilOptimizer {
         int transferCost;
         ApplyNode prev;
         Node bookNode;
+
+        String getSignature(List<BookInput> books) {
+            String bSig = bookNode != null ? bookNode.getSignature(books) : "";
+            String pSig = prev != null ? prev.getSignature(books) : "";
+            return targetWork + ":" + cost + ":" + bSig + ">" + pSig;
+        }
+    }
+
+    public static String getBookSignature(BookInput b) {
+        if (b == null) return "";
+        List<String> list = new ArrayList<>();
+        if (b.enchantments != null) {
+            for (EnchantApplied ea : b.enchantments) {
+                list.add(ea.id + ":" + ea.level);
+            }
+        }
+        Collections.sort(list);
+        return b.works + "|" + getBookCost(b) + "|" + String.join(",", list);
     }
 
     public static Solution optimize(List<BookInput> rawBooks, int targetWorks, ItemEntry targetItem, List<EnchantApplied> existingEnchants) {
@@ -108,12 +133,25 @@ public class AnvilOptimizer {
             books.add(copy);
         }
 
+        // Ordinamento canonico deterministico a monte
+        Comparator<BookInput> canonicalBookComparator = (b1, b2) -> {
+            if (b1.works != b2.works) return Integer.compare(b1.works, b2.works);
+            int c1 = getBookCost(b1);
+            int c2 = getBookCost(b2);
+            if (c1 != c2) return Integer.compare(c2, c1);
+            return getBookSignature(b1).compareTo(getBookSignature(b2));
+        };
+        books.sort(canonicalBookComparator);
+
         // Se ci sono più di 8 libri, pre-combiniamo a coppie i libri più economici
         // per garantire esecuzione istantanea (<2ms) senza sacrificare alcun incantesimo
         while (books.size() > 8) {
             books.sort((b1, b2) -> {
                 if (b1.works != b2.works) return Integer.compare(b1.works, b2.works);
-                return Integer.compare(getBookCost(b1), getBookCost(b2));
+                int c1 = getBookCost(b1);
+                int c2 = getBookCost(b2);
+                if (c1 != c2) return Integer.compare(c1, c2);
+                return getBookSignature(b1).compareTo(getBookSignature(b2));
             });
 
             BookInput b1 = books.remove(0);
@@ -176,9 +214,9 @@ public class AnvilOptimizer {
             costsByMask[mask] = costsByMask[mask ^ bit] + enchantmentCosts[index];
         }
 
-        // Costruzione combinazioni libro-libro: builds[mask][work] -> List<Node> (max 2 per work)
-        Map<Integer, Map<Integer, List<Node>>> builds = new HashMap<>();
-        for (int m = 0; m < stateCount; m++) builds.put(m, new HashMap<>());
+        // Costruzione combinazioni libro-libro deterministica
+        Map<Integer, Map<Integer, List<Node>>> builds = new LinkedHashMap<>();
+        for (int m = 0; m < stateCount; m++) builds.put(m, new TreeMap<>());
 
         // Libri base (dimensione 1)
         for (int i = 0; i < count; i++) {
@@ -235,7 +273,7 @@ public class AnvilOptimizer {
                                         next.left = leftNode;
                                         next.right = rightNode;
 
-                                        insertParetoNode(candidates, next);
+                                        insertParetoNode(candidates, next, books);
                                     }
                                 }
                             }
@@ -245,9 +283,9 @@ public class AnvilOptimizer {
             }
         }
 
-        // Applicazione all'oggetto finale
-        Map<Integer, Map<Integer, List<ApplyNode>>> states = new HashMap<>();
-        for (int m = 0; m < stateCount; m++) states.put(m, new HashMap<>());
+        // Applicazione all'oggetto finale deterministica
+        Map<Integer, Map<Integer, List<ApplyNode>>> states = new LinkedHashMap<>();
+        for (int m = 0; m < stateCount; m++) states.put(m, new TreeMap<>());
 
         ApplyNode root = new ApplyNode();
         root.targetWork = targetWorks;
@@ -292,7 +330,7 @@ public class AnvilOptimizer {
                                     next.prev = prefix;
                                     next.bookNode = bNode;
 
-                                    insertParetoApply(targetList, next);
+                                    insertParetoApply(targetList, next, books);
                                 }
                             }
                         }
@@ -301,7 +339,7 @@ public class AnvilOptimizer {
             }
         }
 
-        // Seleziona la soluzione migliore
+        // Seleziona la soluzione migliore deterministica
         List<ApplyNode> finalSolutions = new ArrayList<>();
         for (List<ApplyNode> list : states.get(0).values()) {
             finalSolutions.addAll(list);
@@ -323,7 +361,9 @@ public class AnvilOptimizer {
 
         finalSolutions.sort((a, b) -> {
             if (a.peak != b.peak) return Integer.compare(a.peak, b.peak);
-            return Integer.compare(a.total, b.total);
+            if (a.total != b.total) return Integer.compare(a.total, b.total);
+            if (a.targetWork != b.targetWork) return Integer.compare(a.targetWork, b.targetWork);
+            return a.getSignature(books).compareTo(b.getSignature(books));
         });
 
         ApplyNode best = finalSolutions.get(0);
@@ -399,9 +439,14 @@ public class AnvilOptimizer {
         out.add(step);
     }
 
-    private static void insertParetoNode(List<Node> list, Node next) {
+    private static void insertParetoNode(List<Node> list, Node next, List<BookInput> books) {
         for (int i = 0; i < list.size(); i++) {
             Node curr = list.get(i);
+            if (curr.total == next.total && curr.peak == next.peak) {
+                if (curr.getSignature(books).compareTo(next.getSignature(books)) <= 0) return;
+                list.set(i, next);
+                return;
+            }
             if (curr.total <= next.total && curr.peak <= next.peak) return;
         }
         list.removeIf(curr -> next.total <= curr.total && next.peak <= curr.peak);
@@ -410,9 +455,14 @@ public class AnvilOptimizer {
         }
     }
 
-    private static void insertParetoApply(List<ApplyNode> list, ApplyNode next) {
+    private static void insertParetoApply(List<ApplyNode> list, ApplyNode next, List<BookInput> books) {
         for (int i = 0; i < list.size(); i++) {
             ApplyNode curr = list.get(i);
+            if (curr.total == next.total && curr.peak == next.peak) {
+                if (curr.getSignature(books).compareTo(next.getSignature(books)) <= 0) return;
+                list.set(i, next);
+                return;
+            }
             if (curr.total <= next.total && curr.peak <= next.peak) return;
         }
         list.removeIf(curr -> next.total <= curr.total && next.peak <= curr.peak);

@@ -95,7 +95,11 @@ Sul server Litness, forgiare spade, archi, picconi o armature con 10–12 incant
 
 ## 🔄 Ultimi Aggiornamenti
 
-- ⛏ **Supporto al Piccone nel Simulatore**: integrato il piccone nella barra di selezione rapida del Calcolatore/Simulatore, con icone del Piccone di Diamante, calcolo dei passi ottimali e salvataggio set.
+- ✏️ **Modifica Completa dei Set Salvati**: aggiunto il pulsante `[✏]` accanto a ogni set salvato in "I Miei Set" per modificarne all'istante nome, pezzo e incantesimi senza dover ricreare il set da zero.
+- 💾 **Persistenza della Selezione tra le Sessioni**: uscendo e rientrando dal server o riavviando il gioco, la selezione del simulatore e il tipo di oggetto non si azzerano più e rimangono salvati esattamente come li avevi lasciati.
+- 🔮 **Sincronizzazione Perfetta Incudine & GUI (Algoritmo Deterministico)**: l'albero di fusione dell'incudine (`AnvilOptimizer`) è ora matematicamente deterministico e stabile al 100%. La sidebar dell'incudine sincronizza i passaggi con il set pianificato (filtrando via i drop casuali) ed include lo switch di modalità `[🔮 Set Completo / 📦 Da Inventario]`.
+- 💰 **Persistenza dei Costi Custom**: i costi XP scoperti dai libri custom tramite lore vengono memorizzati su file e persistono tra i riavvii.
+- ⛏️ **Supporto al Piccone nel Simulatore**: integrato il piccone nella barra di selezione rapida del Calcolatore/Simulatore, con icone del Piccone di Diamante, calcolo dei passi ottimali e salvataggio set.
 - 🔍 **Nuova Barra Filtri per Oggetto nel Catalogo**: aggiunti pulsanti rapidi con evidenziazione verde attiva per filtrare gli incantesimi per *Spada*, *Piccone*, *Armature*, *Arco*, *Ascia*, *Zappa* e *Altri*.
 - 🌿 **Descrizione Foraging Aggiornata**: corretta la lore di *Foraging* fedele al server (*"Le mele che cadono dalle foglie che rompi si moltiplicano: +210% in media"*).
 - 🎒 **Uniformazione Terminologia Inventario**: eliminato ogni riferimento a "borsa", sostituito ovunque con "inventario" (incluso il badge `✔ In Inventario` nella guida e nella lista dei set).

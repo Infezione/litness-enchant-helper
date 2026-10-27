@@ -490,12 +490,12 @@ public abstract class AnvilScreenMixin extends ItemCombinerScreen<AnvilMenu> {
             String rawId = slot0.getItem().toString().toLowerCase();
             String itemKey = "sword";
             if (descId.contains("sword") || rawId.contains("sword")) itemKey = "sword";
+            else if (descId.contains("pickaxe") || descId.contains("pick") || rawId.contains("pickaxe") || rawId.contains("pick")) itemKey = "pick";
             else if (descId.contains("helmet") || rawId.contains("helmet")) itemKey = "helmet";
             else if (descId.contains("chestplate") || descId.contains("chest") || rawId.contains("chestplate") || rawId.contains("chest")) itemKey = "chest";
             else if (descId.contains("leggings") || descId.contains("legs") || rawId.contains("leggings") || rawId.contains("legs")) itemKey = "legs";
             else if (descId.contains("boots") || rawId.contains("boots")) itemKey = "boots";
             else if (descId.contains("axe") || rawId.contains("axe")) itemKey = "axe";
-            else if (descId.contains("pickaxe") || rawId.contains("pickaxe")) itemKey = "pickaxe";
             else if (descId.contains("bow") || rawId.contains("bow")) itemKey = "bow";
 
             ItemEntry itemEntry = EnchantmentDatabase.getItem(itemKey);
@@ -505,6 +505,8 @@ public abstract class AnvilScreenMixin extends ItemCombinerScreen<AnvilMenu> {
             int work = 0;
             while ((1 << work) - 1 < penalty) work++;
 
+            Set<String> plannedEnchants = com.litness.optimizer.data.ActiveSessionManager.getSelectedEnchants(itemKey);
+
             List<BookInput> applicableBooks = new ArrayList<>();
             for (BookInput b : books) {
                 BookInput filtered = new BookInput(b.works);
@@ -512,6 +514,17 @@ public abstract class AnvilScreenMixin extends ItemCombinerScreen<AnvilMenu> {
                 for (EnchantApplied ea : b.enchantments) {
                     EnchantmentEntry ee = EnchantmentDatabase.getEnchantment(ea.id);
                     if (ee != null && EnchantmentDatabase.isApplicable(ee, itemEntry.id)) {
+                        if (plannedEnchants != null && !plannedEnchants.isEmpty()) {
+                            boolean isPartOfPlan = false;
+                            for (String pid : plannedEnchants) {
+                                if (pid.equalsIgnoreCase(ee.id) || pid.equalsIgnoreCase(ee.name)) {
+                                    isPartOfPlan = true;
+                                    break;
+                                }
+                            }
+                            if (!isPartOfPlan) continue;
+                        }
+
                         boolean alreadyOnItem = false;
                         boolean conflictsWithItem = false;
                         List<String> confs = EnchantmentDatabase.getResolvedConflicts(ee.id);

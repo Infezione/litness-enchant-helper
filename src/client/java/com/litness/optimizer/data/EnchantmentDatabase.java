@@ -1,10 +1,16 @@
 package com.litness.optimizer.data;
 
 import com.google.gson.*;
+import com.google.gson.reflect.TypeToken;
+import java.io.File;
 import java.io.InputStream;
 import java.io.InputStreamReader;
+import java.io.Reader;
+import java.io.Writer;
 import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
 import java.util.*;
+import java.util.concurrent.ConcurrentHashMap;
 
 public class EnchantmentDatabase {
     public static class ItemEntry {
@@ -31,6 +37,7 @@ public class EnchantmentDatabase {
         public Object anvilCost; // Integer or String "?"
 
         public int getAnvilCostNumeric() {
+            loadCustomCosts();
             Integer dyn = dynamicCustomCosts.get(this.id);
             if (dyn != null && dyn > 0) return dyn;
             if (anvilCost instanceof Number) {
@@ -40,7 +47,35 @@ public class EnchantmentDatabase {
         }
     }
 
-    private static final Map<String, Integer> dynamicCustomCosts = new HashMap<>();
+    private static final File COSTS_FILE = new File("config/litnessoptimizer/custom_costs.json");
+    private static final Gson GSON = new GsonBuilder().setPrettyPrinting().create();
+    private static boolean costsLoaded = false;
+    private static final Map<String, Integer> dynamicCustomCosts = new ConcurrentHashMap<>();
+
+    private static synchronized void loadCustomCosts() {
+        if (costsLoaded) return;
+        costsLoaded = true;
+        if (!COSTS_FILE.exists()) return;
+        try (Reader reader = Files.newBufferedReader(COSTS_FILE.toPath())) {
+            Map<String, Double> map = GSON.fromJson(reader, new TypeToken<Map<String, Double>>() {}.getType());
+            if (map != null) {
+                for (Map.Entry<String, Double> e : map.entrySet()) {
+                    dynamicCustomCosts.put(e.getKey().toLowerCase(), e.getValue().intValue());
+                }
+            }
+        } catch (Exception ignored) {}
+    }
+
+    private static synchronized void saveCustomCosts() {
+        try {
+            if (COSTS_FILE.getParentFile() != null) {
+                COSTS_FILE.getParentFile().mkdirs();
+            }
+            try (Writer writer = Files.newBufferedWriter(COSTS_FILE.toPath())) {
+                GSON.toJson(dynamicCustomCosts, writer);
+            }
+        } catch (Exception ignored) {}
+    }
     private static final Map<String, ItemEntry> itemsById = new LinkedHashMap<>();
     private static final Map<String, EnchantmentEntry> enchantmentsById = new LinkedHashMap<>();
     private static final List<EnchantmentEntry> allEnchantments = new ArrayList<>();
@@ -94,6 +129,7 @@ public class EnchantmentDatabase {
     }
 
     public static synchronized void load() {
+        loadCustomCosts();
         if (!allEnchantments.isEmpty()) return;
 
         try (InputStream stream = EnchantmentDatabase.class.getResourceAsStream("/assets/litnessoptimizer/data/enchantments.json")) {
@@ -306,6 +342,7 @@ public class EnchantmentDatabase {
         if (eeAlt != null) {
             eeAlt.anvilCost = cost;
         }
+        saveCustomCosts();
     }
 
     public static int getEnchantmentCost(EnchantmentEntry ench, int level) {

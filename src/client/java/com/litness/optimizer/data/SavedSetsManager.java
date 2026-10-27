@@ -78,6 +78,39 @@ public class SavedSetsManager {
         return set;
     }
 
+    public static synchronized boolean updateSet(String id, String name, String itemKey, Collection<String> enchantments) {
+        load();
+        for (CustomSet s : customSets) {
+            if (s.id.equalsIgnoreCase(id)) {
+                boolean wasPinned = isSetPinned(s.enchantments);
+                if (wasPinned) {
+                    for (String enchId : s.enchantments) {
+                        PinnedEnchantmentsManager.setPinned(enchId, false);
+                    }
+                }
+                s.name = (name == null || name.trim().isEmpty()) ? "Set " + capitalize(itemKey) : name.trim();
+                s.itemKey = itemKey;
+                s.enchantments = enchantments != null ? new ArrayList<>(enchantments) : new ArrayList<>();
+                if (wasPinned) {
+                    for (String enchId : s.enchantments) {
+                        PinnedEnchantmentsManager.setPinned(enchId, true);
+                    }
+                }
+                save();
+                return true;
+            }
+        }
+        return false;
+    }
+
+    public static synchronized CustomSet getSetById(String id) {
+        load();
+        for (CustomSet s : customSets) {
+            if (s.id.equalsIgnoreCase(id)) return s;
+        }
+        return null;
+    }
+
     public static synchronized boolean deleteSet(String id) {
         load();
         CustomSet toDelete = null;
