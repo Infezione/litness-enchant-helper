@@ -1,12 +1,12 @@
 # ⚡ Litness Enchant Helper
 
-[![DOWNLOAD MOD (.JAR)](https://img.shields.io/badge/⬇️%20SCARICA%20SUBITO%20LA%20MOD%20(.JAR)-VERSIONE%201.1.0-22c55e?style=for-the-badge&logo=curseforge&logoColor=white)](https://github.com/Infezione/litness-enchant-helper/releases/download/v1.1.0/LitnessEnchantHelper-1.1.0.jar)
+[![DOWNLOAD MOD (.JAR)](https://img.shields.io/badge/⬇️%20SCARICA%20SUBITO%20LA%20MOD%20(.JAR)-VERSIONE%201.1.1-22c55e?style=for-the-badge&logo=curseforge&logoColor=white)](https://github.com/Infezione/litness-enchant-helper/releases/download/v1.1.1/LitnessEnchantHelper-1.1.1.jar)
 [![ULTIMI AGGIORNAMENTI](https://img.shields.io/badge/🔄%20ULTIMI%20AGGIORNAMENTI-VEDI%20LE%20NOVITÀ-6366f1?style=for-the-badge&logo=sparkles&logoColor=white)](#-ultimi-aggiornamenti)
 
 ![Minecraft](https://img.shields.io/badge/Minecraft-26.2-brightgreen.svg)
 ![Fabric](https://img.shields.io/badge/ModLoader-Fabric-blue.svg)
 ![Lunar Client](https://img.shields.io/badge/Lunar%20Client-Compatible-informational.svg)
-![Release](https://img.shields.io/badge/Release-v1.1.0-blueviolet.svg)
+![Release](https://img.shields.io/badge/Release-v1.1.1-blueviolet.svg)
 ![Author](https://img.shields.io/badge/Author-Waaxey-purple.svg)
 
 > [!TIP]
@@ -124,31 +124,17 @@ Sul server Litness, forgiare spade, archi, picconi o armature con 10–12 incant
 ## 📥 Installazione
 
 ### Metodo 1: Per Lunar Client (Consigliato)
-1. Scarica il file **`LitnessEnchantHelper-1.1.0.jar`** dall'area [Releases](../../releases).
+1. Scarica il file **`LitnessEnchantHelper-1.1.1.jar`** dall'area [Releases](../../releases).
 2. Premi sulla tastiera `Win + R`, incolla la seguente stringa e premi **Invio**:
    ```text
    %userprofile%\.lunarclient\profiles\26\mods\fabric-26.2\
    ```
 3. Incolla il file `.jar` scaricato all'interno di questa cartella.
-
-### Metodo 2: Per Fabric Launcher Standard
-1. Assicurati di avere installato **Fabric Loader** per Minecraft 26.2 e la **Fabric API**.
-2. Posiziona il file `LitnessEnchantHelper-1.1.0.jar` nella cartella `.minecraft/mods/`.
-3. Avvia il gioco.
-
----
-
-## 👤 Autore & Crediti
-
-- **Sviluppato da**: **Waaxey**
-- Realizzato appositamente per la community del server **Litness**.
-- Licenza: [MIT License](LICENSE)
-
 4. Avvia Minecraft selezionando la versione **Lunar Client 26.2 (Fabric)**.
 
 ### Metodo 2: Per Fabric Launcher Standard
 1. Assicurati di avere installato **Fabric Loader** per Minecraft 26.2 e la **Fabric API**.
-2. Posiziona il file `LitnessEnchantHelper-1.0.0.jar` nella cartella `.minecraft/mods/`.
+2. Posiziona il file `LitnessEnchantHelper-1.1.1.jar` nella cartella `.minecraft/mods/`.
 3. Avvia il gioco.
 
 ---
