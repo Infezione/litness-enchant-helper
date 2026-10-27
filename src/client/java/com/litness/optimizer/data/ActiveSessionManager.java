@@ -69,9 +69,9 @@ public class ActiveSessionManager {
         if (list != null && !list.isEmpty()) {
             return new LinkedHashSet<>(list);
         }
-        // Se non c'è una selezione esplicita, controlliamo se l'utente ha un set pinnato per questo item
+        // Se non c'è una selezione esplicita, controlliamo se l'utente ha un set salvato per questo item
         for (SavedSetsManager.CustomSet cs : SavedSetsManager.getSavedSets()) {
-            if (cs.itemKey.equalsIgnoreCase(key) && SavedSetsManager.isSetPinned(cs.enchantments)) {
+            if (cs.itemKey.equalsIgnoreCase(key) && !cs.enchantments.isEmpty()) {
                 return new LinkedHashSet<>(cs.enchantments);
             }
         }

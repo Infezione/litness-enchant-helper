@@ -82,20 +82,9 @@ public class SavedSetsManager {
         load();
         for (CustomSet s : customSets) {
             if (s.id.equalsIgnoreCase(id)) {
-                boolean wasPinned = isSetPinned(s.enchantments);
-                if (wasPinned) {
-                    for (String enchId : s.enchantments) {
-                        PinnedEnchantmentsManager.setPinned(enchId, false);
-                    }
-                }
                 s.name = (name == null || name.trim().isEmpty()) ? "Set " + capitalize(itemKey) : name.trim();
                 s.itemKey = itemKey;
                 s.enchantments = enchantments != null ? new ArrayList<>(enchantments) : new ArrayList<>();
-                if (wasPinned) {
-                    for (String enchId : s.enchantments) {
-                        PinnedEnchantmentsManager.setPinned(enchId, true);
-                    }
-                }
                 save();
                 return true;
             }
@@ -121,37 +110,11 @@ public class SavedSetsManager {
             }
         }
         if (toDelete != null) {
-            if (toDelete.enchantments != null) {
-                for (String enchId : toDelete.enchantments) {
-                    PinnedEnchantmentsManager.setPinned(enchId, false);
-                }
-            }
             customSets.remove(toDelete);
             save();
             return true;
         }
         return false;
-    }
-
-
-    public static boolean isSetPinned(Collection<String> enchantIds) {
-        if (enchantIds == null || enchantIds.isEmpty()) return false;
-        for (String id : enchantIds) {
-            if (!PinnedEnchantmentsManager.isPinned(id)) return false;
-        }
-        return true;
-    }
-
-    public static void togglePinSet(Collection<String> enchantIds) {
-        if (enchantIds == null || enchantIds.isEmpty()) return;
-        if (isSetPinned(enchantIds)) {
-            for (String id : enchantIds) {
-                PinnedEnchantmentsManager.setPinned(id, false);
-            }
-        } else {
-            PinnedEnchantmentsManager.clearAll();
-            PinnedEnchantmentsManager.pinAll(enchantIds);
-        }
     }
 
     private static String capitalize(String str) {

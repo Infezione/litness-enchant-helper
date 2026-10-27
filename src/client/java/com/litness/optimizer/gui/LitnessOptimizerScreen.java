@@ -10,7 +10,6 @@ import com.litness.optimizer.data.EnchantmentDatabase;
 import com.litness.optimizer.data.EnchantmentDatabase.EnchantmentEntry;
 import com.litness.optimizer.data.EnchantmentDatabase.ItemEntry;
 import com.litness.optimizer.data.InventoryTracker;
-import com.litness.optimizer.data.PinnedEnchantmentsManager;
 import com.litness.optimizer.data.SavedSetsManager;
 import com.litness.optimizer.data.SavedSetsManager.CustomSet;
 import com.litness.optimizer.data.UpdateChecker;
@@ -844,23 +843,9 @@ public class LitnessOptimizerScreen extends Screen {
             // [⚡ Guida]
             Button loadBtn = Button.builder(Component.literal("⚡ Guida"), b -> {
                 loadSavedSetIntoSimulator(set);
-            }).bounds(startX + panelWidth - 175, y + 13, 56, 18).build();
+            }).bounds(startX + panelWidth - 120, y + 13, 62, 18).build();
             this.addRenderableWidget(loadBtn);
             savedSetButtons.add(loadBtn);
-
-            // [📌 Pin Set]
-            boolean pinned = SavedSetsManager.isSetPinned(set.enchantments);
-            String pinText = pinned ? "§6★ Pinnato" : "📌 Pin HUD";
-            Button pinBtn = Button.builder(Component.literal(pinText), b -> {
-                SavedSetsManager.togglePinSet(set.enchantments);
-                statusMessage = SavedSetsManager.isSetPinned(set.enchantments)
-                    ? "§aSet '" + set.name + "' pinnato in alto a sinistra!"
-                    : "§7Set '" + set.name + "' rimosso dai pinnati.";
-                this.clearWidgets();
-                this.init();
-            }).bounds(startX + panelWidth - 117, y + 13, 60, 18).build();
-            this.addRenderableWidget(pinBtn);
-            savedSetButtons.add(pinBtn);
 
             // [✏ Modifica Set]
             Button editBtn = Button.builder(Component.literal("✏"), b -> {
@@ -880,7 +865,7 @@ public class LitnessOptimizerScreen extends Screen {
                 statusMessage = "§eModifica del set '" + set.name + "' in corso...";
                 this.clearWidgets();
                 this.init();
-            }).bounds(startX + panelWidth - 55, y + 13, 26, 18).build();
+            }).bounds(startX + panelWidth - 54, y + 13, 26, 18).build();
             this.addRenderableWidget(editBtn);
             savedSetButtons.add(editBtn);
 
@@ -890,7 +875,7 @@ public class LitnessOptimizerScreen extends Screen {
                 statusMessage = "§cSet '" + set.name + "' eliminato.";
                 this.clearWidgets();
                 this.init();
-            }).bounds(startX + panelWidth - 27, y + 13, 24, 18).build();
+            }).bounds(startX + panelWidth - 26, y + 13, 24, 18).build();
             this.addRenderableWidget(delBtn);
             savedSetButtons.add(delBtn);
         }
@@ -982,7 +967,6 @@ public class LitnessOptimizerScreen extends Screen {
             int row = i - startIdx;
             int y = startY + row * (cardH + gap);
 
-            boolean isPinned = SavedSetsManager.isSetPinned(set.enchantments);
             int inInv = InventoryTracker.countInInventory(set.enchantments);
 
             String conflictFound = null;
@@ -995,17 +979,16 @@ public class LitnessOptimizerScreen extends Screen {
                 }
             }
 
-            int stripeColor = (conflictFound != null) ? 0xFFEF4444 : (isPinned ? 0xFFF59E0B : 0xFF6366F1);
+            int stripeColor = (conflictFound != null) ? 0xFFEF4444 : 0xFF6366F1;
             extractor.fill(panelX, y, panelX + panelWidth, y + cardH, 0xEE12121E);
             extractor.fill(panelX, y, panelX + 3, y + cardH, stripeColor);
             extractor.outline(panelX, y, panelWidth, cardH, (conflictFound != null) ? 0xFF7F1D1D : 0xFF2A2A3E);
 
             extractor.fakeItem(getItemStackForType(set.itemKey), panelX + 8, y + 14);
 
-            String pinIcon = isPinned ? "§6★ " : "";
             String warnIcon = (conflictFound != null) ? " §e⚠️" : "";
-            String title = pinIcon + "§f" + set.name + " §8[" + capitalize(set.itemKey) + " • " + set.enchantments.size() + "/12]" + warnIcon;
-            extractor.text(this.font, title, panelX + 32, y + 6, (conflictFound != null) ? 0xFFFBBF24 : (isPinned ? 0xFFFBBF24 : 0xFFFFFFFF), false);
+            String title = "§f" + set.name + " §8[" + capitalize(set.itemKey) + " • " + set.enchantments.size() + "/12]" + warnIcon;
+            extractor.text(this.font, title, panelX + 32, y + 6, (conflictFound != null) ? 0xFFFBBF24 : 0xFFFFFFFF, false);
 
             String inInvTxt = (inInv == set.enchantments.size() && set.enchantments.size() > 0)
                     ? "§a📦 " + inInv + "/" + set.enchantments.size() + " In Inventario ✔"
@@ -1020,7 +1003,7 @@ public class LitnessOptimizerScreen extends Screen {
                 EnchantmentEntry ee = EnchantmentDatabase.getEnchantment(enchId);
                 names.add(ee != null ? ee.name : enchId);
             }
-            String preview = trimToWidth("§8" + String.join(", ", names), panelWidth - 210);
+            String preview = trimToWidth("§8" + String.join(", ", names), panelWidth - 160);
             extractor.text(this.font, preview, panelX + 32, y + 30, 0xFF71717A, false);
         }
     }

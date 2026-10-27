@@ -4,7 +4,6 @@ import com.litness.optimizer.calculator.AnvilOptimizer;
 import com.litness.optimizer.data.EnchantmentDatabase;
 import com.litness.optimizer.data.EnchantmentDatabase.EnchantmentEntry;
 import com.litness.optimizer.data.InventoryTracker;
-import com.litness.optimizer.data.PinnedEnchantmentsManager;
 import net.fabricmc.fabric.api.client.item.v1.ItemTooltipCallback;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.screens.inventory.AnvilScreen;
@@ -631,18 +630,6 @@ public class LitnessTooltipHandler {
             }
         } else {
             cachedApplicableItems.remove(stack);
-        }
-
-        // 5. Badge PINNATO se il libro contiene incantesimi cercati dall'utente!
-        boolean hasPinned = false;
-        for (EnchantmentEntry ee : matchedBookEntries) {
-            if (PinnedEnchantmentsManager.isPinned(ee.id)) {
-                hasPinned = true;
-                break;
-            }
-        }
-        if (hasPinned && lines.size() > 1) {
-            lines.add(1, Component.literal("  §6★ §a§lPINNATO: TI SERVE PER IL TUO SET! §6★"));
         }
     }
 
