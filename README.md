@@ -20,7 +20,7 @@ Il suo obiettivo principale è eliminare ogni spreco di livelli di esperienza, e
 
 ## 🌟 Perché è indispensabile su Litness?
 
-Sul server Litness, forgiare spade, archi o armature "God-Set" con 10–12 incantesimi (tra Vanilla e Custom) può diventare proibitivo a causa della meccanica di penalità cumulativa dell'incudine di Minecraft (*Prior Work Penalty*). Se i libri vengono fusi nell'ordine sbagliato, l'incudine raggiungerà rapidamente il limite di 39 livelli, rendendo l'oggetto impossibile da completare.
+Sul server Litness, forgiare spade, archi, picconi o armature con 10–12 incantesimi (tra Vanilla e Custom) può diventare proibitivo a causa della meccanica di penalità cumulativa dell'incudine di Minecraft (*Prior Work Penalty*). Se i libri vengono fusi nell'ordine sbagliato, l'incudine raggiungerà rapidamente il limite di 39 livelli, rendendo l'oggetto impossibile da completare.
 
 **Litness Enchant Helper** risolve questo problema alla radice calcolando matematicamente la sequenza ideale ad albero binario (*Pareto-Optimal*), garantendo il costo totale di XP più basso possibile e rimanendo sempre ampiamente sotto la soglia massima consentita.
 
@@ -33,7 +33,7 @@ Sul server Litness, forgiare spade, archi o armature "God-Set" con 10–12 incan
 - **Sidebar integrata**: non appena apri un'incudine di gioco, compare lateralmente una schermata pulita in stile *dark glass* che si adatta perfettamente alla GUI di Minecraft.
 - **Rilevamento istantaneo**: riconosce automaticamente l'oggetto inserito nel primo slot (o tenuto in mano), la sua penalità attuale e i libri presenti nel tuo inventario.
 - **Istruzioni chiare**:
-  - `🔨 UNISCI LIBRI`: ti indica quali due libri incantati della tua borsa unire per primi per ottimizzare la penalità.
+  - `🔨 UNISCI LIBRI`: ti indica quali due libri incantati del tuo inventario unire per primi per ottimizzare la penalità.
   - `⚔ TEMPRA SU OGGETTO`: ti segnala quando è il momento perfetto per applicare il libro risultante sulla tua arma o armatura.
 
 ---
@@ -41,14 +41,14 @@ Sul server Litness, forgiare spade, archi o armature "God-Set" con 10–12 incan
 ### 2. 🔨 Guida alla Fusione Passo-Passo (Albero Ottimale)
 ![Guida alla Fusione](https://github.com/Infezione/litness-enchant-helper/releases/download/v1.0.0/preview_guide.png)
 - **Calcolo istantaneo**: visualizza ogni singolo passaggio con gli slot dell'incudine (Slot 1, Slot 2 e Risultato), con icone grafiche per ciascun pezzo.
-- **Indicatore inventario**: su ogni passaggio della guida, un badge verde `✔ In Borsa` ti segnala se possiedi già quel libro nella tua borsa.
+- **Indicatore inventario**: su ogni passaggio della guida, un badge verde `✔ In Inventario` ti segnala se possiedi già quel libro nel tuo inventario.
 - **Costi trasparenti**: mostra il costo in livelli di ciascun singolo step e il picco massimo di livelli richiesti.
 - **Copia rapida**: con il pulsante `[📋 Copia Passi]` puoi copiare l'intera guida formattata negli appunti per incollarla in chat, su Discord o sul blocco note.
 
 ---
 
 ### 3. ⭐ Creatore & Gestore "Set Futuri"
-- **Pianificazione libera**: crea in anticipo la combinazione dei sogni per qualsiasi pezzo di equipaggiamento (Spada, Elmo, Corazza, Gambali o Stivali).
+- **Pianificazione libera**: crea in anticipo la combinazione dei sogni per qualsiasi pezzo di equipaggiamento (Spada, Piccone, Elmo, Corazza, Gambali o Stivali).
 - **Lista da zero**: quando crei un nuovo set, la lista parte completamente pulita per permetterti di selezionare fino a 12 incantesimi desiderati.
 - **Salvataggio persistente**: assegna un nome al set (es. *Spada Dungeon Boss*, *Corazza PvP*, *Piccone Farm*) e salvalo in memoria locale.
 - **Guida teorica immediata**: cliccando `⚡ Guida` su qualsiasi set salvato, la mod genera immediatamente tutti i passaggi di fusione teorici anche se non possiedi ancora tutti i libri nel tuo inventario.
@@ -66,7 +66,7 @@ Sul server Litness, forgiare spade, archi o armature "God-Set" con 10–12 incan
 ![HUD in Gioco](https://github.com/Infezione/litness-enchant-helper/releases/download/v1.0.0/preview_hud.png)
 - **Fissa la tua lista a schermo**: cliccando su `📌 Pin HUD`, tutti gli incantesimi del set attivo o salvato compaiono in un box elegante nell'angolo in alto a sinistra dello schermo.
 - **Feedback visivo intelligente**:
-  - 🟢 **`✔ <Nome>` (Verde)**: Possiedi il libro incantato nella tua borsa, pronto per essere fuso.
+  - 🟢 **`✔ <Nome>` (Verde)**: Possiedi il libro incantato nel tuo inventario, pronto per essere fuso.
   - 🔴 **`✖ <Nome>` (Rosso sbarrato)**: L'incantesimo è già stato applicato sull'arma che hai in mano, nell'incudine o sull'armatura indossata.
   - ⚪ **`• <Nome>` (Grigio)**: Incantesimo mancante, non ancora trovato o acquistato.
 - **Rimozione automatica**: eliminando un set salvato, gli incantesimi vengono rimossi all'istante dall'HUD senza rimanere bloccati.
@@ -77,19 +77,29 @@ Sul server Litness, forgiare spade, archi o armature "God-Set" con 10–12 incan
 ### 6. 📖 Catalogo Completo degli Incantesimi (Vanilla & Custom)
 ![Catalogo Incantesimi](https://github.com/Infezione/litness-enchant-helper/releases/download/v1.0.0/preview_catalog.png)
 - **Tutti gli incantesimi di Litness**: include l'intero archivio degli incantesimi Custom del server e quelli Vanilla di Minecraft.
-- **Filtri rapidi**: ricerca testuale istantanea (con supporto per nomi italiani e alias inglesi) e filtri *Tutti / Vanilla / Custom*.
+- **Filtri rapidi avanzati**: ricerca testuale istantanea (con supporto per nomi italiani e alias inglesi), filtri di categoria (*Tutti / Vanilla / Custom*) e **filtri rapidi per tipo di oggetto** (*⚔ Spada, ⛏ Piccone, 🛡 Armature, 🏹 Arco, 🪓 Ascia, 🌾 Zappa, 🔧 Altri*).
 - **Schede informative**: visualizza rarità (*Comune, Non comune, Raro, Epico, Leggendario, Speciale, Molto speciale*), descrizione completa, livello massimo, pezzi compatibili e costo base dell'incudine.
 
 ---
 
 ### 7. 🔮 Tooltip Arricchiti nell'Inventario (Lore & Info Live)
 ![Tooltip Lore e Conflitti](https://github.com/Infezione/litness-enchant-helper/releases/download/v1.0.0/preview_lore_tooltip.png)
-- **Info immediate sui libri**: passando il cursore su qualsiasi libro incantato nella tua borsa o nelle casse, la mod arricchisce automaticamente la lore di gioco con:
+- **Info immediate sui libri**: passando il cursore su qualsiasi libro incantato nel tuo inventario o nelle casse, la mod arricchisce automaticamente la lore di gioco con:
   - 🏷️ **Grado di Rarità**: visualizza il badge colorato della rarità ufficiale (*[COMUNE]*, *[NON COMUNE]*, *[RARO]*, *[EPICO]*, *[LEGGENDARIO]*, *[SPECIALE]*, *[MOLTO SPECIALE]*).
   - ⚡ **Livello Massimo**: indica se l'incantesimo ha raggiunto il cap (`[✓ Max II]`) o il livello massimo disponibile.
   - 🛡️ **Icone strumenti compatibili**: visualizza subito l'icona grafica dell'oggetto su cui è applicabile (es. armature, spade, asce, picconi).
   - ⚠️ **Rilevamento Conflitti**: segnala istantaneamente le incompatibilità dirette (es. `※ Conflitti: Spine, Static Barrier`).
   - 💰 **Costo Base Incudine**: calcola in anticipo il costo netto in livelli di XP per applicare quel libro.
+
+---
+
+## 🔄 Ultimi Aggiornamenti
+
+- ⛏ **Supporto al Piccone nel Simulatore**: integrato il piccone nella barra di selezione rapida del Calcolatore/Simulatore, con icone del Piccone di Diamante, calcolo dei passi ottimali e salvataggio set.
+- 🔍 **Nuova Barra Filtri per Oggetto nel Catalogo**: aggiunti pulsanti rapidi con evidenziazione verde attiva per filtrare gli incantesimi per *Spada*, *Piccone*, *Armature*, *Arco*, *Ascia*, *Zappa* e *Altri*.
+- 🌿 **Descrizione Foraging Aggiornata**: corretta la lore di *Foraging* fedele al server (*"Le mele che cadono dalle foglie che rompi si moltiplicano: +210% in media"*).
+- 🎒 **Uniformazione Terminologia Inventario**: eliminato ogni riferimento a "borsa", sostituito ovunque con "inventario" (incluso il badge `✔ In Inventario` nella guida e nella lista dei set).
+- 🧭 **Fix Direzione Set Futuro**: corretta l'indicazione di apertura "Crea Nuovo Set" in alto a sinistra.
 
 ---
 

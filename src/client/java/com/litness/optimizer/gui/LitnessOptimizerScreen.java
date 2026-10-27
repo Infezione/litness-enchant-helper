@@ -945,8 +945,8 @@ public class LitnessOptimizerScreen extends Screen {
             extractor.text(this.font, title, panelX + 32, y + 6, (conflictFound != null) ? 0xFFFBBF24 : (isPinned ? 0xFFFBBF24 : 0xFFFFFFFF), false);
 
             String inInvTxt = (inInv == set.enchantments.size() && set.enchantments.size() > 0)
-                    ? "§a📦 " + inInv + "/" + set.enchantments.size() + " In Borsa ✔"
-                    : "§e📦 " + inInv + "/" + set.enchantments.size() + " In Borsa";
+                    ? "§a📦 " + inInv + "/" + set.enchantments.size() + " In Inventario ✔"
+                    : "§e📦 " + inInv + "/" + set.enchantments.size() + " In Inventario";
             if (conflictFound != null) {
                 inInvTxt += "  §e⚠️ (Conflitto: " + conflictFound + ")";
             }
@@ -1055,7 +1055,7 @@ public class LitnessOptimizerScreen extends Screen {
             }
         }
 
-        // Borsa del giocatore (tutti gli slot dell'inventario)
+        // Inventario del giocatore (tutti gli slot dell'inventario)
         var inv = this.minecraft.player.getInventory();
         for (int i = 0; i < inv.getContainerSize(); i++) {
             ItemStack stack = inv.getItem(i);
@@ -1509,7 +1509,9 @@ public class LitnessOptimizerScreen extends Screen {
                 String leftHeader = step.isBookToBook ? "Slot 1 (Libro):" : "Slot 1 (Oggetto):";
                 extractor.text(this.font, leftHeader, panelX + 32, slotY + 4, 0xFF93C5FD, false);
                 if (step.isBookToBook && InventoryTracker.hasInInventory(step.leftLabel)) {
-                    extractor.text(this.font, "§a✔ In Borsa", panelX + 8 + slotW - 55, slotY + 4, 0xFF34D399, false);
+                    String invBadge = "§a✔ In Inventario";
+                    int bW = this.font.width(invBadge);
+                    extractor.text(this.font, invBadge, panelX + 8 + slotW - bW - 4, slotY + 4, 0xFF34D399, false);
                 }
                 String leftName = trimToWidth(step.leftLabel, slotW - 36);
                 extractor.text(this.font, leftName, panelX + 32, slotY + 14, 0xFFFFFFFF, false);
@@ -1527,7 +1529,9 @@ public class LitnessOptimizerScreen extends Screen {
 
                 extractor.text(this.font, "Slot 2 (Libro):", slot2X + 24, slotY + 4, 0xFFF472B6, false);
                 if (InventoryTracker.hasInInventory(step.rightLabel)) {
-                    extractor.text(this.font, "§a✔ In Borsa", slot2X + slotW - 55, slotY + 4, 0xFF34D399, false);
+                    String invBadge = "§a✔ In Inventario";
+                    int bW = this.font.width(invBadge);
+                    extractor.text(this.font, invBadge, slot2X + slotW - bW - 4, slotY + 4, 0xFF34D399, false);
                 }
                 String rightName = trimToWidth(step.rightLabel, slotW - 28);
                 extractor.text(this.font, rightName, slot2X + 24, slotY + 14, 0xFFFFFFFF, false);
