@@ -1304,10 +1304,6 @@ public class LitnessOptimizerScreen extends Screen {
                     }
                 }
             }
-
-            // Firma autore strictly made by Waaxey
-            int signW = this.font.width("made by Waaxey");
-            extractor.text(this.font, "made by Waaxey", (this.width - signW) / 2, this.height - 11, 0x88818CF8, false);
         } catch (Throwable t) {
             t.printStackTrace();
         }

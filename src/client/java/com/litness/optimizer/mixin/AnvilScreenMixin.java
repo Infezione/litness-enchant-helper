@@ -47,8 +47,7 @@ public abstract class AnvilScreenMixin extends ItemCombinerScreen<AnvilMenu> {
     private int lastSlot0Hash = 0;
     private int lastInvBookCount = 0;
     private List<EnchantApplied> cachedSlot0Enchants = new ArrayList<>();
-    private MergeStep hoveredNextStep = null;
-    private List<EnchantApplied> hoveredCurrentEnchants = null;
+    private String cachedItemKey = "sword";
 
     public AnvilScreenMixin(AnvilMenu menu, Inventory inventory, Component title, Identifier texture) {
         super(menu, inventory, title, texture);
@@ -173,10 +172,6 @@ public abstract class AnvilScreenMixin extends ItemCombinerScreen<AnvilMenu> {
                         extractor.text(this.font, "  +" + (cachedSlot0Enchants.size() - 2) + " altri...", sideX + 10, curY, 0xFF6B7280, false);
                         curY += 9;
                     }
-
-                    if (mouseX >= sideX + 6 && mouseX <= sideX + sideW - 6 && mouseY >= wellY && mouseY < curY) {
-                        this.hoveredCurrentEnchants = cachedSlot0Enchants;
-                    }
                 }
 
                 // Card Prossima Mossa
@@ -189,9 +184,6 @@ public abstract class AnvilScreenMixin extends ItemCombinerScreen<AnvilMenu> {
                     int totalSteps = cachedSolution.steps.size();
 
                     boolean isMoveHovered = mouseX >= sideX + 6 && mouseX <= sideX + sideW - 6 && mouseY >= moveY && mouseY <= moveY + moveH;
-                    if (isMoveHovered) {
-                        this.hoveredNextStep = nextStep;
-                    }
 
                     // Rileva se lo slot 1 inserito ha un conflitto con l'oggetto base nello slot 0
                     String activeConflict = null;
@@ -220,9 +212,20 @@ public abstract class AnvilScreenMixin extends ItemCombinerScreen<AnvilMenu> {
                     extractor.fill(sideX + 6, moveY, sideX + sideW - 6, moveY + moveH, boxBg);
                     extractor.outline(sideX + 6, moveY, sideW - 12, moveH, boxBorder);
 
+                    String actionName = "TEMPRA OGGETTO";
+                    String icon = "⚔";
+                    if ("pick".equals(cachedItemKey)) { actionName = "TEMPRA PICCONE"; icon = "⛏"; }
+                    else if ("sword".equals(cachedItemKey)) { actionName = "TEMPRA SPADA"; icon = "⚔"; }
+                    else if ("helmet".equals(cachedItemKey)) { actionName = "TEMPRA ELMO"; icon = "🪖"; }
+                    else if ("chest".equals(cachedItemKey)) { actionName = "TEMPRA CORAZZA"; icon = "🥋"; }
+                    else if ("legs".equals(cachedItemKey)) { actionName = "TEMPRA GAMBALI"; icon = "👖"; }
+                    else if ("boots".equals(cachedItemKey)) { actionName = "TEMPRA STIVALI"; icon = "👢"; }
+                    else if ("axe".equals(cachedItemKey)) { actionName = "TEMPRA ASCIA"; icon = "🪓"; }
+                    else if ("bow".equals(cachedItemKey)) { actionName = "TEMPRA ARCO"; icon = "🏹"; }
+
                     String badge = nextStep.isBookToBook 
                         ? "🔨 UNISCI LIBRI (1/" + totalSteps + ")" 
-                        : "⚔ TEMPRA SPADA (1/" + totalSteps + ")";
+                        : icon + " " + actionName + " (1/" + totalSteps + ")";
                     int badgeColor = nextStep.isBookToBook ? 0xFFFBBF24 : 0xFF34D399;
                     extractor.text(this.font, badge, sideX + 10, moveY + 4, badgeColor, false);
 
@@ -275,158 +278,8 @@ public abstract class AnvilScreenMixin extends ItemCombinerScreen<AnvilMenu> {
                 extractor.outline(sideX + 12, pillY, sideW - 24, 14, 0x806366F1);
                 extractor.centeredText(this.font, "Premi [N] per il tool", sideX + (sideW / 2), pillY + 3, 0xFFA5B4FC);
             }
-
-            // Render Tooltips per la prossima mossa o per gli incantesimi attuali
-            if (this.hoveredNextStep != null) {
-                renderStepTooltip(extractor, this.hoveredNextStep, mouseX, mouseY);
-                this.hoveredNextStep = null;
-            } else if (this.hoveredCurrentEnchants != null && !this.hoveredCurrentEnchants.isEmpty()) {
-                renderCurrentEnchantsTooltip(extractor, this.hoveredCurrentEnchants, mouseX, mouseY);
-                this.hoveredCurrentEnchants = null;
-            }
-
-            // Firma autore fedele alle specifiche
-            extractor.text(this.font, "made by Waaxey", sideX + sideW - 74, sideY + sideH - 9, 0x66A5B4FC, false);
         } catch (Throwable t) {
             // Silenzia
-        }
-    }
-
-    private void renderStepTooltip(GuiGraphicsExtractor extractor, MergeStep step, int mouseX, int mouseY) {
-        if (step == null) return;
-
-        List<Component> tipLines = new ArrayList<>();
-        int totalSteps = cachedSolution != null ? cachedSolution.steps.size() : 1;
-
-        if (step.isBookToBook) {
-            tipLines.add(Component.literal("§6🔨 PASSO 1/" + totalSteps + ": FUSIONE LIBRI TRA LORO"));
-            tipLines.add(Component.literal("§7(Unisci questi 2 libri prima di applicarli all'arma)"));
-            tipLines.add(Component.empty());
-
-            tipLines.add(Component.literal("§9📖 Slot 1: §f" + step.leftLabel));
-            for (EnchantApplied ea : step.leftEnchants) {
-                EnchantmentEntry ee = EnchantmentDatabase.getEnchantment(ea.id);
-                String eName = (ee != null ? ee.name : ea.id) + " " + AnvilOptimizer.toRoman(ea.level);
-                tipLines.add(Component.literal("   §b↳ " + eName));
-                if (ee != null && ee.description != null && !ee.description.isEmpty()) {
-                    tipLines.add(Component.literal("     §7" + ee.description));
-                }
-            }
-            tipLines.add(Component.empty());
-
-            tipLines.add(Component.literal("§d📖 Slot 2: §f" + step.rightLabel));
-            for (EnchantApplied ea : step.rightEnchants) {
-                EnchantmentEntry ee = EnchantmentDatabase.getEnchantment(ea.id);
-                String eName = (ee != null ? ee.name : ea.id) + " " + AnvilOptimizer.toRoman(ea.level);
-                tipLines.add(Component.literal("   §b↳ " + eName));
-                if (ee != null && ee.description != null && !ee.description.isEmpty()) {
-                    tipLines.add(Component.literal("     §7" + ee.description));
-                }
-            }
-            tipLines.add(Component.empty());
-
-            tipLines.add(Component.literal("§a➔ Risultato Unito: §f" + step.resultLabel));
-            tipLines.add(Component.literal("§6💰 Costo Incudine: §e" + step.cost + " liv. XP"));
-            if (cachedSolution != null) {
-                tipLines.add(Component.literal("§d⚡ Picco Sequenza: §5" + cachedSolution.peakCost + "/39 liv."));
-            }
-        } else {
-            String targetName = this.menu.getSlot(0).hasItem() ? this.menu.getSlot(0).getItem().getHoverName().getString() : "Oggetto";
-            int penalty = this.menu.getSlot(0).hasItem() ? this.menu.getSlot(0).getItem().getOrDefault(DataComponents.REPAIR_COST, 0) : 0;
-
-            tipLines.add(Component.literal("§a⚔ PASSO 1/" + totalSteps + ": TEMPRA SULL'OGGETTO"));
-            tipLines.add(Component.literal("§7(Applica questo libro direttamente all'oggetto nell'incudine)"));
-            tipLines.add(Component.empty());
-
-            tipLines.add(Component.literal("§eSlot 1 (Oggetto): §f" + targetName + " §7(Penalità: +" + penalty + " liv.)"));
-            tipLines.add(Component.literal("§eSlot 2 (Libro): §f" + step.rightLabel));
-            for (EnchantApplied ea : step.rightEnchants) {
-                EnchantmentEntry ee = EnchantmentDatabase.getEnchantment(ea.id);
-                String eName = (ee != null ? ee.name : ea.id) + " " + AnvilOptimizer.toRoman(ea.level);
-                tipLines.add(Component.literal("   §b↳ " + eName));
-                if (ee != null && ee.description != null && !ee.description.isEmpty()) {
-                    tipLines.add(Component.literal("     §7" + ee.description));
-                }
-            }
-            tipLines.add(Component.empty());
-
-            tipLines.add(Component.literal("§6💰 Costo Incudine: §e" + step.cost + " liv. XP"));
-            if (cachedSolution != null) {
-                tipLines.add(Component.literal("§d⚡ Picco Sequenza: §5" + cachedSolution.peakCost + "/39 liv."));
-            }
-        }
-
-        tipLines.add(Component.empty());
-        tipLines.add(Component.literal("§8💡 Premi [N] o clicca 'Guida Passi' in alto per l'intera sequenza!"));
-
-        int maxLineW = 180;
-        for (Component c : tipLines) {
-            maxLineW = Math.max(maxLineW, this.font.width(c));
-        }
-        int tipW = Math.min(maxLineW + 16, Math.max(230, this.width - 24));
-        int tipH = tipLines.size() * 11 + 8;
-
-        int tipX = mouseX + 12;
-        if (tipX + tipW > this.width - 8) {
-            tipX = mouseX - tipW - 12;
-            if (tipX < 8) tipX = Math.max(8, this.width - tipW - 8);
-        }
-        int tipY = Math.max(8, Math.min(mouseY - 12, this.height - tipH - 8));
-
-        extractor.fill(tipX, tipY, tipX + tipW, tipY + tipH, 0xFA0E111A);
-        extractor.fill(tipX, tipY, tipX + tipW, tipY + 2, step.isBookToBook ? 0xFFF59E0B : 0xFF10B981);
-        extractor.outline(tipX, tipY, tipW, tipH, 0xFF2A2D40);
-
-        int curY = tipY + 5;
-        for (Component c : tipLines) {
-            if (!c.getString().isEmpty()) {
-                extractor.text(this.font, c, tipX + 8, curY, 0xFFFFFFFF, false);
-            }
-            curY += 11;
-        }
-    }
-
-    private void renderCurrentEnchantsTooltip(GuiGraphicsExtractor extractor, List<EnchantApplied> enchants, int mouseX, int mouseY) {
-        if (enchants == null || enchants.isEmpty()) return;
-
-        List<Component> tipLines = new ArrayList<>();
-        String targetName = this.menu.getSlot(0).hasItem() ? this.menu.getSlot(0).getItem().getHoverName().getString() : "Oggetto";
-        tipLines.add(Component.literal("§a✨ INCANTESIMI ATTUALI SU " + targetName.toUpperCase()));
-        tipLines.add(Component.empty());
-
-        for (EnchantApplied ea : enchants) {
-            EnchantmentEntry ee = EnchantmentDatabase.getEnchantment(ea.id);
-            String eName = (ee != null ? ee.name : ea.id) + " " + AnvilOptimizer.toRoman(ea.level);
-            tipLines.add(Component.literal("§b• " + eName));
-            if (ee != null && ee.description != null && !ee.description.isEmpty()) {
-                tipLines.add(Component.literal("  §7" + ee.description));
-            }
-        }
-
-        int maxLineW = 160;
-        for (Component c : tipLines) {
-            maxLineW = Math.max(maxLineW, this.font.width(c));
-        }
-        int tipW = Math.min(maxLineW + 16, Math.max(200, this.width - 24));
-        int tipH = tipLines.size() * 11 + 8;
-
-        int tipX = mouseX + 12;
-        if (tipX + tipW > this.width - 8) {
-            tipX = mouseX - tipW - 12;
-            if (tipX < 8) tipX = Math.max(8, this.width - tipW - 8);
-        }
-        int tipY = Math.max(8, Math.min(mouseY - 12, this.height - tipH - 8));
-
-        extractor.fill(tipX, tipY, tipX + tipW, tipY + tipH, 0xFA0E111A);
-        extractor.fill(tipX, tipY, tipX + tipW, tipY + 2, 0xFF6366F1);
-        extractor.outline(tipX, tipY, tipW, tipH, 0xFF2A2D40);
-
-        int curY = tipY + 5;
-        for (Component c : tipLines) {
-            if (!c.getString().isEmpty()) {
-                extractor.text(this.font, c, tipX + 8, curY, 0xFFFFFFFF, false);
-            }
-            curY += 11;
         }
     }
 
@@ -497,6 +350,7 @@ public abstract class AnvilScreenMixin extends ItemCombinerScreen<AnvilMenu> {
             else if (descId.contains("boots") || rawId.contains("boots")) itemKey = "boots";
             else if (descId.contains("axe") || rawId.contains("axe")) itemKey = "axe";
             else if (descId.contains("bow") || rawId.contains("bow")) itemKey = "bow";
+            this.cachedItemKey = itemKey;
 
             ItemEntry itemEntry = EnchantmentDatabase.getItem(itemKey);
             if (itemEntry == null) itemEntry = EnchantmentDatabase.getItem("sword");
