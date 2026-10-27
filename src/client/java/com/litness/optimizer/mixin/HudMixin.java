@@ -94,9 +94,6 @@ public class HudMixin {
             extractor.text(font, line.text, startX + 6, curY, line.color, true);
             curY += 10;
         }
-
-        // Firma autore Waaxey
-        extractor.text(font, "Waaxey", startX + w - font.width("Waaxey") - 4, startY + h - 8, 0x33A1A1AA, false);
     }
 
     private static void updateCache(String pinnedId, Font font) {
@@ -154,10 +151,9 @@ public class HudMixin {
         }
 
         maxTextWidth = Math.max(maxTextWidth, font.width(next.title) + 8);
-        maxTextWidth = Math.max(maxTextWidth, font.width("Waaxey") + 20);
 
-        next.width = Math.max(130, maxTextWidth + 14);
-        next.height = 20 + (next.lines.size() * 10) + 10;
+        next.width = Math.max(120, maxTextWidth + 12);
+        next.height = 20 + (next.lines.size() * 10) + 4;
 
         cachedHud = next;
     }
