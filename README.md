@@ -104,8 +104,6 @@ Sul server Litness, forgiare spade, archi, picconi o armature con 10–12 incant
 <a id="ultimi-aggiornamenti"></a>
 ## 🔄 Ultimi Aggiornamenti
 
-- 🔒 **Isolamento Tracking Pin HUD**: il Pin HUD monitora esclusivamente l'inventario personale del giocatore; aprendo menu esterni come l'Asta (`/ah`), il catalogo (`/enchgui`) o le casse, gli incantesimi visualizzati nel menu non vengono erroneamente considerati come posseduti e il Pin HUD non diventa verde finché non compri effettivamente l'oggetto.
-- 🛠️ **Fix Rendering Tooltip Sidebar Incudine**: risolto il problema di sovrapposizione visiva che faceva apparire slot o blocchi dell'inventario sopra il popup; il tooltip ora viene renderizzato sul livello superiore con layout compatto, pulito e titolo dinamico per ogni tipo di oggetto (es. Piccone, Spada, Armature).
 - 🟢 **Evidenziazione Verde in /ah e /enchgui**: gli oggetti, libri e armature contenenti incantesimi del tuo set pinnato (o attivo) vengono evidenziati con bordo e sfondo verde smeraldo all'interno dell'Asta (`/ah`) e del menu incantesimi (`/enchgui`) per individuarli e acquistarli a colpo d'occhio.
 - 📌 **Pin HUD Checklist in Gioco**: visualizza a schermo durante il gameplay la checklist in tempo reale degli incantesimi con tracking intelligente degli incantesimi mancanti, dei libri in inventario e di quelli già applicati sul pezzo corrispondente.
 - 🔔 **Notifica Automatica Aggiornamenti in Chat con Link Diretto**: all'ingresso nel server, la mod verifica in background su GitHub se è disponibile una versione più recente e, se presente, invia un messaggio in chat con link cliccabile per scaricare istantaneamente il file `.jar` o consultare le note di rilascio.
