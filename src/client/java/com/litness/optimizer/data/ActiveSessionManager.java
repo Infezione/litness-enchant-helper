@@ -16,6 +16,7 @@ public class ActiveSessionManager {
         Map<String, List<String>> enchantsByItem = new HashMap<>();
         String activeSetId = null;
         String pinnedSetId = null;
+        List<String> searchEnchants = new ArrayList<>();
     }
 
     private static final File CONFIG_FILE = new File("config/litnessoptimizer/active_session.json");
@@ -31,6 +32,7 @@ public class ActiveSessionManager {
             SessionData data = GSON.fromJson(reader, SessionData.class);
             if (data != null) {
                 if (data.enchantsByItem == null) data.enchantsByItem = new HashMap<>();
+                if (data.searchEnchants == null) data.searchEnchants = new ArrayList<>();
                 sessionData = data;
             }
         } catch (Exception e) {
@@ -134,5 +136,44 @@ public class ActiveSessionManager {
             sessionData.pinnedSetId = id;
         }
         save();
+    }
+
+    public static synchronized Set<String> getSearchEnchants() {
+        load();
+        if (sessionData.searchEnchants == null) {
+            sessionData.searchEnchants = new ArrayList<>();
+        }
+        return new LinkedHashSet<>(sessionData.searchEnchants);
+    }
+
+    public static synchronized boolean isSearchEnchant(String enchantId) {
+        if (enchantId == null) return false;
+        load();
+        if (sessionData.searchEnchants == null) return false;
+        for (String s : sessionData.searchEnchants) {
+            if (s.equalsIgnoreCase(enchantId)) return true;
+        }
+        return false;
+    }
+
+    public static synchronized void toggleSearchEnchant(String enchantId) {
+        if (enchantId == null) return;
+        load();
+        if (sessionData.searchEnchants == null) {
+            sessionData.searchEnchants = new ArrayList<>();
+        }
+        boolean removed = sessionData.searchEnchants.removeIf(s -> s.equalsIgnoreCase(enchantId));
+        if (!removed) {
+            sessionData.searchEnchants.add(enchantId);
+        }
+        save();
+    }
+
+    public static synchronized void clearSearchEnchants() {
+        load();
+        if (sessionData.searchEnchants != null) {
+            sessionData.searchEnchants.clear();
+            save();
+        }
     }
 }

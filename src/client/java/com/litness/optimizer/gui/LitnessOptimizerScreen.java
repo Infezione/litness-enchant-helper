@@ -65,6 +65,8 @@ public class LitnessOptimizerScreen extends Screen {
         return Math.max(5, Math.min(12, avail / 19));
     }
     private int catalogPage = 0;
+    private final List<Button> catalogRowButtons = new ArrayList<>();
+    private Button btnClearAhSearch = null;
 
     // Stato calcolatore & simulatore: Spada, Piccone e Armature (Elmo, Corazza, Gambali, Stivali)
     private static final String[] ITEM_KEYS = {
@@ -265,8 +267,36 @@ public class LitnessOptimizerScreen extends Screen {
         this.searchField.setResponder(text -> {
             catalogPage = 0;
             updateSearch();
+            refreshCatalogButtons();
         });
         this.addRenderableWidget(this.searchField);
+
+        // Tasto Rapido Azzera Filtri & Ricerche AH
+        boolean hasActiveFilter = (ActiveSessionManager.getSearchEnchants().size() > 0)
+                || (ActiveSessionManager.getPinnedSetId() != null)
+                || (!"ALL".equals(categoryFilter))
+                || (!"ALL".equals(itemFilter))
+                || (this.searchField != null && !this.searchField.getValue().isEmpty());
+
+        int ahCount = ActiveSessionManager.getSearchEnchants().size();
+        String ahBtnLabel = ahCount > 0 ? "§c✕ Azzera Filtri (" + ahCount + ")" : (hasActiveFilter ? "§c✕ Azzera Filtri" : "§8Filtri: Nessuno");
+
+        this.btnClearAhSearch = Button.builder(Component.literal(ahBtnLabel), b -> {
+            ActiveSessionManager.clearSearchEnchants();
+            ActiveSessionManager.setPinnedSetId(null);
+            com.litness.optimizer.mixin.ContainerScreenMixin.clearCache();
+            categoryFilter = "ALL";
+            itemFilter = "ALL";
+            if (this.searchField != null) {
+                this.searchField.setValue("");
+            }
+            catalogPage = 0;
+            updateSearch();
+            rebuildWidgets();
+            statusMessage = "§aTutti i filtri e le ricerche in /ah sono stati azzerati!";
+        }).bounds(catStartX + 402, filterY, 138, 18).build();
+        this.btnClearAhSearch.active = hasActiveFilter;
+        this.addRenderableWidget(this.btnClearAhSearch);
 
         // RIGA 2: Filtri per Tipo di Oggetto
         int itemFilterY = filterY + 21;
@@ -346,18 +376,94 @@ public class LitnessOptimizerScreen extends Screen {
         // RIGA 3: Barra paginazione
         int navY = itemFilterY + 21;
         this.addRenderableWidget(Button.builder(Component.literal("◀ Precedente"), b -> {
-            if (catalogPage > 0) catalogPage--;
+            if (catalogPage > 0) {
+                catalogPage--;
+                refreshCatalogButtons();
+            }
         }).bounds(this.width / 2 - 270, navY, 85, 18).build());
 
         this.addRenderableWidget(Button.builder(Component.literal("Successiva ▶"), b -> {
             int totalP = Math.max(1, (int) Math.ceil((double) filteredEnchantments.size() / getItemsPerPage()));
-            if (catalogPage < totalP - 1) catalogPage++;
+            if (catalogPage < totalP - 1) {
+                catalogPage++;
+                refreshCatalogButtons();
+            }
         }).bounds(this.width / 2 + 185, navY, 85, 18).build());
 
         updateSearch();
+        refreshCatalogButtons();
+    }
+
+    private void refreshCatalogButtons() {
+        for (Button b : catalogRowButtons) {
+            this.removeWidget(b);
+        }
+        catalogRowButtons.clear();
+
+        if (this.currentTab != Tab.CATALOG) return;
+
+        int itemsPerPage = getItemsPerPage();
+        int maxPages = Math.max(1, (int) Math.ceil((double) filteredEnchantments.size() / itemsPerPage));
+        if (catalogPage >= maxPages) catalogPage = maxPages - 1;
+        if (catalogPage < 0) catalogPage = 0;
+
+        int startY = 94;
+        int cardWidth = Math.min(640, this.width - 24);
+        int cardX = (this.width - cardWidth) / 2;
+
+        int startIdx = catalogPage * itemsPerPage;
+        int endIdx = Math.min(startIdx + itemsPerPage, filteredEnchantments.size());
+
+        for (int i = startIdx; i < endIdx; i++) {
+            EnchantmentEntry ee = filteredEnchantments.get(i);
+            int row = i - startIdx;
+            int y = startY + row * 19;
+
+            int btnW = 76;
+            int btnH = 16;
+            int btnX = cardX + cardWidth - btnW - 3;
+            int btnY = y + 1;
+
+            boolean isSearching = ActiveSessionManager.isSearchEnchant(ee.id);
+            String label = isSearching ? "§a✔ In AH" : "§7+ Cerca AH";
+
+            Button searchBtn = Button.builder(Component.literal(label), b -> {
+                ActiveSessionManager.toggleSearchEnchant(ee.id);
+                com.litness.optimizer.mixin.ContainerScreenMixin.clearCache();
+                boolean nowSearching = ActiveSessionManager.isSearchEnchant(ee.id);
+                if (nowSearching) {
+                    statusMessage = "§aEvidenziazione in /ah attivata per: " + ee.name;
+                } else {
+                    statusMessage = "§eEvidenziazione rimossa per: " + ee.name;
+                }
+                refreshCatalogButtons();
+                updateClearButtonState();
+            }).bounds(btnX, btnY, btnW, btnH).build();
+
+            catalogRowButtons.add(searchBtn);
+            this.addRenderableWidget(searchBtn);
+        }
+    }
+
+    private void updateClearButtonState() {
+        if (btnClearAhSearch == null) return;
+        boolean hasActiveFilter = (ActiveSessionManager.getSearchEnchants().size() > 0)
+                || (ActiveSessionManager.getPinnedSetId() != null)
+                || (!"ALL".equals(categoryFilter))
+                || (!"ALL".equals(itemFilter))
+                || (this.searchField != null && !this.searchField.getValue().isEmpty());
+        int count = ActiveSessionManager.getSearchEnchants().size();
+        String lbl = count > 0 ? "§c✕ Azzera Filtri (" + count + ")" : (hasActiveFilter ? "§c✕ Azzera Filtri" : "§8Filtri: Nessuno");
+        btnClearAhSearch.setMessage(Component.literal(lbl));
+        btnClearAhSearch.active = hasActiveFilter;
     }
 
     private void initCalculatorWidgets(int topY) {
+        for (Button b : catalogRowButtons) {
+            this.removeWidget(b);
+        }
+        catalogRowButtons.clear();
+
         int panelWidth = Math.min(550, this.width - 20);
         int startX = (this.width - panelWidth) / 2;
 
@@ -1314,7 +1420,9 @@ public class LitnessOptimizerScreen extends Screen {
         int maxPages = Math.max(1, (int) Math.ceil((double) filteredEnchantments.size() / itemsPerPage));
         if (catalogPage >= maxPages) catalogPage = maxPages - 1;
 
-        String pageInfo = "Pagina " + (catalogPage + 1) + " / " + maxPages + "  (" + filteredEnchantments.size() + " incantesimi)";
+        int searchCount = ActiveSessionManager.getSearchEnchants().size();
+        String searchInfo = searchCount > 0 ? "  •  §a" + searchCount + " in ricerca AH" : "";
+        String pageInfo = "Pagina " + (catalogPage + 1) + " / " + maxPages + "  (" + filteredEnchantments.size() + " incantesimi)" + searchInfo;
         extractor.centeredText(this.font, pageInfo, this.width / 2, 77, 0xFF818CF8);
 
         int startY = 94;
@@ -1331,19 +1439,25 @@ public class LitnessOptimizerScreen extends Screen {
             int row = i - startIdx;
             int y = startY + row * 19;
 
-            boolean isHovered = mouseX >= cardX && mouseX <= cardX + cardWidth && mouseY >= y && mouseY <= y + 18;
+            int btnW = 76;
+            boolean isHovered = mouseX >= cardX && mouseX < (cardX + cardWidth - btnW - 6) && mouseY >= y && mouseY <= y + 18;
             if (isHovered) hoveredEntry = e;
 
+            boolean isSearching = ActiveSessionManager.isSearchEnchant(e.id);
             boolean isCustom = "custom".equalsIgnoreCase(e.category);
-            int stripeColor = isCustom ? 0xFF10B981 : 0xFF6366F1;
-            int bgColor = isHovered ? 0xEE1E1E2E : 0xDD141420;
+            int stripeColor = isSearching ? 0xFF00FF66 : (isCustom ? 0xFF10B981 : 0xFF6366F1);
+            int bgColor = isSearching ? (isHovered ? 0xEE163224 : 0xDD10241A) : (isHovered ? 0xEE1E1E2E : 0xDD141420);
 
             extractor.fill(cardX, y, cardX + cardWidth, y + 18, bgColor);
             extractor.fill(cardX, y, cardX + 3, y + 18, stripeColor);
+            if (isSearching) {
+                extractor.fill(cardX, y, cardX + cardWidth, y + 1, 0x8000FF66);
+                extractor.fill(cardX, y + 17, cardX + cardWidth, y + 18, 0x8000FF66);
+            }
 
             String maxRoman = e.maxLevel > 1 ? " " + AnvilOptimizer.toRoman(e.maxLevel) : "";
             String title = e.name + maxRoman;
-            extractor.text(this.font, title, cardX + 6, y + 5, 0xFFFFFFFF, false);
+            extractor.text(this.font, title, cardX + 6, y + 5, isSearching ? 0xFF86EFAC : 0xFFFFFFFF, false);
 
             int titleW = this.font.width(title);
             int badgeX = cardX + 12 + titleW;
@@ -1356,11 +1470,11 @@ public class LitnessOptimizerScreen extends Screen {
             String cost = isCustom ? "+" + e.getAnvilCostNumeric() + " liv." : "Vanilla";
             String costText = "Costo: " + cost;
             int costW = this.font.width(costText);
-            int costX = cardX + cardWidth - costW - 10;
+            int costX = (cardX + cardWidth - btnW - 6) - costW - 6;
             extractor.text(this.font, costText, costX, y + 5, 0xFFFBBF24, false);
 
             int descStartX = Math.max(cardX + 235, badgeX + badgeW + 12);
-            int availDescW = costX - descStartX - 10;
+            int availDescW = costX - descStartX - 8;
             if (availDescW > 30) {
                 String desc = trimToWidth(e.description != null ? e.description : "", availDescW);
                 extractor.text(this.font, desc, descStartX, y + 5, 0xFFA1A1AA, false);
@@ -1843,7 +1957,18 @@ public class LitnessOptimizerScreen extends Screen {
 
     @Override
     public boolean mouseScrolled(double mouseX, double mouseY, double horizontalAmount, double verticalAmount) {
-        if (currentTab == Tab.CALCULATOR) {
+        if (currentTab == Tab.CATALOG) {
+            int totalPages = Math.max(1, (int) Math.ceil((double) filteredEnchantments.size() / getItemsPerPage()));
+            if (verticalAmount > 0 && catalogPage > 0) {
+                catalogPage--;
+                refreshCatalogButtons();
+                return true;
+            } else if (verticalAmount < 0 && catalogPage < totalPages - 1) {
+                catalogPage++;
+                refreshCatalogButtons();
+                return true;
+            }
+        } else if (currentTab == Tab.CALCULATOR) {
             if (simView == SimView.GUIDE && currentSolution != null && !currentSolution.steps.isEmpty()) {
                 int totalSteps = currentSolution.steps.size();
                 int maxPages = Math.max(1, (int) Math.ceil((double) totalSteps / 4));

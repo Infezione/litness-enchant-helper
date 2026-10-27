@@ -106,36 +106,30 @@ public abstract class ContainerScreenMixin extends Screen {
         return false;
     }
 
+    public static void clearCache() {
+        cachedTargetEnchants = Collections.emptySet();
+        lastTargetCheck = 0;
+    }
+
     private static Set<String> getTargetEnchantments() {
-        // 1. Priorità massima: Set Pinnato nell'HUD
+        Set<String> targets = new HashSet<>();
+
+        // 1. Incantesimi selezionati dal Catalogo per la ricerca rapida in AH
+        Set<String> searchEnchants = ActiveSessionManager.getSearchEnchants();
+        if (searchEnchants != null && !searchEnchants.isEmpty()) {
+            targets.addAll(searchEnchants);
+        }
+
+        // 2. Set Pinnato nell'HUD
         String pinnedId = ActiveSessionManager.getPinnedSetId();
         if (pinnedId != null) {
             CustomSet set = SavedSetsManager.getSetById(pinnedId);
             if (set != null && set.enchantments != null && !set.enchantments.isEmpty()) {
-                return new HashSet<>(set.enchantments);
+                targets.addAll(set.enchantments);
             }
         }
 
-        // 2. Fallback: Set Attivo selezionato
-        String activeId = ActiveSessionManager.getActiveSetId();
-        if (activeId != null) {
-            CustomSet set = SavedSetsManager.getSetById(activeId);
-            if (set != null && set.enchantments != null && !set.enchantments.isEmpty()) {
-                return new HashSet<>(set.enchantments);
-            }
-        }
-
-        // 3. Fallback: Incantesimi selezionati nella sessione attiva del simulatore
-        int activeIdx = ActiveSessionManager.getActiveItemIndex();
-        String[] itemKeys = {"sword", "pick", "helmet", "chest", "legs", "boots", "axe", "bow"};
-        if (activeIdx >= 0 && activeIdx < itemKeys.length) {
-            Set<String> selected = ActiveSessionManager.getSelectedEnchants(itemKeys[activeIdx]);
-            if (selected != null && !selected.isEmpty()) {
-                return new HashSet<>(selected);
-            }
-        }
-
-        return Collections.emptySet();
+        return targets;
     }
 
     private static boolean matchesAnyTargetEnchant(ItemStack stack, Set<String> targetEnchants) {
