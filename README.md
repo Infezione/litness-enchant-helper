@@ -1,12 +1,12 @@
 # ⚡ Litness Enchant Helper
 
-[![DOWNLOAD MOD (.JAR)](https://img.shields.io/badge/⬇️%20SCARICA%20SUBITO%20LA%20MOD%20(.JAR)-VERSIONE%201.1.9-22c55e?style=for-the-badge&logo=curseforge&logoColor=white)](https://github.com/Infezione/litness-enchant-helper/releases/download/v1.1.9/LitnessEnchantHelper-1.1.9.jar)
+[![DOWNLOAD MOD (.JAR)](https://img.shields.io/badge/⬇️%20SCARICA%20SUBITO%20LA%20MOD%20(.JAR)-VERSIONE%201.2.0-22c55e?style=for-the-badge&logo=curseforge&logoColor=white)](https://github.com/Infezione/litness-enchant-helper/releases/download/v1.2.0/LitnessEnchantHelper-1.2.0.jar)
 [![ULTIMI AGGIORNAMENTI](https://img.shields.io/badge/🔄%20ULTIMI%20AGGIORNAMENTI-VEDI%20LE%20NOVITÀ-6366f1?style=for-the-badge&logo=sparkles&logoColor=white)](#-ultimi-aggiornamenti)
 
 ![Minecraft](https://img.shields.io/badge/Minecraft-26.2-brightgreen.svg)
 ![Fabric](https://img.shields.io/badge/ModLoader-Fabric-blue.svg)
 ![Lunar Client](https://img.shields.io/badge/Lunar%20Client-Compatible-informational.svg)
-![Release](https://img.shields.io/badge/Release-v1.1.9-blueviolet.svg)
+![Release](https://img.shields.io/badge/Release-v1.2.0-blueviolet.svg)
 ![Author](https://img.shields.io/badge/Author-Waaxey-purple.svg)
 
 > [!TIP]
@@ -105,30 +105,13 @@ Sul server Litness, forgiare spade, archi, picconi o armature con 10–12 incant
 ---
 
 <a id="ultimi-aggiornamenti"></a>
-## 🔄 Ultimi Aggiornamenti
+## 🔄 Ultimi Aggiornamenti (v1.2.0)
 
-- 📦 **Ricerca & Evidenziazione in Casse, Barili, Shulker ed Ender Chest**: La funzione di spotting verde smeraldo attivabile da Catalogo (`[+ Cerca AH]`) ora funziona non solo in `/ah` e `/enchgui`, ma anche dentro tutte le **Casse**, **Barili**, **Shulker Box** ed **Ender Chest**, con supporto al rilevamento automatico dei libri contenuti all'interno delle Shulker Box chiuse!
-- 🌟 **Nuova Sezione Vanilla+ nel Catalogo & Calcolatore**: Aggiunta la categoria speciale degli incantesimi Vanilla+ con livelli potenziati e costi dedicati all'incudine:
-  - *Atterraggio morbido V* (`feather_falling_5`) - Costo: 5 liv.
-  - *Affilatezza VI* (`sharpness_6`) - Costo: 6 liv.
-  - *Saccheggio IV* (`looting_4`) - Costo: 8 liv.
-  - *Respirazione IV* (`respiration_4`) - Costo: 8 liv.
-  - *Indistruttibilità IV* (`unbreaking_4`) - Costo: 4 liv.
-  - *Indistruttibilità V* (`unbreaking_5`) - Costo: 5 liv.
-  - *Passo anfibio IV* (`depth_strider_4`) - Costo: 8 liv.
-  - *Protezione V* (`protection_5`) - Costo: 5 liv.
-  - *Potenza VI* (`power_6`) - Costo: 6 liv.
-- 🚫 **Esclusione Reciproca Intelligente & Sbarratura Rossa**: Nella creazione dei set e nel simulatore, sia il livello Vanilla sia il Vanilla+ (es. *Affilatezza V* e *Affilatezza VI*) rimangono visibili nella lista senza sparire. Selezionando una variante, la controparte incompatibile viene sbarrata in rosso (`§c§m`) con indicatore di conflitto, permettendo di passare comodamente dall'una all'altra con un clic e calcolare i passi perfetti all'incudine.
-- 🏷️ **Filtro Categoria [Vanilla+] nel Catalogo**: Nuovo pulsante dedicato `[Vanilla+]` accanto a Tutti, Vanilla e Custom per filtrare all'istante le varianti Vanilla+ con badge ambra.
-- 📊 **Monitor Prezzi AH & Filtro Libri Lisci**: Monitoraggio automatico del miglior prezzo e dello storico prezzi in tempo reale sul pannello laterale di `/ah`, con filtraggio rigoroso per libri lisci a incantesimo singolo.
-- 🟢 **Ricerca Rapida & Evidenziazione in /ah dal Catalogo**: aggiunto il pulsante rapido `[+ Cerca AH]` nel Catalogo Incantesimi (`N`) per trovare istantaneamente libri e item desiderati evidenziati con contorno verde smeraldo nella Casa d'Aste (`/ah`) e in `/enchgui`, con tasto `[✕ Azzera AH]` per resettare i filtri con un clic.
-- 📌 **Pin HUD Checklist in Gioco**: visualizza a schermo durante il gameplay la checklist in tempo reale degli incantesimi con tracking intelligente degli incantesimi mancanti, dei libri in inventario e di quelli già applicati sul pezzo corrispondente.
-- 🔔 **Notifica Automatica Aggiornamenti in Chat con Link Diretto**: all'ingresso nel server, la mod verifica in background su GitHub se è disponibile una versione più recente e, se presente, invia un messaggio in chat con link cliccabile per scaricare istantaneamente il file `.jar` o consultare le note di rilascio.
-- ✏️ **Modifica Completa dei Set Salvati**: aggiunto il pulsante `[✏]` accanto a ogni set salvato in "I Miei Set" per modificarne all'istante nome, pezzo e incantesimi senza dover ricreare il set da zero.
-- 💾 **Persistenza della Selezione tra le Sessioni**: uscendo e rientrando dal server o riavviando il gioco, la selezione del simulatore e il tipo di oggetto non si azzerano più e rimangono salvati esattamente come li avevi lasciati.
-- 💰 **Persistenza dei Costi Custom**: i costi XP scoperti dai libri custom tramite lore vengono memorizzati su file e persistono tra i riavvii.
-- ⛏️ **Supporto al Piccone nel Simulatore**: integrato il piccone nella barra di selezione rapida del Calcolatore/Simulatore, con icone del Piccone di Diamante, calcolo dei passi ottimali e salvataggio set.
-- 🔍 **Nuova Barra Filtri per Oggetto nel Catalogo**: aggiunti pulsanti rapidi con evidenziazione verde attiva per filtrare gli incantesimi per *Spada*, *Piccone*, *Armature*, *Arco*, *Ascia*, *Zappa* e *Altri*.
+- 🔍 **Barra di Ricerca Istantanea nella Creazione Set**: Nel creatore e modificatore di set futuri è ora presente un campo di ricerca in tempo reale per trovare e filtrare subito qualsiasi incantesimo senza dover sfogliare decine di pagine.
+- 🖼️ **Icone Tematiche Visive per Tutti gli Incantesimi**: Accanto a ogni incantesimo (nel costruttore dei set e nel Catalogo) appare ora una vera e propria icona tematica di Minecraft che lo rappresenta a colpo d'occhio (es. *Carica di fuoco* per Aspetto di fuoco, *Piuma* per Caduta morbida, *Spada di diamante* per Affilatezza VI, *Ghiaccio azzurro* per Passo gelato, *Smeraldo* per Saccheggio, *Ossidiana* per Indistruttibilità, ecc.).
+- 🔢 **Fix Risolutivo Numeri Romani Duplicati**: Risolto definitivamente il bug grafico che duplicava i numeri romani (es. *Affilatezza VI VI* o *Saccheggio IV IV*) nei passaggi della guida, nelle descrizioni dei libri e nei tooltip.
+- 💬 **Notifica Aggiornamenti in Chat Garantita all'Accesso**: Ottimizzato il recapito in chat degli aggiornamenti all'ingresso nel server tramite un timer di sicurezza anti-spam/anti-MOTD, così da ricevere sempre in modo affidabile il messaggio con i link diretti per scaricare il `.jar` o consultare le note di rilascio.
+- 📦 **Aggiornamento Versione 1.2.0**: Incrementata la versione a 1.2.0 con piena compatibilità Fabric 26.2 e Lunar Client.
 
 ---
 
@@ -147,7 +130,7 @@ Sul server Litness, forgiare spade, archi, picconi o armature con 10–12 incant
 ## 📥 Installazione
 
 ### Metodo 1: Per Lunar Client (Consigliato)
-1. Scarica il file **`LitnessEnchantHelper-1.1.9.jar`** dall'area [Releases](../../releases).
+1. Scarica il file **`LitnessEnchantHelper-1.2.0.jar`** dall'area [Releases](../../releases).
 2. Premi sulla tastiera `Win + R`, incolla la seguente stringa e premi **Invio**:
    ```text
    %userprofile%\.lunarclient\profiles\26\mods\fabric-26.2\
@@ -157,7 +140,7 @@ Sul server Litness, forgiare spade, archi, picconi o armature con 10–12 incant
 
 ### Metodo 2: Per Fabric Launcher Standard
 1. Assicurati di avere installato **Fabric Loader** per Minecraft 26.2 e la **Fabric API**.
-2. Posiziona il file `LitnessEnchantHelper-1.1.9.jar` nella cartella `.minecraft/mods/`.
+2. Posiziona il file `LitnessEnchantHelper-1.2.0.jar` nella cartella `.minecraft/mods/`.
 3. Avvia il gioco.
 
 ---

@@ -526,7 +526,7 @@ public class AnvilOptimizer {
                 for (EnchantApplied ea : books.get(i).enchantments) {
                     if (!first) sb.append(" + ");
                     EnchantmentEntry ee = EnchantmentDatabase.getEnchantment(ea.id);
-                    sb.append(ee != null ? ee.name : ea.id).append(" ").append(toRoman(ea.level));
+                    sb.append(formatEnchantName(ee != null ? ee.name : ea.id, ea.level));
                     first = false;
                 }
             }
@@ -555,10 +555,27 @@ public class AnvilOptimizer {
         for (EnchantApplied ea : b.enchantments) {
             if (!first) sb.append(" + ");
             EnchantmentEntry ee = EnchantmentDatabase.getEnchantment(ea.id);
-            sb.append(ee != null ? ee.name : ea.id).append(" ").append(toRoman(ea.level));
+            sb.append(formatEnchantName(ee != null ? ee.name : ea.id, ea.level));
             first = false;
         }
         return sb.length() > 0 ? sb.toString() : "Libro";
+    }
+
+    public static String formatEnchantName(String baseName, int level) {
+        if (baseName == null) return "";
+        String trimmed = baseName.trim();
+        if (trimmed.matches(".*\\s+[IVXLCDM]+$")) {
+            return trimmed;
+        }
+        if (level > 0) {
+            return trimmed + " " + toRoman(level);
+        }
+        return trimmed;
+    }
+
+    public static String formatEnchantName(EnchantmentEntry ee, int level) {
+        if (ee == null) return "";
+        return formatEnchantName(ee.name, level);
     }
 
     public static String toRoman(int n) {

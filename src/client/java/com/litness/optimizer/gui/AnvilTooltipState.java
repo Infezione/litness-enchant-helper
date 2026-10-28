@@ -52,7 +52,7 @@ public class AnvilTooltipState {
             tipLines.add(Component.literal("§9📖 Slot 1: §f" + step.leftLabel));
             for (EnchantApplied ea : step.leftEnchants) {
                 EnchantmentEntry ee = EnchantmentDatabase.getEnchantment(ea.id);
-                String eName = (ee != null ? ee.name : ea.id) + " " + AnvilOptimizer.toRoman(ea.level);
+                String eName = AnvilOptimizer.formatEnchantName(ee != null ? ee.name : ea.id, ea.level);
                 tipLines.add(Component.literal("   §b• " + eName));
             }
             tipLines.add(Component.empty());
@@ -60,7 +60,7 @@ public class AnvilTooltipState {
             tipLines.add(Component.literal("§d📖 Slot 2: §f" + step.rightLabel));
             for (EnchantApplied ea : step.rightEnchants) {
                 EnchantmentEntry ee = EnchantmentDatabase.getEnchantment(ea.id);
-                String eName = (ee != null ? ee.name : ea.id) + " " + AnvilOptimizer.toRoman(ea.level);
+                String eName = AnvilOptimizer.formatEnchantName(ee != null ? ee.name : ea.id, ea.level);
                 tipLines.add(Component.literal("   §d• " + eName));
             }
             tipLines.add(Component.empty());
@@ -91,7 +91,7 @@ public class AnvilTooltipState {
             tipLines.add(Component.literal("§eSlot 2 (Libro): §f" + step.rightLabel));
             for (EnchantApplied ea : step.rightEnchants) {
                 EnchantmentEntry ee = EnchantmentDatabase.getEnchantment(ea.id);
-                String eName = (ee != null ? ee.name : ea.id) + " " + AnvilOptimizer.toRoman(ea.level);
+                String eName = AnvilOptimizer.formatEnchantName(ee != null ? ee.name : ea.id, ea.level);
                 tipLines.add(Component.literal("   §a• " + eName));
             }
             tipLines.add(Component.empty());
@@ -148,7 +148,7 @@ public class AnvilTooltipState {
 
         for (EnchantApplied ea : enchants) {
             EnchantmentEntry ee = EnchantmentDatabase.getEnchantment(ea.id);
-            String name = (ee != null ? ee.name : ea.id) + " " + AnvilOptimizer.toRoman(ea.level);
+            String name = AnvilOptimizer.formatEnchantName(ee != null ? ee.name : ea.id, ea.level);
             tipLines.add(Component.literal("   §a• " + name));
         }
 

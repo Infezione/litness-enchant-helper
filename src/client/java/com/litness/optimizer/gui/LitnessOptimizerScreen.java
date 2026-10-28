@@ -84,11 +84,15 @@ public class LitnessOptimizerScreen extends Screen {
     private boolean isCreatingSet = false;
     private String editingSetId = null;
     private String currentCreatingSetName = "";
+    private String currentCreatingSetSearch = "";
     private int creatingSetItemIndex = 0;
     private final Set<String> creatingSetEnchants = new LinkedHashSet<>();
     private EditBox creatingSetNameField;
+    private EditBox creatingSetSearchField;
     private int creatingSetPage = 0;
     private final List<Button> creatingSetEnchantButtons = new ArrayList<>();
+    private static record CreatingSetButtonData(int x, int y, EnchantmentEntry entry) {}
+    private final List<CreatingSetButtonData> creatingSetButtonDataList = new ArrayList<>();
 
     // Selezione simulatore (ID incantesimi attivi)
     private final Set<String> simulatorSelectedEnchants = new LinkedHashSet<>();
@@ -202,11 +206,12 @@ public class LitnessOptimizerScreen extends Screen {
         int tabWidth = 145;
 
         // Notifica aggiornamento disponibile in alto a sinistra
-        if (UpdateChecker.isUpdateAvailable() && (this.width / 2 - tabWidth - 5) >= 115) {
+        if (UpdateChecker.isUpdateAvailable() && (this.width / 2 - tabWidth) >= 70) {
+            int upBtnW = Math.min(105, this.width / 2 - tabWidth - 12);
             String upTxt = "§6⚡ " + UpdateChecker.getLatestVersion();
             this.addRenderableWidget(Button.builder(Component.literal(upTxt), b -> {
                 net.minecraft.util.Util.getPlatform().openUri(java.net.URI.create(UpdateChecker.getReleasePageUrl()));
-            }).bounds(8, topY, 105, 19).build());
+            }).bounds(8, topY, upBtnW, 19).build());
         }
 
         // 1. Tab Navigazione Superiore (Catalogo vs Simulatore/Calcolatore)
@@ -676,7 +681,7 @@ public class LitnessOptimizerScreen extends Screen {
 
     private void initSavedSetsViewWidgets(int startX, int panelWidth, int contentY) {
         if (isCreatingSet) {
-            int nameFieldW = 160;
+            int nameFieldW = 120;
             this.creatingSetNameField = new EditBox(this.font, startX, contentY, nameFieldW, 18, Component.literal(""));
             if (currentCreatingSetName != null && !currentCreatingSetName.isEmpty()) {
                 this.creatingSetNameField.setValue(currentCreatingSetName);
@@ -688,7 +693,7 @@ public class LitnessOptimizerScreen extends Screen {
                 }
             }
             this.creatingSetNameField.setResponder(text -> currentCreatingSetName = text);
-            this.creatingSetNameField.setHint(Component.literal("Nome Set Futuro..."));
+            this.creatingSetNameField.setHint(Component.literal("Nome Set..."));
             this.addRenderableWidget(this.creatingSetNameField);
 
             int curX = startX + nameFieldW + 4;
@@ -698,14 +703,31 @@ public class LitnessOptimizerScreen extends Screen {
                 if (this.creatingSetNameField != null) {
                     currentCreatingSetName = this.creatingSetNameField.getValue();
                 }
+                if (this.creatingSetSearchField != null) {
+                    currentCreatingSetSearch = this.creatingSetSearchField.getValue();
+                }
                 creatingSetItemIndex = (creatingSetItemIndex + 1) % ITEM_NAMES.length;
                 selectedItemIndex = creatingSetItemIndex;
                 creatingSetEnchants.clear();
                 creatingSetPage = 0;
                 this.clearWidgets();
                 this.init();
-            }).bounds(curX, contentY, 94, 18).build());
-            curX += 98;
+            }).bounds(curX, contentY, 88, 18).build());
+            curX += 92;
+
+            // [🔍 Cerca incantesimo...]
+            int searchFieldW = Math.min(135, panelWidth - (curX - startX) - 150);
+            this.creatingSetSearchField = new EditBox(this.font, curX, contentY, searchFieldW, 18, Component.literal(""));
+            if (currentCreatingSetSearch != null && !currentCreatingSetSearch.isEmpty()) {
+                this.creatingSetSearchField.setValue(currentCreatingSetSearch);
+            }
+            this.creatingSetSearchField.setHint(Component.literal("🔍 Cerca..."));
+            this.creatingSetSearchField.setResponder(text -> {
+                currentCreatingSetSearch = text;
+                creatingSetPage = 0;
+                refreshCreatingSetEnchantButtons(contentY + 40, startX, panelWidth);
+            });
+            this.addRenderableWidget(this.creatingSetSearchField);
 
             // [💾 Salva Set Futuro]
             String saveLabel = "💾 Salva (" + creatingSetEnchants.size() + "/12)";
@@ -725,6 +747,7 @@ public class LitnessOptimizerScreen extends Screen {
                     }
                     isCreatingSet = false;
                     currentCreatingSetName = "";
+                    currentCreatingSetSearch = "";
                     savedSetsPage = 0;
                     this.clearWidgets();
                     this.init();
@@ -738,6 +761,7 @@ public class LitnessOptimizerScreen extends Screen {
                 isCreatingSet = false;
                 editingSetId = null;
                 currentCreatingSetName = "";
+                currentCreatingSetSearch = "";
                 this.clearWidgets();
                 this.init();
             }).bounds(startX + panelWidth - 55, contentY, 55, 18).build());
@@ -753,6 +777,7 @@ public class LitnessOptimizerScreen extends Screen {
             isCreatingSet = true;
             editingSetId = null;
             currentCreatingSetName = "";
+            currentCreatingSetSearch = "";
             creatingSetItemIndex = selectedItemIndex;
             creatingSetEnchants.clear();
             creatingSetPage = 0;
@@ -795,14 +820,22 @@ public class LitnessOptimizerScreen extends Screen {
             this.removeWidget(b);
         }
         creatingSetEnchantButtons.clear();
+        creatingSetButtonDataList.clear();
 
         String itemKey = ITEM_KEYS[creatingSetItemIndex];
         ItemEntry targetItem = EnchantmentDatabase.getItem(itemKey);
         if (targetItem == null) targetItem = EnchantmentDatabase.getItem("sword");
 
         List<EnchantmentEntry> compList = new ArrayList<>();
+        String q = (currentCreatingSetSearch != null) ? currentCreatingSetSearch.trim().toLowerCase() : "";
         for (EnchantmentEntry ee : EnchantmentDatabase.getAllEnchantments()) {
             if (EnchantmentDatabase.isApplicable(ee, targetItem.id)) {
+                if (!q.isEmpty()) {
+                    boolean match = (ee.name != null && ee.name.toLowerCase().contains(q))
+                            || (ee.id != null && ee.id.toLowerCase().contains(q))
+                            || (ee.description != null && ee.description.toLowerCase().contains(q));
+                    if (!match) continue;
+                }
                 compList.add(ee);
             }
         }
@@ -827,25 +860,26 @@ public class LitnessOptimizerScreen extends Screen {
             int btnX = startX + (col * (colWidth + 10));
             int btnY = startY + (row * 20);
 
+            creatingSetButtonDataList.add(new CreatingSetButtonData(btnX, btnY, ee));
+
             boolean isSelected = creatingSetEnchants.contains(ee.id);
             String conflict = getConflictWithCollection(ee, creatingSetEnchants);
             boolean hasConflict = (conflict != null);
-            String maxRom = AnvilOptimizer.toRoman(ee.maxLevel);
-            boolean alreadyHasRoman = ee.name.toUpperCase().endsWith(" " + maxRom);
-            String baseName = alreadyHasRoman ? ee.name : (ee.name + " " + maxRom);
+            String baseName = AnvilOptimizer.formatEnchantName(ee.name, ee.maxLevel);
 
+            String pad = "     "; // Spazio per l'icona tematica 16x16
             String label;
             if (isSelected) {
                 if (hasConflict) {
-                    label = "§e⚠️ §a✔ §c§m" + baseName + "§r §c(" + conflict + ")";
+                    label = pad + "§e⚠️ §a✔ §c§m" + baseName + "§r §c(" + conflict + ")";
                 } else {
-                    label = "§a✔ §f" + baseName;
+                    label = pad + "§a✔ §f" + baseName;
                 }
             } else {
                 if (hasConflict) {
-                    label = "§e⚠️ §8[  ] §c§m" + baseName + "§r §8(vs " + conflict + ")";
+                    label = pad + "§e⚠️ §8[  ] §c§m" + baseName + "§r §8(vs " + conflict + ")";
                 } else {
-                    label = "§8[  ] §7" + baseName;
+                    label = pad + "§8[  ] §7" + baseName;
                 }
             }
             label = trimToWidth(label, colWidth - 8);
@@ -853,6 +887,9 @@ public class LitnessOptimizerScreen extends Screen {
             Button enchBtn = Button.builder(Component.literal(label), b -> {
                 if (this.creatingSetNameField != null) {
                     currentCreatingSetName = this.creatingSetNameField.getValue();
+                }
+                if (this.creatingSetSearchField != null) {
+                    currentCreatingSetSearch = this.creatingSetSearchField.getValue();
                 }
                 if (creatingSetEnchants.contains(ee.id)) {
                     creatingSetEnchants.remove(ee.id);
@@ -875,9 +912,9 @@ public class LitnessOptimizerScreen extends Screen {
                     }
                     if (!toRemove.isEmpty()) {
                         creatingSetEnchants.removeAll(toRemove);
-                        statusMessage = "§eSostituito con: " + ee.name + (alreadyHasRoman ? "" : " " + maxRom);
+                        statusMessage = "§eSostituito con: " + baseName;
                     } else {
-                        statusMessage = "Aggiunto al set futuro: " + ee.name + (alreadyHasRoman ? "" : " " + maxRom);
+                        statusMessage = "Aggiunto al set futuro: " + baseName;
                     }
                     creatingSetEnchants.add(ee.id);
                 }
@@ -894,6 +931,9 @@ public class LitnessOptimizerScreen extends Screen {
             if (this.creatingSetNameField != null) {
                 currentCreatingSetName = this.creatingSetNameField.getValue();
             }
+            if (this.creatingSetSearchField != null) {
+                currentCreatingSetSearch = this.creatingSetSearchField.getValue();
+            }
             if (creatingSetPage > 0) {
                 creatingSetPage--;
                 this.clearWidgets();
@@ -907,6 +947,9 @@ public class LitnessOptimizerScreen extends Screen {
         Button next = Button.builder(Component.literal("Successivi ▶"), b -> {
             if (this.creatingSetNameField != null) {
                 currentCreatingSetName = this.creatingSetNameField.getValue();
+            }
+            if (this.creatingSetSearchField != null) {
+                currentCreatingSetSearch = this.creatingSetSearchField.getValue();
             }
             if (creatingSetPage < totalPages - 1) {
                 creatingSetPage++;
@@ -1418,6 +1461,13 @@ public class LitnessOptimizerScreen extends Screen {
 
             super.extractRenderState(extractor, mouseX, mouseY, delta);
 
+            // Render icone tematiche visive all'interno dei pulsanti incantesimo durante la creazione set
+            if (currentTab == Tab.CALCULATOR && simView == SimView.SETS && isCreatingSet) {
+                for (CreatingSetButtonData data : creatingSetButtonDataList) {
+                    extractor.fakeItem(EnchantmentThematicIconHelper.getIcon(data.entry), data.x + 3, data.y + 1);
+                }
+            }
+
             // Render hover tooltips strictly AFTER widgets so they are never covered by buttons
             if (currentTab == Tab.CATALOG) {
                 if (hoveredCatalogEntry != null) {
@@ -1480,13 +1530,14 @@ public class LitnessOptimizerScreen extends Screen {
                 extractor.fill(cardX, y + 17, cardX + cardWidth, y + 18, 0x8000FF66);
             }
 
-            boolean alreadyHasRoman = e.name.toUpperCase().endsWith(" " + AnvilOptimizer.toRoman(e.maxLevel));
-            String maxRoman = (e.maxLevel > 1 && !alreadyHasRoman) ? " " + AnvilOptimizer.toRoman(e.maxLevel) : "";
-            String title = e.name + maxRoman;
-            extractor.text(this.font, title, cardX + 6, y + 5, isSearching ? 0xFF86EFAC : 0xFFFFFFFF, false);
+            // Icona tematica visiva per l'incantesimo
+            extractor.fakeItem(EnchantmentThematicIconHelper.getIcon(e), cardX + 5, y + 1);
+
+            String title = AnvilOptimizer.formatEnchantName(e.name, e.maxLevel > 1 ? e.maxLevel : 0);
+            extractor.text(this.font, title, cardX + 24, y + 5, isSearching ? 0xFF86EFAC : 0xFFFFFFFF, false);
 
             int titleW = this.font.width(title);
-            int badgeX = cardX + 12 + titleW;
+            int badgeX = cardX + 30 + titleW;
 
             String badge = isVanillaPlus ? "[VANILLA+]" : (isCustom ? "[" + (e.rarity != null ? e.rarity.toUpperCase() : "CUSTOM") + "]" : "[VANILLA]");
             int badgeColor = isVanillaPlus ? 0xFFF59E0B : (isCustom ? 0xFF34D399 : 0xFF818CF8);
@@ -1526,8 +1577,8 @@ public class LitnessOptimizerScreen extends Screen {
         boolean isCustom = "custom".equalsIgnoreCase(e.category);
         boolean isVanillaPlus = "vanilla_plus".equalsIgnoreCase(e.category);
         String catName = isVanillaPlus ? "Vanilla+ Speciale" : (isCustom ? "Custom Litness (" + (e.rarity != null ? e.rarity : "Speciale") + ")" : "Incantesimo Vanilla");
-        boolean alreadyHasRoman = e.name.toUpperCase().endsWith(" " + AnvilOptimizer.toRoman(e.maxLevel));
-        String title = (hasActiveConflict ? "§e⚠️ " : "") + e.name + (alreadyHasRoman ? "" : " (Livello Massimo: " + AnvilOptimizer.toRoman(e.maxLevel) + ")");
+        String formattedTitle = AnvilOptimizer.formatEnchantName(e.name, e.maxLevel > 1 ? e.maxLevel : 0);
+        String title = (hasActiveConflict ? "§e⚠️ " : "") + formattedTitle;
         String sub = catName + " • Costo: " + ((isCustom || isVanillaPlus) ? "+" + e.getAnvilCostNumeric() + " liv." : "Standard");
         String desc = (e.description != null && !e.description.isEmpty()) ? e.description : "Nessuna descrizione.";
 
@@ -1829,7 +1880,7 @@ public class LitnessOptimizerScreen extends Screen {
 
             boolean isCustom = "custom".equalsIgnoreCase(ee.category);
             boolean isVanillaPlus = "vanilla_plus".equalsIgnoreCase(ee.category);
-            String title = ee.name + " " + AnvilOptimizer.toRoman(ea.level);
+            String title = AnvilOptimizer.formatEnchantName(ee.name, ea.level);
             String catName = isVanillaPlus ? "Vanilla+ Speciale" : (isCustom ? "Custom Litness (" + (ee.rarity != null ? ee.rarity : "Speciale") + ")" : "Incantesimo Vanilla");
             String sub = catName + " • Costo: " + ((isCustom || isVanillaPlus) ? "+" + ee.getAnvilCostNumeric() + " liv." : "Standard");
             String penTxt = "Penalità lavoro libro: +" + slot.work + " liv.";
@@ -1918,7 +1969,7 @@ public class LitnessOptimizerScreen extends Screen {
             boolean isCustom = ee != null && "custom".equalsIgnoreCase(ee.category);
             boolean isVanillaPlus = ee != null && "vanilla_plus".equalsIgnoreCase(ee.category);
             String catLabel = isVanillaPlus ? "Vanilla+" : (isCustom ? ee.rarity : "Vanilla");
-            String nameText = "• " + (ee != null ? ee.name : ea.id) + " " + AnvilOptimizer.toRoman(ea.level) 
+            String nameText = "• " + AnvilOptimizer.formatEnchantName(ee != null ? ee.name : ea.id, ea.level) 
                     + " §7(" + catLabel + ")";
             int textCol = isVanillaPlus ? 0xFFFBBF24 : (isCustom ? 0xFF86EFAC : 0xFF93C5FD);
             extractor.text(this.font, nameText, tipX + 8, curY, textCol, false);
@@ -2014,6 +2065,12 @@ public class LitnessOptimizerScreen extends Screen {
                 }
             } else if (simView == SimView.SETS) {
                 if (isCreatingSet) {
+                    if (this.creatingSetNameField != null) {
+                        currentCreatingSetName = this.creatingSetNameField.getValue();
+                    }
+                    if (this.creatingSetSearchField != null) {
+                        currentCreatingSetSearch = this.creatingSetSearchField.getValue();
+                    }
                     int totalPages = Math.max(1, (int) Math.ceil((double) currentVisibleSelectionEnchants.size() / 10));
                     if (verticalAmount > 0 && creatingSetPage > 0) {
                         creatingSetPage--;

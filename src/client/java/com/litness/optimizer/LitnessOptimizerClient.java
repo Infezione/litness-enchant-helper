@@ -18,6 +18,7 @@ import net.minecraft.network.chat.Component;
 public class LitnessOptimizerClient implements ClientModInitializer {
     public static final String MOD_ID = "litnessoptimizer";
     public static KeyMapping openGuiKeyMapping;
+    private static int updateNotifyDelayTicks = -1;
 
     @Override
     public void onInitializeClient() {
@@ -34,21 +35,32 @@ public class LitnessOptimizerClient implements ClientModInitializer {
             KeyMapping.Category.MISC
         ));
 
-        // Listener per aprire la GUI quando viene premuto il tasto N
+        // Listener per aprire la GUI quando viene premuto il tasto N e gestione notifica aggiornamenti
         ClientTickEvents.END_CLIENT_TICK.register(client -> {
             while (openGuiKeyMapping.consumeClick()) {
                 if (client.player != null) {
                     client.setScreenAndShow(new LitnessOptimizerScreen(Component.translatable("gui.litnessoptimizer.title")));
                 }
             }
+
+            if (updateNotifyDelayTicks > 0) {
+                updateNotifyDelayTicks--;
+                if (updateNotifyDelayTicks == 0 && client.player != null) {
+                    UpdateChecker.notifyPlayerIfUpdateAvailable(client);
+                }
+            } else if (UpdateChecker.isUpdateAvailable() && !UpdateChecker.hasNotifiedChat() && client.player != null) {
+                // Se il controllo aggiornamenti è terminato successivamente, notifica appena possibile
+                UpdateChecker.notifyPlayerIfUpdateAvailable(client);
+            }
         });
 
-        // Messaggio all'ingresso nel server per ricordare il tasto [N] e notificare aggiornamenti
+        // Messaggio all'ingresso nel server per ricordare il tasto [N] e programmazione notifica aggiornamenti
         ClientPlayConnectionEvents.JOIN.register((handler, sender, client) -> {
             if (client.player != null) {
                 client.player.sendSystemMessage(Component.literal("§6⚡ §eLitness Enchant Helper §7attivo! Premi §a[N] §7per aprire il menu."));
-                UpdateChecker.notifyPlayerIfUpdateAvailable(client);
             }
+            UpdateChecker.checkForUpdatesAsync();
+            updateNotifyDelayTicks = 60; // 3 secondi dopo il join per superare il login/MOTD
         });
 
         // Pre-caricamento del database degli incantesimi

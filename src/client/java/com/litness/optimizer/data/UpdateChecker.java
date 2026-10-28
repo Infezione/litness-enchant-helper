@@ -40,10 +40,14 @@ public class UpdateChecker {
     private static String jarDownloadUrl = DEFAULT_RELEASE_URL;
     private static boolean hasNotifiedChat = false;
     private static boolean checkRunning = false;
+    private static long lastCheckTime = 0;
 
     public static void checkForUpdatesAsync() {
         if (checkRunning) return;
+        long now = System.currentTimeMillis();
+        if (lastCheckTime > 0 && (now - lastCheckTime < 180_000)) return;
         checkRunning = true;
+        lastCheckTime = now;
 
         CompletableFuture.runAsync(() -> {
             try {
@@ -126,6 +130,10 @@ public class UpdateChecker {
 
     public static boolean isUpdateAvailable() {
         return updateAvailable;
+    }
+
+    public static boolean hasNotifiedChat() {
+        return hasNotifiedChat;
     }
 
     public static String getLatestVersion() {

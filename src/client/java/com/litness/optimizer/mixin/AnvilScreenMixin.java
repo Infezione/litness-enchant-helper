@@ -166,7 +166,7 @@ public abstract class AnvilScreenMixin extends ItemCombinerScreen<AnvilMenu> {
                     for (int i = 0; i < showMax; i++) {
                         EnchantApplied ea = cachedSlot0Enchants.get(i);
                         EnchantmentEntry ee = EnchantmentDatabase.getEnchantment(ea.id);
-                        String eName = (ee != null ? ee.name : ea.id) + " " + AnvilOptimizer.toRoman(ea.level);
+                        String eName = AnvilOptimizer.formatEnchantName(ee != null ? ee.name : ea.id, ea.level);
                         extractor.text(this.font, "• " + trimToWidth(eName, sideW - 22), sideX + 10, curY, 0xFF818CF8, false);
                         curY += 9;
                     }

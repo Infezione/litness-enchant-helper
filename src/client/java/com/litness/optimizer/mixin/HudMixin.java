@@ -114,8 +114,7 @@ public class HudMixin {
         for (String enchId : set.enchantments) {
             EnchantmentEntry ee = EnchantmentDatabase.getEnchantment(enchId);
             String name = (ee != null ? ee.name : enchId);
-            String maxRom = (ee != null && ee.maxLevel > 1) ? " " + AnvilOptimizer.toRoman(ee.maxLevel) : "";
-            String base = name + maxRom;
+            String base = AnvilOptimizer.formatEnchantName(name, (ee != null && ee.maxLevel > 1) ? ee.maxLevel : 0);
 
             boolean isApplied = InventoryTracker.matchesApplied(enchId, applied);
             if (isApplied) {

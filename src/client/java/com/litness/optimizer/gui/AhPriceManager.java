@@ -53,8 +53,7 @@ public class AhPriceManager {
         }
 
         public String getDisplayNameWithLevel() {
-            String roman = AnvilOptimizer.toRoman(level);
-            return enchantName + (roman.isEmpty() ? "" : " " + roman);
+            return AnvilOptimizer.formatEnchantName(enchantName, level);
         }
 
         @Override
@@ -526,7 +525,7 @@ public class AhPriceManager {
             extractor.text(font, l.formattedPrice, sideX + 22, itemY + 4, isTop ? 0xFFFBBF24 : 0xFFE2E8F0, false);
 
             // Nome incanto abbreviato & venditore
-            String sub = l.enchantName + " " + AnvilOptimizer.toRoman(l.level);
+            String sub = AnvilOptimizer.formatEnchantName(l.enchantName, l.level);
             String subTrimmed = trimToWidth(font, sub, 55);
             extractor.text(font, subTrimmed, sideX + 78, itemY + 4, isTop ? 0xFFA5B4FC : 0xFF94A3B8, false);
 

@@ -508,7 +508,7 @@ public class LitnessTooltipHandler {
                 lines.set(targetLineIdx, Component.literal(icon + displayBase + maxTag + rarityBadge));
             } else {
                 targetLineIdx = Math.min(1, lines.size());
-                String displayName = ee.name + " " + AnvilOptimizer.toRoman(lvl);
+                String displayName = AnvilOptimizer.formatEnchantName(ee.name, lvl);
                 lines.add(targetLineIdx, Component.literal(icon + displayName + maxTag + rarityBadge));
             }
 
