@@ -106,11 +106,13 @@ public abstract class ContainerScreenMixin extends Screen {
     }
 
     private boolean isSupportedStorageContainer() {
-        AbstractContainerMenu m = ((AbstractContainerScreen<?>) (Object) this).getMenu();
+        AbstractContainerScreen<?> screen = (AbstractContainerScreen<?>) (Object) this;
+        AbstractContainerMenu m = screen.getMenu();
         if (m instanceof ChestMenu) return true; // Casse singole/doppie, Barili, Ender Chest, /ah, /enchgui
         if (m instanceof ShulkerBoxMenu) return true; // Scatole di Shulker aperte
         if (m instanceof DispenserMenu) return true; // Dispenser e Dropper
         if (m instanceof HopperMenu) return true; // Tramogge
+        if (com.litness.optimizer.gui.AhPriceManager.isAuctionHouse(screen)) return true;
         String titleStr = this.getTitle().getString();
         return isAuctionHouseOrEnchGui(titleStr);
     }
@@ -150,12 +152,7 @@ public abstract class ContainerScreenMixin extends Screen {
     }
 
     private static Set<String> getTargetEnchantments() {
-        // Evidenzia in /ah e /enchgui esclusivamente gli incantesimi selezionati nel Catalogo con [+ Cerca AH]
-        Set<String> searchEnchants = ActiveSessionManager.getSearchEnchants();
-        if (searchEnchants != null && !searchEnchants.isEmpty()) {
-            return new HashSet<>(searchEnchants);
-        }
-        return Collections.emptySet();
+        return com.litness.optimizer.gui.AhPriceManager.getEffectiveSearchEnchants();
     }
 
     private static boolean matchesAnyTargetEnchant(ItemStack stack, Set<String> targetEnchants) {
