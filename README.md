@@ -1,7 +1,7 @@
 # ⚡ Litness Enchant Helper
 
 [![DOWNLOAD MOD (.JAR)](https://img.shields.io/badge/⬇️%20SCARICA%20SUBITO%20LA%20MOD%20(.JAR)-VERSIONE%201.2.2-22c55e?style=for-the-badge&logo=curseforge&logoColor=white)](https://github.com/Infezione/litness-enchant-helper/releases/download/v1.2.2/LitnessEnchantHelper-1.2.2.jar)
-[![ULTIMI AGGIORNAMENTI](https://img.shields.io/badge/🔄%20ULTIMI%20AGGIORNAMENTI-VEDI%20LE%20NOVITÀ-6366f1?style=for-the-badge&logo=sparkles&logoColor=white)](#-ultimi-aggiornamenti)
+[![ULTIMI AGGIORNAMENTI](https://img.shields.io/badge/🔄%20ULTIMI%20AGGIORNAMENTI-VEDI%20LE%20NOVITÀ-6366f1?style=for-the-badge&logo=sparkles&logoColor=white)](#ultimi-aggiornamenti)
 
 ![Minecraft](https://img.shields.io/badge/Minecraft-26.2-brightgreen.svg)
 ![Fabric](https://img.shields.io/badge/ModLoader-Fabric-blue.svg)
@@ -13,7 +13,7 @@
 > ### ⌨️ Come aprire il menu in gioco:
 > Premi semplicemente il tasto **`N`** sulla tastiera in qualsiasi momento per aprire la schermata principale (Catalogo Incantesimi, Calcolatore, Guida Fusione e I Miei Set).  
 > *(Puoi anche personalizzare il tasto in `Opzioni -> Comandi -> Controlli` di Minecraft sotto la voce "Litness Optimizer").*  
-> 👉 *Per consultare tutte le nuove funzioni appena introdotte, clicca sul pulsante in alto o vai a [🔄 Ultimi Aggiornamenti](#-ultimi-aggiornamenti).*
+> 👉 *Per consultare tutte le nuove funzioni appena introdotte, clicca sul pulsante in alto o vai a [🔄 Ultimi Aggiornamenti](#ultimi-aggiornamenti).*
 
 **Litness Enchant Helper** è la mod Fabric client-side definitiva progettata per i giocatori del server Minecraft **Litness**.  
 Il suo obiettivo principale è eliminare ogni spreco di livelli di esperienza, evitare il famigerato errore di Minecraft vanilla *"Troppo Costoso! (>39 livelli)"* e guidare il giocatore passo dopo passo nella creazione dell'equipaggiamento perfetto, supportando sia tutti gli incantesimi Vanilla sia tutti gli incantesimi Custom esclusivi del server.
@@ -104,7 +104,9 @@ Sul server Litness, forgiare spade, archi, picconi o armature con 10–12 incant
 
 ---
 
-<a id="ultimi-aggiornamenti"></a>
+<a id="ultimi-aggiornamenti" name="ultimi-aggiornamenti"></a>
+<a id="-ultimi-aggiornamenti" name="-ultimi-aggiornamenti"></a>
+
 ## 🔄 Ultimi Aggiornamenti (v1.2.2)
 
 - 💰 **Correzione Completa Calcolo Prezzi & Tasse in `/ah`**: Risolto definitivamente l'errore di interpretazione dei prezzi con formattazione a virgola del server (es. `2,688$` e `2,400$` venivano erroneamente arrotondati a `3$` e `2$`). Ora qualsiasi cifra (anche con separatori delle migliaia `,` o `.`, e moltiplicatori) viene letta, calcolata e formattata con precisione matematica assoluta.
