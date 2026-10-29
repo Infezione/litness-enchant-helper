@@ -22,6 +22,7 @@ public class AnvilTooltipState {
     public static List<EnchantApplied> hoveredCurrentEnchants = null;
     public static boolean hoveredInfoModal = false;
     public static String hoveredGhostSlotItemName = null;
+    public static com.litness.optimizer.calculator.MaxabilityAnalyzer.MaxabilityResult hoveredMaxabilityResult = null;
     public static Solution cachedSolution = null;
     public static String cachedItemKey = "sword";
 
@@ -30,11 +31,14 @@ public class AnvilTooltipState {
         hoveredCurrentEnchants = null;
         hoveredInfoModal = false;
         hoveredGhostSlotItemName = null;
+        hoveredMaxabilityResult = null;
     }
 
     public static void renderTopLayer(GuiGraphicsExtractor extractor, AnvilScreen anvil, int mouseX, int mouseY) {
         if (hoveredInfoModal) {
             renderInfoModalTooltip(extractor, anvil);
+        } else if (hoveredMaxabilityResult != null) {
+            renderMaxabilityTooltip(extractor, anvil, hoveredMaxabilityResult, mouseX, mouseY);
         } else if (hoveredGhostSlotItemName != null) {
             renderGhostSlotTooltip(extractor, anvil, hoveredGhostSlotItemName, mouseX, mouseY);
         } else if (hoveredNextStep != null) {
@@ -50,9 +54,10 @@ public class AnvilTooltipState {
 
         List<Component> tipLines = new ArrayList<>();
         tipLines.add(Component.literal("§6💡 Slot 1 (Oggetto Base)"));
-        tipLines.add(Component.literal("§eTrascina qui " + ghostName + " per"));
-        tipLines.add(Component.literal("§eavviare il calcolo automatico."));
+        tipLines.add(Component.literal("§eTrascina qui l'item desiderato"));
+        tipLines.add(Component.literal("§eper iniziare la guida."));
         tipLines.add(Component.empty());
+        tipLines.add(Component.literal("§8• Suggerito: §f" + ghostName));
         tipLines.add(Component.literal("§8• L'assistente leggerà enchant e penalità"));
         tipLines.add(Component.literal("§8  e guiderà ogni singolo passo nell'incudine!"));
 
@@ -79,6 +84,59 @@ public class AnvilTooltipState {
         extractor.fill(tipX, tipY, tipX + tipW, tipY + tipH, 0xF80E111A);
         extractor.fill(tipX, tipY, tipX + tipW, tipY + 2, 0xFFF59E0B);
         extractor.outline(tipX, tipY, tipW, tipH, 0xFFD97706);
+
+        int textY = tipY + 6;
+        for (Component line : tipLines) {
+            if (line.getString().isEmpty()) {
+                textY += 4;
+            } else {
+                extractor.text(font, line, tipX + 8, textY, 0xFFFFFFFF, true);
+                textY += 11;
+            }
+        }
+    }
+
+    private static void renderMaxabilityTooltip(GuiGraphicsExtractor extractor, AnvilScreen anvil, com.litness.optimizer.calculator.MaxabilityAnalyzer.MaxabilityResult res, int mouseX, int mouseY) {
+        if (res == null) return;
+        Minecraft mc = Minecraft.getInstance();
+        Font font = mc.font;
+
+        List<Component> tipLines = new ArrayList<>();
+        tipLines.add(Component.literal("§6📊 ANALISI MAXABILITÀ OGGETTO"));
+        tipLines.add(Component.literal("§7Penalità attuale: §f+" + res.currentPenalty + " liv. §8(Lavori: " + res.currentWork + ")"));
+        tipLines.add(Component.literal("§7Incantesimi presenti: §f" + res.currentEnchants + "/12"));
+        tipLines.add(Component.empty());
+
+        for (String line : res.details) {
+            tipLines.add(Component.literal(line));
+        }
+
+        int maxW = 0;
+        for (Component c : tipLines) {
+            maxW = Math.max(maxW, font.width(c));
+        }
+        int tipW = maxW + 16;
+        int tipH = tipLines.size() * 11 + 10;
+
+        int tipX = mouseX + 12;
+        int tipY = mouseY - 12;
+
+        if (tipX + tipW > anvil.width - 4) {
+            tipX = mouseX - tipW - 8;
+        }
+        if (tipY + tipH > anvil.height - 4) {
+            tipY = anvil.height - tipH - 4;
+        }
+        if (tipY < 4) tipY = 4;
+        if (tipX < 4) tipX = 4;
+
+        int headerColor = res.isFullyMaxable ? 0xFF10B981 : (res.status == com.litness.optimizer.calculator.MaxabilityAnalyzer.Status.PARTIALLY_MAXABLE ? 0xFFF59E0B : 0xFFEF4444);
+        int borderColor = res.isFullyMaxable ? 0xFF059669 : (res.status == com.litness.optimizer.calculator.MaxabilityAnalyzer.Status.PARTIALLY_MAXABLE ? 0xFFD97706 : 0xFFDC2626);
+
+        extractor.outline(tipX - 1, tipY - 1, tipW + 2, tipH + 2, 0xFF000000);
+        extractor.fill(tipX, tipY, tipX + tipW, tipY + tipH, 0xF80E111A);
+        extractor.fill(tipX, tipY, tipX + tipW, tipY + 2, headerColor);
+        extractor.outline(tipX, tipY, tipW, tipH, borderColor);
 
         int textY = tipY + 6;
         for (Component line : tipLines) {

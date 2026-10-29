@@ -146,23 +146,33 @@ public abstract class AnvilScreenMixin extends ItemCombinerScreen<AnvilMenu> {
 
                 // Box interno per l'oggetto inserito
                 int wellY = sideY + 18;
-                int wellH = 30;
+                int wellH = 37;
                 extractor.fill(sideX + 6, wellY, sideX + sideW - 6, wellY + wellH, 0x60161826);
                 extractor.outline(sideX + 6, wellY, sideW - 12, wellH, 0xFF26293D);
 
                 // Icona 3D dell'oggetto
-                extractor.fakeItem(slot0, sideX + 9, wellY + 7);
+                extractor.fakeItem(slot0, sideX + 9, wellY + 10);
 
                 // Nome oggetto
                 String itemName = slot0.getHoverName().getString();
                 String trimmedName = trimToWidth(itemName, sideW - 44);
-                extractor.text(this.font, trimmedName, sideX + 30, wellY + 5, 0xFFFFFFFF, false);
+                extractor.text(this.font, trimmedName, sideX + 30, wellY + 4, 0xFFFFFFFF, false);
 
                 // Penalità di lavoro
                 if (penalty == 0) {
-                    extractor.text(this.font, "Penalità: 0 liv.", sideX + 30, wellY + 16, 0xFF34D399, false);
+                    extractor.text(this.font, "Penalità: 0 liv.", sideX + 30, wellY + 14, 0xFF34D399, false);
                 } else {
-                    extractor.text(this.font, "Penalità: +" + penalty + " liv.", sideX + 30, wellY + 16, 0xFFF59E0B, false);
+                    extractor.text(this.font, "Penalità: +" + penalty + " liv.", sideX + 30, wellY + 14, 0xFFF59E0B, false);
+                }
+
+                // Analisi Maxabilità (se il player ha già incantato senza guida)
+                com.litness.optimizer.calculator.MaxabilityAnalyzer.MaxabilityResult maxability =
+                        com.litness.optimizer.calculator.MaxabilityAnalyzer.analyze(slot0, cachedSlot0Enchants);
+                String maxBadge = trimToWidth(maxability.statusBadge, sideW - 36);
+                extractor.text(this.font, maxBadge, sideX + 30, wellY + 25, 0xFFFFFFFF, false);
+
+                if (mouseX >= sideX + 6 && mouseX <= sideX + sideW - 6 && mouseY >= wellY && mouseY <= wellY + wellH) {
+                    com.litness.optimizer.gui.AnvilTooltipState.hoveredMaxabilityResult = maxability;
                 }
 
                 int curY = wellY + wellH + 4;
@@ -184,7 +194,7 @@ public abstract class AnvilScreenMixin extends ItemCombinerScreen<AnvilMenu> {
                         curY += 9;
                     }
 
-                    if (mouseX >= sideX + 6 && mouseX <= sideX + sideW - 6 && mouseY >= wellY && mouseY < curY) {
+                    if (mouseX >= sideX + 6 && mouseX <= sideX + sideW - 6 && mouseY > wellY + wellH && mouseY < curY) {
                         com.litness.optimizer.gui.AnvilTooltipState.hoveredCurrentEnchants = cachedSlot0Enchants;
                     }
                 }
@@ -262,13 +272,26 @@ public abstract class AnvilScreenMixin extends ItemCombinerScreen<AnvilMenu> {
                         extractor.text(this.font, "Costo: " + nextStep.cost + " liv. XP", sideX + 10, moveY + 37, 0xFFFBBF24, false);
                     }
                 } else {
+                    maxability = com.litness.optimizer.calculator.MaxabilityAnalyzer.analyze(slot0, cachedSlot0Enchants);
                     extractor.fill(sideX + 6, moveY, sideX + sideW - 6, moveY + moveH, 0x301E293B);
                     extractor.outline(sideX + 6, moveY, sideW - 12, moveH, 0xFF334155);
 
-                    extractor.text(this.font, "ENCHANT HELPER", sideX + 10, moveY + 4, 0xFF94A3B8, false);
-                    extractor.text(this.font, "Nessun libro compatibile", sideX + 10, moveY + 16, 0xFFE2E8F0, false);
-                    extractor.text(this.font, "trovato nell'inventario.", sideX + 10, moveY + 26, 0xFF94A3B8, false);
-                    extractor.text(this.font, "Premi [N] per simulare!", sideX + 10, moveY + 37, 0xFF818CF8, false);
+                    if (maxability.status == com.litness.optimizer.calculator.MaxabilityAnalyzer.Status.SATURATED) {
+                        extractor.text(this.font, "§c⛔ TROPPO COSTOSO!", sideX + 10, moveY + 4, 0xFFEF4444, false);
+                        extractor.text(this.font, "Penalità +" + penalty + " troppo alta,", sideX + 10, moveY + 16, 0xFFE2E8F0, false);
+                        extractor.text(this.font, "l'incudine blocca i libri.", sideX + 10, moveY + 26, 0xFF94A3B8, false);
+                        extractor.text(this.font, "Premi [N] per spiegazione", sideX + 10, moveY + 37, 0xFF818CF8, false);
+                    } else if (maxability.status == com.litness.optimizer.calculator.MaxabilityAnalyzer.Status.PARTIALLY_MAXABLE) {
+                        extractor.text(this.font, "§e⚠️ ATTENZIONE PENALITÀ", sideX + 10, moveY + 4, 0xFFF59E0B, false);
+                        extractor.text(this.font, "Puoi aggiungere ancora", sideX + 10, moveY + 15, 0xFFE2E8F0, false);
+                        extractor.text(this.font, "fino a §a+" + maxability.maxAddable + " incanti §7con guida.", sideX + 10, moveY + 26, 0xFFFFFFFF, false);
+                        extractor.text(this.font, "Premi [N] per simulare!", sideX + 10, moveY + 37, 0xFF818CF8, false);
+                    } else {
+                        extractor.text(this.font, "ENCHANT HELPER", sideX + 10, moveY + 4, 0xFF94A3B8, false);
+                        extractor.text(this.font, "Nessun libro compatibile", sideX + 10, moveY + 16, 0xFFE2E8F0, false);
+                        extractor.text(this.font, "trovato nell'inventario.", sideX + 10, moveY + 26, 0xFF94A3B8, false);
+                        extractor.text(this.font, "Premi [N] per simulare!", sideX + 10, moveY + 37, 0xFF818CF8, false);
+                    }
                 }
             } else {
                 // Ghost Slot nello Slot 1 dell'Incudine reale
@@ -314,9 +337,9 @@ public abstract class AnvilScreenMixin extends ItemCombinerScreen<AnvilMenu> {
                 extractor.fakeItem(ghostItem, sideX + (sideW / 2) - 8, cardY + 10);
 
                 extractor.centeredText(this.font, "Slot 1 vuoto", sideX + (sideW / 2), cardY + 30, 0xFFFFFFFF);
-                extractor.centeredText(this.font, "Inserisci " + trimToWidth(ghostName, sideW - 24), sideX + (sideW / 2), cardY + 44, 0xFFFCD34D);
-                extractor.centeredText(this.font, "nello slot a sinistra", sideX + (sideW / 2), cardY + 55, 0xFF9CA3AF);
-                extractor.centeredText(this.font, "per avviare la guida.", sideX + (sideW / 2), cardY + 66, 0xFF9CA3AF);
+                extractor.centeredText(this.font, "Inserisci l'item", sideX + (sideW / 2), cardY + 44, 0xFFFCD34D);
+                extractor.centeredText(this.font, "desiderato per", sideX + (sideW / 2), cardY + 55, 0xFFFCD34D);
+                extractor.centeredText(this.font, "iniziare la guida.", sideX + (sideW / 2), cardY + 66, 0xFF9CA3AF);
 
                 int pillY = cardY + cardH - 18;
                 extractor.fill(sideX + 12, pillY, sideX + sideW - 12, pillY + 14, 0x406366F1);

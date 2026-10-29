@@ -1426,6 +1426,22 @@ public class LitnessOptimizerScreen extends Screen {
         }
 
         currentSolution = AnvilOptimizer.optimize(books, priorPenaltyWork, targetItem, Collections.emptyList());
+
+        if (currentSolution != null && currentSolution.peakCost > 39) {
+            int penaltyVal = PENALTY_STEPS[selectedPenaltyIndex];
+            statusMessage = "§c⚠️ Troppo Costoso (" + currentSolution.peakCost + "/39 liv.)! Con penalità +" + penaltyVal + " riduci gli incanti selezionati.";
+        } else if (this.anvilMenu != null) {
+            ItemStack slot0 = this.anvilMenu.getSlot(0).getItem();
+            if (!slot0.isEmpty()) {
+                com.litness.optimizer.calculator.MaxabilityAnalyzer.MaxabilityResult maxability =
+                        com.litness.optimizer.calculator.MaxabilityAnalyzer.analyze(slot0, extractAllEnchantmentsFromItem(slot0));
+                if (maxability.status == com.litness.optimizer.calculator.MaxabilityAnalyzer.Status.PARTIALLY_MAXABLE) {
+                    statusMessage = "§e⚠️ Penalità attuale (+" + maxability.currentPenalty + "): puoi aggiungere ancora fino a " + maxability.maxAddable + " incanti prima del blocco!";
+                } else if (maxability.status == com.litness.optimizer.calculator.MaxabilityAnalyzer.Status.SATURATED) {
+                    statusMessage = "§c⛔ Oggetto saturo (+" + maxability.currentPenalty + "): qualsiasi ulteriore incanto risulterà 'Troppo Costoso!'";
+                }
+            }
+        }
     }
 
     private List<EnchantApplied> extractAllEnchantmentsFromItem(ItemStack stack) {
