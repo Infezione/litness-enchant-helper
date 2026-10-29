@@ -306,8 +306,13 @@ public class EnchantmentDatabase {
     public static ItemEntry getItem(String id) {
         load();
         if (id == null) return null;
-        if ("pickaxe".equalsIgnoreCase(id)) id = "pick";
-        return itemsById.get(id);
+        String clean = id.trim().toLowerCase();
+        if ("pickaxe".equals(clean)) clean = "pick";
+        if ("crossbow".equals(clean)) clean = "xbow";
+        if ("fishing_rod".equals(clean)) clean = "rod";
+        if ("chestplate".equals(clean)) clean = "chest";
+        if ("leggings".equals(clean)) clean = "legs";
+        return itemsById.get(clean);
     }
 
     public static boolean isApplicable(EnchantmentEntry ee, String itemId) {
@@ -315,15 +320,24 @@ public class EnchantmentDatabase {
         if (ee.applicableTo == null || ee.applicableTo.isEmpty()) return true;
         String target = itemId.trim().toLowerCase();
         if (target.equals("pickaxe")) target = "pick";
+        if (target.equals("crossbow")) target = "xbow";
+        if (target.equals("fishing_rod")) target = "rod";
+        if (target.equals("chestplate")) target = "chest";
+        if (target.equals("leggings")) target = "legs";
+
         for (String app : ee.applicableTo) {
             if (app == null) continue;
             String cleanApp = app.trim().toLowerCase();
+            if (cleanApp.equals("pickaxe")) cleanApp = "pick";
+            if (cleanApp.equals("crossbow")) cleanApp = "xbow";
+            if (cleanApp.equals("fishing_rod")) cleanApp = "rod";
+            if (cleanApp.equals("chestplate")) cleanApp = "chest";
+            if (cleanApp.equals("leggings")) cleanApp = "legs";
+
             if (cleanApp.equals(target)) return true;
-            if (target.equals("pick") && (cleanApp.equals("pick") || cleanApp.equals("pickaxe") || cleanApp.equals("tools"))) return true;
-            if (target.equals("chest") && (cleanApp.equals("chestplate") || cleanApp.equals("chest"))) return true;
-            if (target.equals("legs") && (cleanApp.equals("leggings") || cleanApp.equals("legs"))) return true;
-            if ((target.equals("sword") || target.equals("axe")) && cleanApp.equals("weapons")) return true;
-            if ((target.equals("helmet") || target.equals("chest") || target.equals("legs") || target.equals("boots")) && cleanApp.equals("armor")) return true;
+            if ((target.equals("pick") || target.equals("shovel") || target.equals("axe") || target.equals("hoe")) && cleanApp.equals("tools")) return true;
+            if ((target.equals("sword") || target.equals("axe") || target.equals("mace") || target.equals("trident")) && cleanApp.equals("weapons")) return true;
+            if ((target.equals("helmet") || target.equals("chest") || target.equals("legs") || target.equals("boots") || target.equals("elytra")) && cleanApp.equals("armor")) return true;
         }
         return false;
     }

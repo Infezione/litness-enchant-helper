@@ -20,19 +20,67 @@ public class AnvilTooltipState {
 
     public static MergeStep hoveredNextStep = null;
     public static List<EnchantApplied> hoveredCurrentEnchants = null;
+    public static boolean hoveredInfoModal = false;
     public static Solution cachedSolution = null;
     public static String cachedItemKey = "sword";
 
     public static void clearHover() {
         hoveredNextStep = null;
         hoveredCurrentEnchants = null;
+        hoveredInfoModal = false;
     }
 
     public static void renderTopLayer(GuiGraphicsExtractor extractor, AnvilScreen anvil, int mouseX, int mouseY) {
-        if (hoveredNextStep != null) {
+        if (hoveredInfoModal) {
+            renderInfoModalTooltip(extractor, anvil);
+        } else if (hoveredNextStep != null) {
             renderStepTooltip(extractor, anvil, hoveredNextStep);
         } else if (hoveredCurrentEnchants != null && !hoveredCurrentEnchants.isEmpty()) {
             renderCurrentEnchantsTooltip(extractor, anvil, hoveredCurrentEnchants);
+        }
+    }
+
+    private static void renderInfoModalTooltip(GuiGraphicsExtractor extractor, AnvilScreen anvil) {
+        Minecraft mc = Minecraft.getInstance();
+        Font font = mc.font;
+
+        List<Component> tipLines = new ArrayList<>();
+        tipLines.add(Component.literal("§6⚡ ASSISTENTE DINAMICO (GPS LIVE)"));
+        tipLines.add(Component.literal("§7Calcola la mossa migliore basandosi sui libri attualmente"));
+        tipLines.add(Component.literal("§7presenti nel tuo inventario e sulla penalità effettiva"));
+        tipLines.add(Component.literal("§7dell'oggetto nello slot 1."));
+        tipLines.add(Component.empty());
+        tipLines.add(Component.literal("§e❓ Perché i passi possono differire dalla Guida [N]?"));
+        tipLines.add(Component.literal("§8• La Guida [N] mostra l'albero matematico a tavolino"));
+        tipLines.add(Component.literal("§8  (tutti i libri a penalità 0)."));
+        tipLines.add(Component.literal("§8• Questo assistente si adatta dinamicamente:"));
+        tipLines.add(Component.literal("§8  se ti mancano libri o usi libri con penalità pregresse,"));
+        tipLines.add(Component.literal("§8  ricalcola il percorso migliore in tempo reale"));
+        tipLines.add(Component.literal("§8  per evitare 'Troppo Costoso!'."));
+
+        int maxW = 0;
+        for (Component c : tipLines) {
+            maxW = Math.max(maxW, font.width(c));
+        }
+        int tipW = maxW + 16;
+        int tipH = tipLines.size() * 11 + 10;
+
+        int tipX = anvil.width / 2 - tipW / 2;
+        int tipY = anvil.height / 2 - tipH / 2;
+
+        extractor.outline(tipX - 1, tipY - 1, tipW + 2, tipH + 2, 0xFF000000);
+        extractor.fill(tipX, tipY, tipX + tipW, tipY + tipH, 0xF80E111A);
+        extractor.fill(tipX, tipY, tipX + tipW, tipY + 2, 0xFFF59E0B);
+        extractor.outline(tipX, tipY, tipW, tipH, 0xFFD97706);
+
+        int textY = tipY + 6;
+        for (Component line : tipLines) {
+            if (line.getString().isEmpty()) {
+                textY += 4;
+            } else {
+                extractor.text(font, line, tipX + 8, textY, 0xFFFFFFFF, true);
+                textY += 11;
+            }
         }
     }
 

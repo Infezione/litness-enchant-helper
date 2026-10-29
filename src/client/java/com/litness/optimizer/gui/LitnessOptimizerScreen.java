@@ -68,13 +68,42 @@ public class LitnessOptimizerScreen extends Screen {
     private final List<Button> catalogRowButtons = new ArrayList<>();
     private Button btnClearAhSearch = null;
 
-    // Stato calcolatore & simulatore: Spada, Piccone e Armature (Elmo, Corazza, Gambali, Stivali)
+    // Stato calcolatore & simulatore: Spada, Piccone, Armature, Archi e Attrezzi
     private static final String[] ITEM_KEYS = {
-        "sword", "pick", "helmet", "chest", "legs", "boots"
+        "sword", "axe", "mace", "trident", "bow", "xbow", "pick", "shovel", "hoe", "rod", "helmet", "chest", "legs", "boots", "elytra"
     };
     private static final String[] ITEM_NAMES = {
-        "Spada", "Piccone", "Elmo", "Corazza", "Gambali", "Stivali"
+        "Spada", "Ascia", "Mazza", "Tridente", "Arco", "Balestra", "Piccone", "Pala", "Zappa", "Canna da pesca", "Elmo", "Corazza", "Gambali", "Stivali", "Elitre"
     };
+    private static final String[] ITEM_BUTTON_LABELS = {
+        "   Spada", "   Ascia", "   Mazza", "   Tridente", "   Arco", "   Balestra", "   Piccone", "   Pala", "   Zappa", "   Canna", "   Elmo", "   Corazza", "   Gambali", "   Stivali", "   Elitre"
+    };
+    private static final int[] ITEM_BUTTON_WIDTHS = {
+        54, 52, 54, 66, 54, 68, 64, 50, 52, 56, 52, 66, 66, 58, 54
+    };
+
+    private static final String[] CATEGORY_NAMES = {
+        "   Armi", "   Archi", "   Armature", "   Attrezzi"
+    };
+    private static final int[] CATEGORY_BUTTON_WIDTHS = {
+        54, 54, 70, 66
+    };
+    private static final int[][] CATEGORY_ITEM_INDICES = {
+        {0, 1, 2, 3},          // Armi: Spada, Ascia, Mazza, Tridente
+        {4, 5},                // Archi: Arco, Balestra
+        {10, 11, 12, 13, 14},  // Armature: Elmo, Corazza, Gambali, Stivali, Elitre
+        {6, 7, 8, 9}           // Attrezzi: Piccone, Pala, Zappa, Canna
+    };
+
+    public static int getCategoryForItem(int itemIndex) {
+        for (int c = 0; c < CATEGORY_ITEM_INDICES.length; c++) {
+            for (int idx : CATEGORY_ITEM_INDICES[c]) {
+                if (idx == itemIndex) return c;
+            }
+        }
+        return 0;
+    }
+
     private static final int[] PENALTY_STEPS = {0, 1, 3, 7, 15, 31};
 
     private int selectedItemIndex = 0;
@@ -93,6 +122,19 @@ public class LitnessOptimizerScreen extends Screen {
     private final List<Button> creatingSetEnchantButtons = new ArrayList<>();
     private static record CreatingSetButtonData(int x, int y, EnchantmentEntry entry) {}
     private final List<CreatingSetButtonData> creatingSetButtonDataList = new ArrayList<>();
+
+    private static record ItemIconData(int x, int y, ItemStack item) {}
+    private final List<ItemIconData> activeItemIcons = new ArrayList<>();
+
+    private ItemStack getItemStackForCategory(int catIndex) {
+        switch (catIndex) {
+            case 0: return new ItemStack(Items.DIAMOND_SWORD);
+            case 1: return new ItemStack(Items.BOW);
+            case 2: return new ItemStack(Items.DIAMOND_CHESTPLATE);
+            case 3: return new ItemStack(Items.DIAMOND_PICKAXE);
+            default: return new ItemStack(Items.ENCHANTED_BOOK);
+        }
+    }
 
     // Selezione simulatore (ID incantesimi attivi)
     private final Set<String> simulatorSelectedEnchants = new LinkedHashSet<>();
@@ -123,6 +165,7 @@ public class LitnessOptimizerScreen extends Screen {
     private Button btnCopyGuide;
     private EnchantmentEntry hoveredCatalogEntry = null;
     private HoveredBookSlot hoveredGuideSlot = null;
+    private boolean hoveredGuideInfo = false;
     private EnchantmentEntry hoveredSelectionEntry = null;
     private final List<EnchantmentEntry> currentVisibleSelectionEnchants = new ArrayList<>();
 
@@ -169,16 +212,34 @@ public class LitnessOptimizerScreen extends Screen {
                 String rawStr = slot0.getItem().toString().toLowerCase();
                 if (descId.contains("sword") || rawStr.contains("sword")) {
                     this.selectedItemIndex = 0;
-                } else if (descId.contains("pickaxe") || descId.contains("pick") || rawStr.contains("pickaxe") || rawStr.contains("pick")) {
+                } else if (descId.contains("axe") || rawStr.contains("axe")) {
                     this.selectedItemIndex = 1;
-                } else if (descId.contains("helmet") || rawStr.contains("helmet")) {
+                } else if (descId.contains("mace") || rawStr.contains("mace")) {
                     this.selectedItemIndex = 2;
-                } else if (descId.contains("chestplate") || descId.contains("chest") || rawStr.contains("chestplate") || rawStr.contains("chest")) {
+                } else if (descId.contains("trident") || rawStr.contains("trident")) {
                     this.selectedItemIndex = 3;
-                } else if (descId.contains("leggings") || descId.contains("legs") || rawStr.contains("leggings") || rawStr.contains("legs")) {
+                } else if ((descId.contains("bow") && !descId.contains("crossbow")) || (rawStr.contains("bow") && !rawStr.contains("crossbow"))) {
                     this.selectedItemIndex = 4;
-                } else if (descId.contains("boots") || rawStr.contains("boots")) {
+                } else if (descId.contains("crossbow") || rawStr.contains("crossbow") || descId.contains("xbow") || rawStr.contains("xbow")) {
                     this.selectedItemIndex = 5;
+                } else if (descId.contains("pickaxe") || descId.contains("pick") || rawStr.contains("pickaxe") || rawStr.contains("pick")) {
+                    this.selectedItemIndex = 6;
+                } else if (descId.contains("shovel") || rawStr.contains("shovel") || descId.contains("spade") || rawStr.contains("spade")) {
+                    this.selectedItemIndex = 7;
+                } else if (descId.contains("hoe") || rawStr.contains("hoe")) {
+                    this.selectedItemIndex = 8;
+                } else if (descId.contains("rod") || descId.contains("fishing") || rawStr.contains("fishing")) {
+                    this.selectedItemIndex = 9;
+                } else if (descId.contains("helmet") || rawStr.contains("helmet")) {
+                    this.selectedItemIndex = 10;
+                } else if (descId.contains("chestplate") || descId.contains("chest") || rawStr.contains("chestplate") || rawStr.contains("chest")) {
+                    this.selectedItemIndex = 11;
+                } else if (descId.contains("leggings") || descId.contains("legs") || rawStr.contains("leggings") || rawStr.contains("legs")) {
+                    this.selectedItemIndex = 12;
+                } else if (descId.contains("boots") || rawStr.contains("boots")) {
+                    this.selectedItemIndex = 13;
+                } else if (descId.contains("elytra") || rawStr.contains("elytra")) {
+                    this.selectedItemIndex = 14;
                 }
 
                 int penalty = slot0.getOrDefault(DataComponents.REPAIR_COST, 0);
@@ -196,6 +257,12 @@ public class LitnessOptimizerScreen extends Screen {
         if (activeEnchants != null && !activeEnchants.isEmpty()) {
             this.simulatorSelectedEnchants.addAll(activeEnchants);
         }
+    }
+
+    @Override
+    protected void clearWidgets() {
+        super.clearWidgets();
+        activeItemIcons.clear();
     }
 
     @Override
@@ -239,6 +306,7 @@ public class LitnessOptimizerScreen extends Screen {
     }
 
     private void initCatalogWidgets(int topY) {
+        activeItemIcons.clear();
         int filterY = topY + 23;
 
         // RIGA 1: Filtri Categoria + Campo Ricerca
@@ -283,24 +351,26 @@ public class LitnessOptimizerScreen extends Screen {
         });
         this.addRenderableWidget(this.searchField);
 
-        // Tasto Rapido Azzera Ricerche AH
+        // Tasto Rapido Azzera Ricerche
         int ahCount = ActiveSessionManager.getSearchEnchants().size();
-        String ahBtnLabel = ahCount > 0 ? "§c✕ Azzera AH (" + ahCount + ")" : "§8Cerca AH: Nessuno";
+        String ahBtnLabel = ahCount > 0 ? "§c✕ Azzera Cerca (" + ahCount + ")" : "§8Cerca: Nessuno";
 
         this.btnClearAhSearch = Button.builder(Component.literal(ahBtnLabel), b -> {
             ActiveSessionManager.clearSearchEnchants();
             refreshCatalogButtons();
             updateClearButtonState();
-            statusMessage = "§aRicerche e filtri in /ah azzerati!";
+            statusMessage = "§aRicerche e filtri azzerati (/ah e casse)!";
         }).bounds(catStartX + 402, filterY, 138, 18).tooltip(net.minecraft.client.gui.components.Tooltip.create(
-            Component.literal("Azzera tutti gli incantesimi selezionati con [+ Cerca AH] per l'evidenziazione in asta")
+            Component.literal(ahCount > 0
+                ? "§c✕ Clicca per azzerare i " + ahCount + " incantesimi in ricerca\n§7Rimuove l'evidenziazione attiva in /ah e nelle casse/shulker."
+                : "§7Nessun incantesimo attualmente in ricerca.\n§8Usa [+ Cerca] nel catalogo per evidenziare libri in /ah e nelle casse.")
         )).build();
         this.btnClearAhSearch.active = (ahCount > 0);
         this.addRenderableWidget(this.btnClearAhSearch);
 
         // RIGA 2: Filtri per Tipo di Oggetto
         int itemFilterY = filterY + 21;
-        int curItemX = this.width / 2 - 265;
+        int curItemX = this.width / 2 - 232;
 
         // [Tutti]
         this.addRenderableWidget(Button.builder(Component.literal("ALL".equals(itemFilter) ? "§aTutti" : "Tutti"), b -> {
@@ -311,67 +381,74 @@ public class LitnessOptimizerScreen extends Screen {
         }).bounds(curItemX, itemFilterY, 42, 18).build());
         curItemX += 45;
 
-        // [⚔ Spada]
-        this.addRenderableWidget(Button.builder(Component.literal("sword".equals(itemFilter) ? "§a⚔ Spada" : "⚔ Spada"), b -> {
+        // [Spada]
+        this.addRenderableWidget(Button.builder(Component.literal("sword".equals(itemFilter) ? "§a   Spada" : "   Spada"), b -> {
             itemFilter = "sword";
             catalogPage = 0;
             updateSearch();
             rebuildWidgets();
-        }).bounds(curItemX, itemFilterY, 62, 18).build());
-        curItemX += 65;
+        }).bounds(curItemX, itemFilterY, 54, 18).build());
+        activeItemIcons.add(new ItemIconData(curItemX + 2, itemFilterY + 1, new ItemStack(Items.DIAMOND_SWORD)));
+        curItemX += 56;
 
-        // [⛏ Piccone]
-        this.addRenderableWidget(Button.builder(Component.literal("pick".equals(itemFilter) ? "§a⛏ Piccone" : "⛏ Piccone"), b -> {
+        // [Piccone]
+        this.addRenderableWidget(Button.builder(Component.literal("pick".equals(itemFilter) ? "§a   Piccone" : "   Piccone"), b -> {
             itemFilter = "pick";
             catalogPage = 0;
             updateSearch();
             rebuildWidgets();
-        }).bounds(curItemX, itemFilterY, 68, 18).build());
-        curItemX += 71;
+        }).bounds(curItemX, itemFilterY, 64, 18).build());
+        activeItemIcons.add(new ItemIconData(curItemX + 2, itemFilterY + 1, new ItemStack(Items.DIAMOND_PICKAXE)));
+        curItemX += 66;
 
-        // [🛡 Armature]
-        this.addRenderableWidget(Button.builder(Component.literal("armor".equals(itemFilter) ? "§a🛡 Armature" : "🛡 Armature"), b -> {
+        // [Armature]
+        this.addRenderableWidget(Button.builder(Component.literal("armor".equals(itemFilter) ? "§a   Armature" : "   Armature"), b -> {
             itemFilter = "armor";
             catalogPage = 0;
             updateSearch();
             rebuildWidgets();
-        }).bounds(curItemX, itemFilterY, 74, 18).build());
-        curItemX += 77;
+        }).bounds(curItemX, itemFilterY, 70, 18).build());
+        activeItemIcons.add(new ItemIconData(curItemX + 2, itemFilterY + 1, new ItemStack(Items.DIAMOND_CHESTPLATE)));
+        curItemX += 72;
 
-        // [🏹 Arco]
-        this.addRenderableWidget(Button.builder(Component.literal("bow".equals(itemFilter) ? "§a🏹 Arco" : "🏹 Arco"), b -> {
+        // [Arco]
+        this.addRenderableWidget(Button.builder(Component.literal("bow".equals(itemFilter) ? "§a   Arco" : "   Arco"), b -> {
             itemFilter = "bow";
             catalogPage = 0;
             updateSearch();
             rebuildWidgets();
-        }).bounds(curItemX, itemFilterY, 58, 18).build());
-        curItemX += 61;
+        }).bounds(curItemX, itemFilterY, 54, 18).build());
+        activeItemIcons.add(new ItemIconData(curItemX + 2, itemFilterY + 1, new ItemStack(Items.BOW)));
+        curItemX += 56;
 
-        // [🪓 Ascia]
-        this.addRenderableWidget(Button.builder(Component.literal("axe".equals(itemFilter) ? "§a🪓 Ascia" : "🪓 Ascia"), b -> {
+        // [Ascia]
+        this.addRenderableWidget(Button.builder(Component.literal("axe".equals(itemFilter) ? "§a   Ascia" : "   Ascia"), b -> {
             itemFilter = "axe";
             catalogPage = 0;
             updateSearch();
             rebuildWidgets();
-        }).bounds(curItemX, itemFilterY, 60, 18).build());
-        curItemX += 63;
+        }).bounds(curItemX, itemFilterY, 54, 18).build());
+        activeItemIcons.add(new ItemIconData(curItemX + 2, itemFilterY + 1, new ItemStack(Items.DIAMOND_AXE)));
+        curItemX += 56;
 
-        // [🌾 Zappa]
-        this.addRenderableWidget(Button.builder(Component.literal("hoe".equals(itemFilter) ? "§a🌾 Zappa" : "🌾 Zappa"), b -> {
+        // [Zappa]
+        this.addRenderableWidget(Button.builder(Component.literal("hoe".equals(itemFilter) ? "§a   Zappa" : "   Zappa"), b -> {
             itemFilter = "hoe";
             catalogPage = 0;
             updateSearch();
             rebuildWidgets();
-        }).bounds(curItemX, itemFilterY, 60, 18).build());
-        curItemX += 63;
+        }).bounds(curItemX, itemFilterY, 54, 18).build());
+        activeItemIcons.add(new ItemIconData(curItemX + 2, itemFilterY + 1, new ItemStack(Items.DIAMOND_HOE)));
+        curItemX += 56;
 
-        // [🔧 Altri]
-        this.addRenderableWidget(Button.builder(Component.literal("other".equals(itemFilter) ? "§a🔧 Altri" : "🔧 Altri"), b -> {
+        // [Altri]
+        this.addRenderableWidget(Button.builder(Component.literal("other".equals(itemFilter) ? "§a   Altri" : "   Altri"), b -> {
             itemFilter = "other";
             catalogPage = 0;
             updateSearch();
             rebuildWidgets();
-        }).bounds(curItemX, itemFilterY, 57, 18).build());
+        }).bounds(curItemX, itemFilterY, 54, 18).build());
+        activeItemIcons.add(new ItemIconData(curItemX + 2, itemFilterY + 1, new ItemStack(Items.ENCHANTED_BOOK)));
 
         // RIGA 3: Barra paginazione
         int navY = itemFilterY + 21;
@@ -425,22 +502,22 @@ public class LitnessOptimizerScreen extends Screen {
             int btnY = y + 1;
 
             boolean isSearching = ActiveSessionManager.isSearchEnchant(ee.id);
-            String label = isSearching ? "§a✔ In AH" : "§7+ Cerca AH";
+            String label = isSearching ? "§a✔ In Cerca" : "§7+ Cerca";
 
             Button searchBtn = Button.builder(Component.literal(label), b -> {
                 ActiveSessionManager.toggleSearchEnchant(ee.id);
                 boolean nowSearching = ActiveSessionManager.isSearchEnchant(ee.id);
                 if (nowSearching) {
-                    statusMessage = "§aEvidenziazione in /ah attivata per: " + ee.name;
+                    statusMessage = "§aRicerca attivata per: " + ee.name + " (in /ah e casse)";
                 } else {
-                    statusMessage = "§eEvidenziazione rimossa per: " + ee.name;
+                    statusMessage = "§eRicerca rimossa per: " + ee.name;
                 }
                 refreshCatalogButtons();
                 updateClearButtonState();
             }).bounds(btnX, btnY, btnW, btnH).tooltip(net.minecraft.client.gui.components.Tooltip.create(
                 Component.literal(isSearching
-                    ? "§a✔ Già attivo in /ah. Clicca per disattivare."
-                    : "§e🔍 Clicca per trovare subito questo incantesimo in evidenza in /ah e /enchgui")
+                    ? "§a✔ Ricerca attiva!\n§7Questo incantesimo è evidenziato in:\n§6• /ah: §7prezzi live, offerte migliori e tasse\n§b• Casse: §7casse, barili, shulker ed ender chest\n\n§c➡ Clicca per disattivare la ricerca."
+                    : "§e🔍 Clicca per cercare ed evidenziare!\n§7Evidenzia automaticamente questo libro in:\n§6• /ah: §7prezzi live, offerte migliori e tasse\n§b• Casse: §7casse normali/doppie, barili, shulker ed ender chest\n\n§a➡ Clicca per attivare la ricerca.")
             )).build();
 
             catalogRowButtons.add(searchBtn);
@@ -451,13 +528,13 @@ public class LitnessOptimizerScreen extends Screen {
     private void updateClearButtonState() {
         if (btnClearAhSearch == null) return;
         int count = ActiveSessionManager.getSearchEnchants().size();
-        String lbl = count > 0 ? "§c✕ Azzera AH (" + count + ")" : "§8Cerca AH: Nessuno";
+        String lbl = count > 0 ? "§c✕ Azzera Cerca (" + count + ")" : "§8Cerca: Nessuno";
         btnClearAhSearch.setMessage(Component.literal(lbl));
         btnClearAhSearch.active = (count > 0);
         btnClearAhSearch.setTooltip(net.minecraft.client.gui.components.Tooltip.create(
             Component.literal(count > 0
-                ? "Clicca per azzerare i " + count + " incantesimi selezionati per la ricerca in /ah"
-                : "Nessun incantesimo attualmente selezionato per la ricerca in /ah")
+                ? "§c✕ Clicca per azzerare i " + count + " incantesimi in ricerca\n§7Rimuove l'evidenziazione attiva in /ah e nelle casse/shulker."
+                : "§7Nessun incantesimo attualmente in ricerca.\n§8Usa [+ Cerca] nel catalogo per evidenziare libri in /ah e nelle casse.")
         ));
     }
 
@@ -466,45 +543,44 @@ public class LitnessOptimizerScreen extends Screen {
             this.removeWidget(b);
         }
         catalogRowButtons.clear();
+        activeItemIcons.clear();
 
-        int panelWidth = Math.min(550, this.width - 20);
+        int panelWidth = Math.min(560, this.width - 20);
         int startX = (this.width - panelWidth) / 2;
 
         int row1Y = topY + 22; // Y = 29
         int curX = startX;
 
-        // RIGA 1: SELEZIONE RAPIDA OGGETTO (Spada, Piccone, Armature: Elmo, Corazza, Gambali, Stivali)
+        // RIGA 1: SELEZIONE RAPIDA CATEGORIA & OGGETTO (Armi, Archi, Armature, Attrezzi)
         int activeItem = isCreatingSet ? creatingSetItemIndex : selectedItemIndex;
+        int activeCategory = getCategoryForItem(activeItem);
 
-        // [⚔ Spada]
-        this.addRenderableWidget(Button.builder(Component.literal(activeItem == 0 ? "§a⚔ Spada" : "⚔ Spada"), b -> handleItemSelection(0))
-                .bounds(curX, row1Y, 54, 18).build());
-        curX += 56;
+        // 1. Tasti Categoria (a sinistra)
+        for (int c = 0; c < CATEGORY_NAMES.length; c++) {
+            final int catIdx = c;
+            int catBtnW = CATEGORY_BUTTON_WIDTHS[c];
+            boolean isCatActive = (activeCategory == catIdx);
+            String catLabel = isCatActive ? "§a" + CATEGORY_NAMES[c] : CATEGORY_NAMES[c];
+            this.addRenderableWidget(Button.builder(Component.literal(catLabel), b -> {
+                int firstItemInCat = CATEGORY_ITEM_INDICES[catIdx][0];
+                handleItemSelection(firstItemInCat);
+            }).bounds(curX, row1Y, catBtnW, 18).build());
+            activeItemIcons.add(new ItemIconData(curX + 2, row1Y + 1, getItemStackForCategory(catIdx)));
+            curX += catBtnW + 2;
+        }
 
-        // [⛏ Piccone]
-        this.addRenderableWidget(Button.builder(Component.literal(activeItem == 1 ? "§a⛏ Piccone" : "⛏ Piccone"), b -> handleItemSelection(1))
-                .bounds(curX, row1Y, 64, 18).build());
-        curX += 66;
+        curX += 4; // Separatore visivo
 
-        // [🪖 Elmo]
-        this.addRenderableWidget(Button.builder(Component.literal(activeItem == 2 ? "§a🪖 Elmo" : "🪖 Elmo"), b -> handleItemSelection(2))
-                .bounds(curX, row1Y, 52, 18).build());
-        curX += 54;
-
-        // [👕 Corazza]
-        this.addRenderableWidget(Button.builder(Component.literal(activeItem == 3 ? "§a👕 Corazza" : "👕 Corazza"), b -> handleItemSelection(3))
-                .bounds(curX, row1Y, 64, 18).build());
-        curX += 66;
-
-        // [👖 Gambali]
-        this.addRenderableWidget(Button.builder(Component.literal(activeItem == 4 ? "§a👖 Gambali" : "👖 Gambali"), b -> handleItemSelection(4))
-                .bounds(curX, row1Y, 64, 18).build());
-        curX += 66;
-
-        // [👢 Stivali]
-        this.addRenderableWidget(Button.builder(Component.literal(activeItem == 5 ? "§a👢 Stivali" : "👢 Stivali"), b -> handleItemSelection(5))
-                .bounds(curX, row1Y, 60, 18).build());
-        curX += 62;
+        // 2. Tasti Oggetti della categoria attiva (a destra)
+        for (int itemIdx : CATEGORY_ITEM_INDICES[activeCategory]) {
+            boolean isItemActive = (activeItem == itemIdx);
+            String lbl = isItemActive ? "§a" + ITEM_BUTTON_LABELS[itemIdx] : ITEM_BUTTON_LABELS[itemIdx];
+            int btnW = ITEM_BUTTON_WIDTHS[itemIdx];
+            this.addRenderableWidget(Button.builder(Component.literal(lbl), b -> handleItemSelection(itemIdx))
+                    .bounds(curX, row1Y, btnW, 18).build());
+            activeItemIcons.add(new ItemIconData(curX + 2, row1Y + 1, getItemStackForType(ITEM_KEYS[itemIdx])));
+            curX += btnW + 2;
+        }
 
         int row2Y = row1Y + 21; // Y = 50
 
@@ -699,7 +775,8 @@ public class LitnessOptimizerScreen extends Screen {
             int curX = startX + nameFieldW + 4;
 
             // [Pezzo: Spada / Piccone / Elmo / Corazza / Gambali / Stivali]
-            this.addRenderableWidget(Button.builder(Component.literal("Pezzo: " + ITEM_NAMES[creatingSetItemIndex]), b -> {
+            int pezzoBtnW = 96;
+            this.addRenderableWidget(Button.builder(Component.literal("   Pezzo: " + ITEM_NAMES[creatingSetItemIndex]), b -> {
                 if (this.creatingSetNameField != null) {
                     currentCreatingSetName = this.creatingSetNameField.getValue();
                 }
@@ -712,8 +789,9 @@ public class LitnessOptimizerScreen extends Screen {
                 creatingSetPage = 0;
                 this.clearWidgets();
                 this.init();
-            }).bounds(curX, contentY, 88, 18).build());
-            curX += 92;
+            }).bounds(curX, contentY, pezzoBtnW, 18).build());
+            activeItemIcons.add(new ItemIconData(curX + 2, contentY + 1, getItemStackForType(ITEM_KEYS[creatingSetItemIndex])));
+            curX += pezzoBtnW + 4;
 
             // [🔍 Cerca incantesimo...]
             int searchFieldW = Math.min(135, panelWidth - (curX - startX) - 150);
@@ -1451,6 +1529,7 @@ public class LitnessOptimizerScreen extends Screen {
 
             this.hoveredCatalogEntry = null;
             this.hoveredGuideSlot = null;
+            this.hoveredGuideInfo = false;
             this.hoveredSelectionEntry = null;
 
             if (currentTab == Tab.CATALOG) {
@@ -1468,6 +1547,11 @@ public class LitnessOptimizerScreen extends Screen {
                 }
             }
 
+            // Render icone degli oggetti Minecraft per categorie, oggetti e filtri
+            for (ItemIconData icon : activeItemIcons) {
+                extractor.fakeItem(icon.item, icon.x, icon.y);
+            }
+
             // Render hover tooltips strictly AFTER widgets so they are never covered by buttons
             if (currentTab == Tab.CATALOG) {
                 if (hoveredCatalogEntry != null) {
@@ -1475,7 +1559,9 @@ public class LitnessOptimizerScreen extends Screen {
                 }
             } else if (currentTab == Tab.CALCULATOR) {
                 if (simView == SimView.GUIDE) {
-                    if (hoveredGuideSlot != null) {
+                    if (hoveredGuideInfo) {
+                        renderGuideInfoTooltip(extractor, mouseX, mouseY);
+                    } else if (hoveredGuideSlot != null) {
                         renderGuideSlotTooltip(extractor, hoveredGuideSlot, mouseX, mouseY);
                     }
                 } else if (simView == SimView.SETS) {
@@ -1495,7 +1581,7 @@ public class LitnessOptimizerScreen extends Screen {
         if (catalogPage >= maxPages) catalogPage = maxPages - 1;
 
         int searchCount = ActiveSessionManager.getSearchEnchants().size();
-        String searchInfo = searchCount > 0 ? "  •  §a" + searchCount + " in ricerca AH" : "";
+        String searchInfo = searchCount > 0 ? "  •  §a" + searchCount + " in ricerca (/ah & casse)" : "";
         String pageInfo = "Pagina " + (catalogPage + 1) + " / " + maxPages + "  (" + filteredEnchantments.size() + " incantesimi)" + searchInfo;
         extractor.centeredText(this.font, pageInfo, this.width / 2, 77, 0xFF818CF8);
 
@@ -1639,18 +1725,25 @@ public class LitnessOptimizerScreen extends Screen {
         if (type == null) return new ItemStack(Items.ENCHANTED_BOOK);
         switch (type.toLowerCase()) {
             case "sword": return new ItemStack(Items.DIAMOND_SWORD);
-            case "pick":
-            case "pickaxe": return new ItemStack(Items.DIAMOND_PICKAXE);
-            case "helmet": return new ItemStack(Items.DIAMOND_HELMET);
-            case "chest": return new ItemStack(Items.DIAMOND_CHESTPLATE);
-            case "legs": return new ItemStack(Items.DIAMOND_LEGGINGS);
-            case "boots": return new ItemStack(Items.DIAMOND_BOOTS);
             case "axe": return new ItemStack(Items.DIAMOND_AXE);
-            case "shovel": return new ItemStack(Items.DIAMOND_SHOVEL);
-            case "bow": return new ItemStack(Items.BOW);
-            case "crossbow": return new ItemStack(Items.CROSSBOW);
             case "mace": return new ItemStack(Items.MACE);
             case "trident": return new ItemStack(Items.TRIDENT);
+            case "bow": return new ItemStack(Items.BOW);
+            case "xbow":
+            case "crossbow": return new ItemStack(Items.CROSSBOW);
+            case "pick":
+            case "pickaxe": return new ItemStack(Items.DIAMOND_PICKAXE);
+            case "shovel": return new ItemStack(Items.DIAMOND_SHOVEL);
+            case "hoe": return new ItemStack(Items.DIAMOND_HOE);
+            case "rod":
+            case "fishing_rod": return new ItemStack(Items.FISHING_ROD);
+            case "helmet": return new ItemStack(Items.DIAMOND_HELMET);
+            case "chest":
+            case "chestplate": return new ItemStack(Items.DIAMOND_CHESTPLATE);
+            case "legs":
+            case "leggings": return new ItemStack(Items.DIAMOND_LEGGINGS);
+            case "boots": return new ItemStack(Items.DIAMOND_BOOTS);
+            case "elytra": return new ItemStack(Items.ELYTRA);
             default: return new ItemStack(Items.ENCHANTED_BOOK);
         }
     }
@@ -1684,6 +1777,15 @@ public class LitnessOptimizerScreen extends Screen {
             boolean safe = currentSolution.peakCost <= 39;
             String peakTxt = "⚡ Picco: " + currentSolution.peakCost + "/39 liv. " + (safe ? "✔" : "✖");
             extractor.text(this.font, peakTxt, curBannerX, bannerY + 6, safe ? 0xFF818CF8 : 0xFFEF4444, false);
+            curBannerX += this.font.width(peakTxt) + 10;
+
+            int guideInfoX = curBannerX;
+            boolean isGuideInfoHovered = mouseX >= guideInfoX - 3 && mouseX <= guideInfoX + 16 && mouseY >= bannerY + 2 && mouseY <= bannerY + 18;
+            extractor.text(this.font, isGuideInfoHovered ? "§e[?]" : "§7[§e?§7]", guideInfoX, bannerY + 6, isGuideInfoHovered ? 0xFFFCD34D : 0xFF9CA3AF, false);
+            if (isGuideInfoHovered) {
+                this.hoveredGuideInfo = true;
+            }
+            curBannerX += 20;
 
             int totalSteps = currentSolution.steps.size();
             int stepsPerPage = 4;
@@ -1843,6 +1945,42 @@ public class LitnessOptimizerScreen extends Screen {
             if (btnCopyGuide != null) {
                 btnCopyGuide.visible = false;
                 btnCopyGuide.active = false;
+            }
+        }
+    }
+
+    private void renderGuideInfoTooltip(GuiGraphicsExtractor extractor, int mouseX, int mouseY) {
+        List<Component> tipLines = new ArrayList<>();
+        tipLines.add(Component.literal("§6⚡ GUIDA COMPLETA (TEORICA)"));
+        tipLines.add(Component.literal("§7Mostra l'albero matematico perfetto calcolato a tavolino:"));
+        tipLines.add(Component.literal("§8• Ipotizza tutti i libri con penalità 0 e set completo."));
+        tipLines.add(Component.empty());
+        tipLines.add(Component.literal("§e❓ Perché i passi all'Incudine possono cambiare?"));
+        tipLines.add(Component.literal("§8• L'Assistente laterale all'Incudine agisce come un GPS dinamico:"));
+        tipLines.add(Component.literal("§8  legge i libri che hai in mano e le penalità reali,"));
+        tipLines.add(Component.literal("§8  ricalcolando la mossa migliore per evitare 'Troppo Costoso!'."));
+
+        int maxW = 0;
+        for (Component c : tipLines) {
+            maxW = Math.max(maxW, this.font.width(c));
+        }
+        int tipW = maxW + 16;
+        int tipH = tipLines.size() * 11 + 10;
+        int tipX = this.width / 2 - tipW / 2;
+        int tipY = this.height / 2 - tipH / 2;
+
+        extractor.outline(tipX - 1, tipY - 1, tipW + 2, tipH + 2, 0xFF000000);
+        extractor.fill(tipX, tipY, tipX + tipW, tipY + tipH, 0xF80E111A);
+        extractor.fill(tipX, tipY, tipX + tipW, tipY + 2, 0xFFF59E0B);
+        extractor.outline(tipX, tipY, tipW, tipH, 0xFFD97706);
+
+        int textY = tipY + 6;
+        for (Component line : tipLines) {
+            if (line.getString().isEmpty()) {
+                textY += 4;
+            } else {
+                extractor.text(this.font, line, tipX + 8, textY, 0xFFFFFFFF, true);
+                textY += 11;
             }
         }
     }

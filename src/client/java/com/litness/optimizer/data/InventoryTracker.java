@@ -114,21 +114,6 @@ public class InventoryTracker {
             }
         }
 
-        // 3. Pezzi di armatura: controlla SOLO ed esclusivamente lo slot corrispondente
-        if (key.contains("helmet") || key.contains("elmo") || key.contains("head")) {
-            ItemStack helmet = mc.player.getItemBySlot(EquipmentSlot.HEAD);
-            if (!helmet.isEmpty()) scanAppliedStack(helmet, set);
-        } else if (key.contains("chest") || key.contains("corazza")) {
-            ItemStack chest = mc.player.getItemBySlot(EquipmentSlot.CHEST);
-            if (!chest.isEmpty()) scanAppliedStack(chest, set);
-        } else if (key.contains("leg") || key.contains("gambali")) {
-            ItemStack legs = mc.player.getItemBySlot(EquipmentSlot.LEGS);
-            if (!legs.isEmpty()) scanAppliedStack(legs, set);
-        } else if (key.contains("boot") || key.contains("stivali") || key.contains("feet")) {
-            ItemStack boots = mc.player.getItemBySlot(EquipmentSlot.FEET);
-            if (!boots.isEmpty()) scanAppliedStack(boots, set);
-        }
-
         return set;
     }
 
@@ -194,15 +179,6 @@ public class InventoryTracker {
         ItemStack off = mc.player.getOffhandItem();
         if (!off.isEmpty() && !off.is(Items.ENCHANTED_BOOK) && !off.is(Items.BOOK)) {
             scanAppliedStack(off, set);
-        }
-
-        // 4. Pezzi di armatura attualmente indossati
-        EquipmentSlot[] armorSlots = {EquipmentSlot.HEAD, EquipmentSlot.CHEST, EquipmentSlot.LEGS, EquipmentSlot.FEET};
-        for (EquipmentSlot slot : armorSlots) {
-            ItemStack armor = mc.player.getItemBySlot(slot);
-            if (!armor.isEmpty()) {
-                scanAppliedStack(armor, set);
-            }
         }
 
         return set;

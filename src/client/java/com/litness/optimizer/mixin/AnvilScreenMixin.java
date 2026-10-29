@@ -54,7 +54,7 @@ public abstract class AnvilScreenMixin extends ItemCombinerScreen<AnvilMenu> {
     }
 
     private int getSidebarWidth() {
-        return 152;
+        return 160;
     }
 
     private int getSidebarX() {
@@ -124,8 +124,16 @@ public abstract class AnvilScreenMixin extends ItemCombinerScreen<AnvilMenu> {
             // Contorno sottile moderno
             extractor.outline(sideX, sideY, sideW, sideH, 0xFF2A2D40);
 
-            // Titolo Header
-            extractor.text(this.font, "⚡ LITNESS ENCHANT HELPER", sideX + 8, sideY + 6, 0xFFA5B4FC, false);
+            // Titolo Header con badge info [?] affiancato
+            extractor.text(this.font, "⚡ LITNESS HELPER", sideX + 8, sideY + 6, 0xFFA5B4FC, false);
+
+            int infoBtnX = sideX + sideW - 18;
+            int infoBtnY = sideY + 5;
+            boolean isInfoHovered = mouseX >= infoBtnX - 3 && mouseX <= infoBtnX + 15 && mouseY >= infoBtnY - 2 && mouseY <= infoBtnY + 12;
+            extractor.text(this.font, isInfoHovered ? "§e[?]" : "§7[§e?§7]", infoBtnX, infoBtnY, isInfoHovered ? 0xFFFCD34D : 0xFF9CA3AF, false);
+            if (isInfoHovered) {
+                com.litness.optimizer.gui.AnvilTooltipState.hoveredInfoModal = true;
+            }
 
             ItemStack slot0 = this.menu.getSlot(0).getItem();
             ItemStack slot1 = this.menu.getSlot(1).getItem();

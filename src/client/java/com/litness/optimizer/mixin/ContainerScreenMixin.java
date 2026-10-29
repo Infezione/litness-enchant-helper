@@ -28,6 +28,7 @@ import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
 import net.minecraft.client.input.MouseButtonEvent;
+import net.minecraft.client.input.KeyEvent;
 
 import java.util.*;
 
@@ -46,6 +47,20 @@ public abstract class ContainerScreenMixin extends Screen {
         super(title);
     }
 
+    @Inject(method = "init", at = @At("TAIL"))
+    private void litness_onContainerInit(CallbackInfo ci) {
+        if (!(((Object) this) instanceof net.minecraft.client.gui.screens.inventory.AnvilScreen)) {
+            com.litness.optimizer.gui.AhPriceManager.initSearchWidget((AbstractContainerScreen<?>) (Object) this, this::addWidget);
+        }
+    }
+
+    @Inject(method = "keyPressed", at = @At("HEAD"), cancellable = true)
+    private void litness_onContainerKeyPressed(KeyEvent event, CallbackInfoReturnable<Boolean> cir) {
+        if (com.litness.optimizer.gui.AhPriceManager.handleKeyPressed(event)) {
+            cir.setReturnValue(true);
+        }
+    }
+
     @Inject(method = "extractRenderState", at = @At("HEAD"))
     private void litness_preScanContainer(GuiGraphicsExtractor extractor, int mouseX, int mouseY, float delta, CallbackInfo ci) {
         if (!(((Object) this) instanceof net.minecraft.client.gui.screens.inventory.AnvilScreen)) {
@@ -58,13 +73,13 @@ public abstract class ContainerScreenMixin extends Screen {
         if (((Object) this) instanceof net.minecraft.client.gui.screens.inventory.AnvilScreen anvil) {
             com.litness.optimizer.gui.AnvilTooltipState.renderTopLayer(extractor, anvil, mouseX, mouseY);
         } else {
-            com.litness.optimizer.gui.AhPriceManager.renderAhSidebar(extractor, (AbstractContainerScreen<?>) (Object) this, this.leftPos, this.topPos, this.imageWidth, this.imageHeight, mouseX, mouseY);
+            com.litness.optimizer.gui.AhPriceManager.renderAhSidebar(extractor, (AbstractContainerScreen<?>) (Object) this, this.leftPos, this.topPos, this.imageWidth, this.imageHeight, mouseX, mouseY, delta);
         }
     }
 
     @Inject(method = "mouseClicked", at = @At("HEAD"), cancellable = true)
     private void litness_onContainerMouseClicked(MouseButtonEvent event, boolean isDown, CallbackInfoReturnable<Boolean> cir) {
-        if (com.litness.optimizer.gui.AhPriceManager.handleMouseClicked(event.x(), event.y(), event.button())) {
+        if (com.litness.optimizer.gui.AhPriceManager.handleMouseClicked(this, event, isDown)) {
             cir.setReturnValue(true);
         }
     }
@@ -72,6 +87,7 @@ public abstract class ContainerScreenMixin extends Screen {
     @Inject(method = "removed", at = @At("HEAD"))
     private void litness_onContainerRemoved(CallbackInfo ci) {
         com.litness.optimizer.gui.AnvilTooltipState.clearHover();
+        com.litness.optimizer.gui.AhPriceManager.onContainerClosed();
     }
 
     @Inject(method = "extractSlot", at = @At("TAIL"))
@@ -103,7 +119,7 @@ public abstract class ContainerScreenMixin extends Screen {
         if (matchesAnyTargetEnchant(stack, cachedTargetEnchants)) {
             int x = slot.x;
             int y = slot.y;
-            boolean isCheapest = com.litness.optimizer.gui.AhPriceManager.isCheapestSlot(slot.index);
+            boolean isCheapest = com.litness.optimizer.gui.AhPriceManager.isCheapestOnScreen(stack);
 
             if (isCheapest) {
                 // Evidenziazione ARANCIONE VIVIDO per il prezzo più basso assoluto

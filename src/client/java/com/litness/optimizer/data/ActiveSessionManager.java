@@ -150,8 +150,12 @@ public class ActiveSessionManager {
         if (enchantId == null) return false;
         load();
         if (sessionData.searchEnchants == null) return false;
+        String clean = enchantId.trim().toLowerCase();
         for (String s : sessionData.searchEnchants) {
-            if (s.equalsIgnoreCase(enchantId)) return true;
+            if (s.equalsIgnoreCase(clean)) return true;
+            if (s.toLowerCase().startsWith(clean + ":")) return true;
+            int colon = s.indexOf(':');
+            if (colon > 0 && s.substring(0, colon).equalsIgnoreCase(clean)) return true;
         }
         return false;
     }
@@ -162,7 +166,18 @@ public class ActiveSessionManager {
         if (sessionData.searchEnchants == null) {
             sessionData.searchEnchants = new ArrayList<>();
         }
-        boolean removed = sessionData.searchEnchants.removeIf(s -> s.equalsIgnoreCase(enchantId));
+        String clean = enchantId.trim().toLowerCase();
+        int colon = clean.indexOf(':');
+        String baseId = colon > 0 ? clean.substring(0, colon) : clean;
+
+        boolean removed = sessionData.searchEnchants.removeIf(s -> {
+            String sClean = s.trim().toLowerCase();
+            if (sClean.equals(clean)) return true;
+            int c = sClean.indexOf(':');
+            String sBase = c > 0 ? sClean.substring(0, c) : sClean;
+            return sBase.equals(baseId);
+        });
+
         if (!removed) {
             sessionData.searchEnchants.add(enchantId);
         }
