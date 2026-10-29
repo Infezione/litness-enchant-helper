@@ -171,7 +171,8 @@ public class EnchantmentDatabase {
                 List.of("looting", "looting_4"),
                 List.of("respiration", "respiration_4"),
                 List.of("unbreaking", "unbreaking_4", "unbreaking_5"),
-                List.of("power", "power_6")
+                List.of("power", "power_6"),
+                List.of("efficiency", "efficiency_6")
             );
 
             for (List<String> group : vanillaGroups) {
@@ -369,6 +370,7 @@ public class EnchantmentDatabase {
         String id = baseId.toLowerCase().trim();
         if (id.startsWith("minecraft:")) id = id.substring(10);
         if ("sharpness".equals(id) && level >= 6) return "sharpness_6";
+        if ("efficiency".equals(id) && level >= 6) return "efficiency_6";
         if ("feather_falling".equals(id) && level >= 5) return "feather_falling_5";
         if ("looting".equals(id) && level >= 4) return "looting_4";
         if ("respiration".equals(id) && level >= 4) return "respiration_4";

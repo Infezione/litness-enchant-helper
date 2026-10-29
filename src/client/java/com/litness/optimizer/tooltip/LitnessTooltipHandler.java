@@ -202,6 +202,11 @@ public class LitnessTooltipHandler {
             putAlias("power vi", "power_6");
             putAlias("potenza 6", "power_6");
             putAlias("potenza vi", "power_6");
+
+            putAlias("efficiency 6", "efficiency_6");
+            putAlias("efficiency vi", "efficiency_6");
+            putAlias("efficienza 6", "efficiency_6");
+            putAlias("efficienza vi", "efficiency_6");
         }
         return lookupMap;
     }

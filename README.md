@@ -1,12 +1,12 @@
 # ⚡ Litness Enchant Helper
 
-[![DOWNLOAD MOD (.JAR)](https://img.shields.io/badge/⬇️%20SCARICA%20SUBITO%20LA%20MOD%20(.JAR)-VERSIONE%201.2.3-22c55e?style=for-the-badge&logo=curseforge&logoColor=white)](https://github.com/Infezione/litness-enchant-helper/releases/download/v1.2.3/LitnessEnchantHelper-1.2.3.jar)
+[![DOWNLOAD MOD (.JAR)](https://img.shields.io/badge/⬇️%20SCARICA%20SUBITO%20LA%20MOD%20(.JAR)-VERSIONE%201.2.4-22c55e?style=for-the-badge&logo=curseforge&logoColor=white)](https://github.com/Infezione/litness-enchant-helper/releases/download/v1.2.4/LitnessEnchantHelper-1.2.4.jar)
 [![ULTIMI AGGIORNAMENTI](https://img.shields.io/badge/🔄%20ULTIMI%20AGGIORNAMENTI-VEDI%20LE%20NOVITÀ-6366f1?style=for-the-badge&logo=sparkles&logoColor=white)](#ultimi-aggiornamenti)
 
 ![Minecraft](https://img.shields.io/badge/Minecraft-26.2-brightgreen.svg)
 ![Fabric](https://img.shields.io/badge/ModLoader-Fabric-blue.svg)
 ![Lunar Client](https://img.shields.io/badge/Lunar%20Client-Compatible-informational.svg)
-![Release](https://img.shields.io/badge/Release-v1.2.3-blueviolet.svg)
+![Release](https://img.shields.io/badge/Release-v1.2.4-blueviolet.svg)
 ![Author](https://img.shields.io/badge/Author-Waaxey-purple.svg)
 
 > [!TIP]
@@ -107,13 +107,12 @@ Sul server Litness, forgiare spade, archi, picconi o armature con 10–12 incant
 <a id="ultimi-aggiornamenti" name="ultimi-aggiornamenti"></a>
 <a id="-ultimi-aggiornamenti" name="-ultimi-aggiornamenti"></a>
 
-## 🔄 Ultimi Aggiornamenti (v1.2.3)
+## 🔄 Ultimi Aggiornamenti (v1.2.4)
 
-- 🎨 **Icone Native di Minecraft nei Menu & Ricerca AH**: Sostituite tutte le vecchie emoji Unicode con i veri sprite 16x16 originali di Minecraft (Spada, Arco, Corazza, Elmo, Gambali, Stivali, Elitre, Mazza, Tridente, Piccone, Balestra, Zappa, Canna da pesca, ecc.). Le icone sono visibili nelle categorie, sottomenu, creazione set, filtri catalogo e nella tendina di ricerca rapida `/ah`.
-- ⚔️ **Supporto Completo ad Armi, Archi e Strumenti**: Aggiunta la simulazione e calcolo passi all'incudine per Mazza, Tridente, Balestra, Canna da pesca e tutti gli attrezzi vanilla e custom.
-- 🔍 **Fix Digitazione Ricerca in `/ah`**: Risolto il problema che impediva di scrivere nella barra di ricerca rapida della sidebar aste; il tasto 'E' non chiude più l'asta mentre si digita.
-- 📌 **Tracciatore HUD Set Pinnati**: L'HUD ora ignora l'armatura indossata dal player, concentrandosi solo sull'oggetto tenuto in mano o nell'incudine.
-- ❓ **Badge Info [?] all'Incudine**: Spiegazione interattiva chiara che illustra la differenza tra la Guida teorica e l'Assistente Dinamico live.
+- 🌟 **Ologramma Pulsante (Ghost Slot) nello Slot 1 dell'Incudine**: Quando lo slot 1 reale dell'incudine è vuoto, viene renderizzata una sagoma olografica semitrasparente e pulsante (con animazione dorata fluida) dell'arma o armatura consigliata, accompagnata da un tooltip chiaro al passaggio del mouse (*"Trascina qui la tua Spada/Arco per avviare il calcolo automatico"*). Non appena il player posiziona l'oggetto, l'ologramma svanisce all'istante!
+- ⛏️ **Supporto Completo ad Efficienza VI (Vanilla+)**: Introdotto l'incantesimo Vanilla+ *Efficienza VI* (costo base 6 livelli). Completamente integrato nel Catalogo incantesimi, nella Creazione e Modifica dei Set Futuri e nel calcolatore matematico dell'incudine con gestione bidirezionale dei conflitti con Efficienza I-V.
+- 🏹 **Fix Riconoscimento Armi/Archi (Bow vs Sword)**: Risolto il problema per cui inserendo un arco nell'incudine veniva indicato il tema "Spada". Ora rileva in modo infallibile Archi, Balestre, Spade, Mazze, Tridenti e attrezzi, aggiornando badge (`🏹 TEMPRA ARCO`), categorie e guida in automatico.
+- 🎨 **Icone Native Minecraft e Tag di Categoria in `/ah`**: Sostituita la stellina testuale con le icone grafiche originali di Minecraft nella barra di ricerca rapida e nella tendina di completamento automatico di `/ah`, con indicazione visiva chiara dei tag `[V]` (Vanilla), `[V+]` (Vanilla+) e `[C]` (Custom).
 
 ---
 
@@ -132,7 +131,7 @@ Sul server Litness, forgiare spade, archi, picconi o armature con 10–12 incant
 ## 📥 Installazione
 
 ### Metodo 1: Per Lunar Client (Consigliato)
-1. Scarica il file **`LitnessEnchantHelper-1.2.3.jar`** dall'area [Releases](../../releases).
+1. Scarica il file **`LitnessEnchantHelper-1.2.4.jar`** dall'area [Releases](../../releases).
 2. Premi sulla tastiera `Win + R`, incolla la seguente stringa e premi **Invio**:
    ```text
    %userprofile%\.lunarclient\profiles\26\mods\fabric-26.2\
@@ -142,7 +141,7 @@ Sul server Litness, forgiare spade, archi, picconi o armature con 10–12 incant
 
 ### Metodo 2: Per Fabric Launcher Standard
 1. Assicurati di avere installato **Fabric Loader** per Minecraft 26.2 e la **Fabric API**.
-2. Posiziona il file `LitnessEnchantHelper-1.2.3.jar` nella cartella `.minecraft/mods/`.
+2. Posiziona il file `LitnessEnchantHelper-1.2.4.jar` nella cartella `.minecraft/mods/`.
 3. Avvia il gioco.
 
 ---

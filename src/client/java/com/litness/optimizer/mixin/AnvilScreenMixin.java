@@ -9,6 +9,7 @@ import com.litness.optimizer.data.EnchantmentDatabase;
 import com.litness.optimizer.data.EnchantmentDatabase.EnchantmentEntry;
 import com.litness.optimizer.data.EnchantmentDatabase.ItemEntry;
 import com.litness.optimizer.data.InventoryTracker;
+import com.litness.optimizer.data.ItemTypeHelper;
 import com.litness.optimizer.gui.LitnessOptimizerScreen;
 import com.litness.optimizer.tooltip.LitnessTooltipHandler;
 import net.minecraft.client.gui.GuiGraphicsExtractor;
@@ -231,16 +232,8 @@ public abstract class AnvilScreenMixin extends ItemCombinerScreen<AnvilMenu> {
                     extractor.fill(sideX + 6, moveY, sideX + sideW - 6, moveY + moveH, boxBg);
                     extractor.outline(sideX + 6, moveY, sideW - 12, moveH, boxBorder);
 
-                    String actionName = "TEMPRA OGGETTO";
-                    String icon = "⚔";
-                    if ("pick".equals(cachedItemKey)) { actionName = "TEMPRA PICCONE"; icon = "⛏"; }
-                    else if ("sword".equals(cachedItemKey)) { actionName = "TEMPRA SPADA"; icon = "⚔"; }
-                    else if ("helmet".equals(cachedItemKey)) { actionName = "TEMPRA ELMO"; icon = "🪖"; }
-                    else if ("chest".equals(cachedItemKey)) { actionName = "TEMPRA CORAZZA"; icon = "🥋"; }
-                    else if ("legs".equals(cachedItemKey)) { actionName = "TEMPRA GAMBALI"; icon = "👖"; }
-                    else if ("boots".equals(cachedItemKey)) { actionName = "TEMPRA STIVALI"; icon = "👢"; }
-                    else if ("axe".equals(cachedItemKey)) { actionName = "TEMPRA ASCIA"; icon = "🪓"; }
-                    else if ("bow".equals(cachedItemKey)) { actionName = "TEMPRA ARCO"; icon = "🏹"; }
+                    String actionName = ItemTypeHelper.getActionName(cachedItemKey);
+                    String icon = ItemTypeHelper.getActionIcon(cachedItemKey);
 
                     String badge = nextStep.isBookToBook 
                         ? "🔨 UNISCI LIBRI (1/" + totalSteps + ")" 
@@ -278,19 +271,52 @@ public abstract class AnvilScreenMixin extends ItemCombinerScreen<AnvilMenu> {
                     extractor.text(this.font, "Premi [N] per simulare!", sideX + 10, moveY + 37, 0xFF818CF8, false);
                 }
             } else {
-                // Empty state pulito e curato
+                // Ghost Slot nello Slot 1 dell'Incudine reale
+                net.minecraft.world.inventory.Slot s0 = this.menu.getSlot(0);
+                int slot0X = this.leftPos + (s0 != null ? s0.x : 27);
+                int slot0Y = this.topPos + (s0 != null ? s0.y : 47);
+
+                ItemStack ghostItem = getSuggestedItem();
+                String ghostName = ItemTypeHelper.getSuggestedName(ghostItem);
+
+                // Ologramma pulsante (onda sinusoidale temporizzata)
+                long time = System.currentTimeMillis();
+                double wave = (Math.sin(time / 260.0) + 1.0) / 2.0;
+
+                // Contorno luminoso dorato pulsante
+                int borderAlpha = (int)(0x60 + wave * 0x80);
+                int glowBorderColor = (borderAlpha << 24) | 0xF59E0B;
+                extractor.outline(slot0X - 1, slot0Y - 1, 18, 18, glowBorderColor);
+
+                // Sfondo semitrasparente ambrato
+                int bgAlpha = (int)(0x15 + wave * 0x25);
+                extractor.fill(slot0X, slot0Y, slot0X + 16, slot0Y + 16, (bgAlpha << 24) | 0xF59E0B);
+
+                // Render dell'oggetto fantasma
+                extractor.fakeItem(ghostItem, slot0X, slot0Y);
+
+                // Velo olografico trasparente per effetto fantasma
+                int holoAlpha = (int)(0x40 + (1.0 - wave) * 0x40);
+                extractor.fill(slot0X, slot0Y, slot0X + 16, slot0Y + 16, (holoAlpha << 24) | 0x0F172A);
+
+                // Rilevamento passaggio mouse sullo slot 1
+                if (mouseX >= slot0X && mouseX < slot0X + 16 && mouseY >= slot0Y && mouseY < slot0Y + 16) {
+                    com.litness.optimizer.gui.AnvilTooltipState.hoveredGhostSlotItemName = ghostName;
+                }
+
+                // Empty state pulito e curato con suggerimento dinamico dell'oggetto
                 int cardY = sideY + 20;
                 int cardH = sideH - 34;
 
                 extractor.fill(sideX + 6, cardY, sideX + sideW - 6, cardY + cardH, 0x40161826);
                 extractor.outline(sideX + 6, cardY, sideW - 12, cardH, 0xFF2A2D40);
 
-                extractor.fakeItem(new ItemStack(Items.ANVIL), sideX + (sideW / 2) - 8, cardY + 12);
+                extractor.fakeItem(ghostItem, sideX + (sideW / 2) - 8, cardY + 10);
 
-                extractor.centeredText(this.font, "Slot 1 vuoto", sideX + (sideW / 2), cardY + 34, 0xFFFFFFFF);
-                extractor.centeredText(this.font, "Inserisci un oggetto", sideX + (sideW / 2), cardY + 48, 0xFF9CA3AF);
-                extractor.centeredText(this.font, "da incantare per", sideX + (sideW / 2), cardY + 58, 0xFF9CA3AF);
-                extractor.centeredText(this.font, "avviare l'assistente.", sideX + (sideW / 2), cardY + 68, 0xFF9CA3AF);
+                extractor.centeredText(this.font, "Slot 1 vuoto", sideX + (sideW / 2), cardY + 30, 0xFFFFFFFF);
+                extractor.centeredText(this.font, "Inserisci " + trimToWidth(ghostName, sideW - 24), sideX + (sideW / 2), cardY + 44, 0xFFFCD34D);
+                extractor.centeredText(this.font, "nello slot a sinistra", sideX + (sideW / 2), cardY + 55, 0xFF9CA3AF);
+                extractor.centeredText(this.font, "per avviare la guida.", sideX + (sideW / 2), cardY + 66, 0xFF9CA3AF);
 
                 int pillY = cardY + cardH - 18;
                 extractor.fill(sideX + 12, pillY, sideX + sideW - 12, pillY + 14, 0x406366F1);
@@ -358,17 +384,7 @@ public abstract class AnvilScreenMixin extends ItemCombinerScreen<AnvilMenu> {
             lastInvBookCount = books.size();
             cachedSlot0Enchants = extractAllEnchantments(slot0);
 
-            String descId = slot0.getItem().getDescriptionId().toLowerCase();
-            String rawId = slot0.getItem().toString().toLowerCase();
-            String itemKey = "sword";
-            if (descId.contains("sword") || rawId.contains("sword")) itemKey = "sword";
-            else if (descId.contains("pickaxe") || descId.contains("pick") || rawId.contains("pickaxe") || rawId.contains("pick")) itemKey = "pick";
-            else if (descId.contains("helmet") || rawId.contains("helmet")) itemKey = "helmet";
-            else if (descId.contains("chestplate") || descId.contains("chest") || rawId.contains("chestplate") || rawId.contains("chest")) itemKey = "chest";
-            else if (descId.contains("leggings") || descId.contains("legs") || rawId.contains("leggings") || rawId.contains("legs")) itemKey = "legs";
-            else if (descId.contains("boots") || rawId.contains("boots")) itemKey = "boots";
-            else if (descId.contains("axe") || rawId.contains("axe")) itemKey = "axe";
-            else if (descId.contains("bow") || rawId.contains("bow")) itemKey = "bow";
+            String itemKey = ItemTypeHelper.detectItemKey(slot0);
             this.cachedItemKey = itemKey;
 
             ItemEntry itemEntry = EnchantmentDatabase.getItem(itemKey);
@@ -514,5 +530,53 @@ public abstract class AnvilScreenMixin extends ItemCombinerScreen<AnvilMenu> {
                 Component.translatable("gui.litnessoptimizer.title"), this, this.menu, this.cachedSolution
             ));
         }
+    }
+
+    private ItemStack getSuggestedItem() {
+        if (this.minecraft == null || this.minecraft.player == null) {
+            return new ItemStack(Items.DIAMOND_SWORD);
+        }
+        // 1. Controlla la mano principale
+        ItemStack main = this.minecraft.player.getMainHandItem();
+        if (ItemTypeHelper.isEnchantableWeaponOrArmor(main)) {
+            return main;
+        }
+        // 2. Controlla il set pinnato attivo nell'HUD se presente
+        String pinnedSetId = com.litness.optimizer.data.ActiveSessionManager.getPinnedSetId();
+        if (pinnedSetId != null) {
+            com.litness.optimizer.data.SavedSetsManager.CustomSet set = com.litness.optimizer.data.SavedSetsManager.getSetById(pinnedSetId);
+            if (set != null && set.itemKey != null) {
+                ItemStack mapped = getItemStackForKey(set.itemKey);
+                if (mapped != null) return mapped;
+            }
+        }
+        // 3. Cerca nell'inventario una qualsiasi arma o armatura incantabile
+        int invSize = this.minecraft.player.getInventory().getContainerSize();
+        for (int i = 0; i < invSize; i++) {
+            ItemStack stack = this.minecraft.player.getInventory().getItem(i);
+            if (ItemTypeHelper.isEnchantableWeaponOrArmor(stack)) {
+                return stack;
+            }
+        }
+        // 4. Default: Spada di Diamante
+        return new ItemStack(Items.DIAMOND_SWORD);
+    }
+
+    private ItemStack getItemStackForKey(String key) {
+        if ("bow".equals(key)) return new ItemStack(Items.BOW);
+        if ("xbow".equals(key)) return new ItemStack(Items.CROSSBOW);
+        if ("mace".equals(key)) return new ItemStack(Items.MACE);
+        if ("trident".equals(key)) return new ItemStack(Items.TRIDENT);
+        if ("pick".equals(key)) return new ItemStack(Items.DIAMOND_PICKAXE);
+        if ("axe".equals(key)) return new ItemStack(Items.DIAMOND_AXE);
+        if ("shovel".equals(key)) return new ItemStack(Items.DIAMOND_SHOVEL);
+        if ("hoe".equals(key)) return new ItemStack(Items.DIAMOND_HOE);
+        if ("rod".equals(key)) return new ItemStack(Items.FISHING_ROD);
+        if ("helmet".equals(key)) return new ItemStack(Items.DIAMOND_HELMET);
+        if ("chest".equals(key)) return new ItemStack(Items.DIAMOND_CHESTPLATE);
+        if ("legs".equals(key)) return new ItemStack(Items.DIAMOND_LEGGINGS);
+        if ("boots".equals(key)) return new ItemStack(Items.DIAMOND_BOOTS);
+        if ("elytra".equals(key)) return new ItemStack(Items.ELYTRA);
+        return new ItemStack(Items.DIAMOND_SWORD);
     }
 }

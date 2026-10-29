@@ -1,4 +1,4 @@
-﻿{
+{
   "schemaVersion": 1,
   "items": [
     {
@@ -3184,6 +3184,30 @@
       "conflicts": [
         "Potenza",
         "power"
+      ],
+      "unique": false,
+      "maxPerItem": 1,
+      "anvilCost": 6
+    },
+    {
+      "id": "efficiency_6",
+      "name": "Efficienza VI",
+      "category": "vanilla_plus",
+      "description": "Aumenta drasticamente la velocità di estrazione e di scavo degli attrezzi (Livello Vanilla+ VI).",
+      "maxLevel": 6,
+      "rarity": "Vanilla+",
+      "applicableTo": [
+        "pick",
+        "shovel",
+        "hoe",
+        "axe",
+        "shears"
+      ],
+      "targetScope": "multiple_items",
+      "requirements": [],
+      "conflicts": [
+        "Efficienza",
+        "efficiency"
       ],
       "unique": false,
       "maxPerItem": 1,

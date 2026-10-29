@@ -118,33 +118,27 @@ public class InventoryTracker {
     }
 
     public static boolean matchesItemKey(ItemStack stack, String key) {
-        if (stack == null || stack.isEmpty()) return false;
-        String descId = stack.getItem().getDescriptionId().toLowerCase();
-        String rawStr = stack.getItem().toString().toLowerCase();
+        if (stack == null || stack.isEmpty() || key == null) return false;
+        String detected = ItemTypeHelper.detectItemKey(stack);
+        if (detected.equalsIgnoreCase(key)) return true;
 
-        if (key.contains("sword") || key.contains("spada")) {
-            return descId.contains("sword") || rawStr.contains("sword");
-        }
-        if (key.contains("pick") || key.contains("piccone")) {
-            return descId.contains("pickaxe") || descId.contains("pick") || rawStr.contains("pickaxe") || rawStr.contains("pick");
-        }
-        if (key.contains("helmet") || key.contains("elmo") || key.contains("head")) {
-            return descId.contains("helmet") || rawStr.contains("helmet") || descId.contains("cap");
-        }
-        if (key.contains("chest") || key.contains("corazza")) {
-            return descId.contains("chestplate") || descId.contains("chest") || rawStr.contains("chestplate") || rawStr.contains("chest") || descId.contains("tunic");
-        }
-        if (key.contains("leg") || key.contains("gambali")) {
-            return descId.contains("leggings") || descId.contains("legs") || rawStr.contains("leggings") || rawStr.contains("legs") || descId.contains("pants");
-        }
-        if (key.contains("boot") || key.contains("stivali") || key.contains("feet")) {
-            return descId.contains("boots") || rawStr.contains("boots");
-        }
-        if (key.contains("axe") || key.contains("ascia")) {
-            return descId.contains("axe") || rawStr.contains("axe");
-        }
-        if (key.contains("bow") || key.contains("arco")) {
-            return descId.contains("bow") || rawStr.contains("bow");
+        // Supporta alias localizzati
+        if (("sword".equalsIgnoreCase(detected) && key.contains("spada"))
+            || ("pick".equalsIgnoreCase(detected) && key.contains("piccone"))
+            || ("helmet".equalsIgnoreCase(detected) && key.contains("elmo"))
+            || ("chest".equalsIgnoreCase(detected) && key.contains("corazza"))
+            || ("legs".equalsIgnoreCase(detected) && key.contains("gambali"))
+            || ("boots".equalsIgnoreCase(detected) && key.contains("stivali"))
+            || ("axe".equalsIgnoreCase(detected) && key.contains("ascia"))
+            || ("bow".equalsIgnoreCase(detected) && (key.contains("arco") && !key.contains("balestra")))
+            || ("xbow".equalsIgnoreCase(detected) && (key.contains("balestra") || key.contains("xbow")))
+            || ("mace".equalsIgnoreCase(detected) && key.contains("mazza"))
+            || ("trident".equalsIgnoreCase(detected) && key.contains("tridente"))
+            || ("shovel".equalsIgnoreCase(detected) && key.contains("pala"))
+            || ("hoe".equalsIgnoreCase(detected) && key.contains("zappa"))
+            || ("rod".equalsIgnoreCase(detected) && key.contains("canna"))
+            || ("elytra".equalsIgnoreCase(detected) && key.contains("elitr"))) {
+            return true;
         }
         return false;
     }

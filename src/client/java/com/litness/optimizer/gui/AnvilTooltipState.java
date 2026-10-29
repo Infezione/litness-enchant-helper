@@ -21,6 +21,7 @@ public class AnvilTooltipState {
     public static MergeStep hoveredNextStep = null;
     public static List<EnchantApplied> hoveredCurrentEnchants = null;
     public static boolean hoveredInfoModal = false;
+    public static String hoveredGhostSlotItemName = null;
     public static Solution cachedSolution = null;
     public static String cachedItemKey = "sword";
 
@@ -28,15 +29,65 @@ public class AnvilTooltipState {
         hoveredNextStep = null;
         hoveredCurrentEnchants = null;
         hoveredInfoModal = false;
+        hoveredGhostSlotItemName = null;
     }
 
     public static void renderTopLayer(GuiGraphicsExtractor extractor, AnvilScreen anvil, int mouseX, int mouseY) {
         if (hoveredInfoModal) {
             renderInfoModalTooltip(extractor, anvil);
+        } else if (hoveredGhostSlotItemName != null) {
+            renderGhostSlotTooltip(extractor, anvil, hoveredGhostSlotItemName, mouseX, mouseY);
         } else if (hoveredNextStep != null) {
             renderStepTooltip(extractor, anvil, hoveredNextStep);
         } else if (hoveredCurrentEnchants != null && !hoveredCurrentEnchants.isEmpty()) {
             renderCurrentEnchantsTooltip(extractor, anvil, hoveredCurrentEnchants);
+        }
+    }
+
+    private static void renderGhostSlotTooltip(GuiGraphicsExtractor extractor, AnvilScreen anvil, String ghostName, int mouseX, int mouseY) {
+        Minecraft mc = Minecraft.getInstance();
+        Font font = mc.font;
+
+        List<Component> tipLines = new ArrayList<>();
+        tipLines.add(Component.literal("§6💡 Slot 1 (Oggetto Base)"));
+        tipLines.add(Component.literal("§eTrascina qui " + ghostName + " per"));
+        tipLines.add(Component.literal("§eavviare il calcolo automatico."));
+        tipLines.add(Component.empty());
+        tipLines.add(Component.literal("§8• L'assistente leggerà enchant e penalità"));
+        tipLines.add(Component.literal("§8  e guiderà ogni singolo passo nell'incudine!"));
+
+        int maxW = 0;
+        for (Component c : tipLines) {
+            maxW = Math.max(maxW, font.width(c));
+        }
+        int tipW = maxW + 16;
+        int tipH = tipLines.size() * 11 + 10;
+
+        int tipX = mouseX + 12;
+        int tipY = mouseY - 12;
+
+        if (tipX + tipW > anvil.width - 4) {
+            tipX = mouseX - tipW - 8;
+        }
+        if (tipY + tipH > anvil.height - 4) {
+            tipY = anvil.height - tipH - 4;
+        }
+        if (tipY < 4) tipY = 4;
+        if (tipX < 4) tipX = 4;
+
+        extractor.outline(tipX - 1, tipY - 1, tipW + 2, tipH + 2, 0xFF000000);
+        extractor.fill(tipX, tipY, tipX + tipW, tipY + tipH, 0xF80E111A);
+        extractor.fill(tipX, tipY, tipX + tipW, tipY + 2, 0xFFF59E0B);
+        extractor.outline(tipX, tipY, tipW, tipH, 0xFFD97706);
+
+        int textY = tipY + 6;
+        for (Component line : tipLines) {
+            if (line.getString().isEmpty()) {
+                textY += 4;
+            } else {
+                extractor.text(font, line, tipX + 8, textY, 0xFFFFFFFF, true);
+                textY += 11;
+            }
         }
     }
 

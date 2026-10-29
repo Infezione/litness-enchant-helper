@@ -208,39 +208,8 @@ public class LitnessOptimizerScreen extends Screen {
         if (anvilMenu != null) {
             ItemStack slot0 = anvilMenu.getSlot(0).getItem();
             if (!slot0.isEmpty()) {
-                String descId = slot0.getItem().getDescriptionId().toLowerCase();
-                String rawStr = slot0.getItem().toString().toLowerCase();
-                if (descId.contains("sword") || rawStr.contains("sword")) {
-                    this.selectedItemIndex = 0;
-                } else if (descId.contains("axe") || rawStr.contains("axe")) {
-                    this.selectedItemIndex = 1;
-                } else if (descId.contains("mace") || rawStr.contains("mace")) {
-                    this.selectedItemIndex = 2;
-                } else if (descId.contains("trident") || rawStr.contains("trident")) {
-                    this.selectedItemIndex = 3;
-                } else if ((descId.contains("bow") && !descId.contains("crossbow")) || (rawStr.contains("bow") && !rawStr.contains("crossbow"))) {
-                    this.selectedItemIndex = 4;
-                } else if (descId.contains("crossbow") || rawStr.contains("crossbow") || descId.contains("xbow") || rawStr.contains("xbow")) {
-                    this.selectedItemIndex = 5;
-                } else if (descId.contains("pickaxe") || descId.contains("pick") || rawStr.contains("pickaxe") || rawStr.contains("pick")) {
-                    this.selectedItemIndex = 6;
-                } else if (descId.contains("shovel") || rawStr.contains("shovel") || descId.contains("spade") || rawStr.contains("spade")) {
-                    this.selectedItemIndex = 7;
-                } else if (descId.contains("hoe") || rawStr.contains("hoe")) {
-                    this.selectedItemIndex = 8;
-                } else if (descId.contains("rod") || descId.contains("fishing") || rawStr.contains("fishing")) {
-                    this.selectedItemIndex = 9;
-                } else if (descId.contains("helmet") || rawStr.contains("helmet")) {
-                    this.selectedItemIndex = 10;
-                } else if (descId.contains("chestplate") || descId.contains("chest") || rawStr.contains("chestplate") || rawStr.contains("chest")) {
-                    this.selectedItemIndex = 11;
-                } else if (descId.contains("leggings") || descId.contains("legs") || rawStr.contains("leggings") || rawStr.contains("legs")) {
-                    this.selectedItemIndex = 12;
-                } else if (descId.contains("boots") || rawStr.contains("boots")) {
-                    this.selectedItemIndex = 13;
-                } else if (descId.contains("elytra") || rawStr.contains("elytra")) {
-                    this.selectedItemIndex = 14;
-                }
+                String detectedKey = com.litness.optimizer.data.ItemTypeHelper.detectItemKey(slot0);
+                this.selectedItemIndex = com.litness.optimizer.data.ItemTypeHelper.getItemIndexForKey(detectedKey);
 
                 int penalty = slot0.getOrDefault(DataComponents.REPAIR_COST, 0);
                 for (int p = 0; p < PENALTY_STEPS.length; p++) {
@@ -1834,7 +1803,8 @@ public class LitnessOptimizerScreen extends Screen {
                 int badgeCol = step.isBookToBook ? 0xFF818CF8 : 0xFF34D399;
                 extractor.text(this.font, "[" + badge + "]", panelX + 8, y + 4, badgeCol, false);
 
-                String opType = step.isBookToBook ? "🔨 Fusione Libri nell'Incudine" : "⚔ Tempra Libro su " + step.leftLabel;
+                String actIcon = com.litness.optimizer.data.ItemTypeHelper.getActionIcon(ITEM_KEYS[selectedItemIndex]);
+                String opType = step.isBookToBook ? "🔨 Fusione Libri nell'Incudine" : actIcon + " Tempra Libro su " + step.leftLabel;
                 extractor.text(this.font, opType, panelX + 80, y + 4, 0xFFFFFFFF, false);
 
                 String costText = "💰 Costo: " + step.cost + " liv. XP";
