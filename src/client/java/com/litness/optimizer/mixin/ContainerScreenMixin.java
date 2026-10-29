@@ -46,6 +46,13 @@ public abstract class ContainerScreenMixin extends Screen {
         super(title);
     }
 
+    @Inject(method = "extractRenderState", at = @At("HEAD"))
+    private void litness_preScanContainer(GuiGraphicsExtractor extractor, int mouseX, int mouseY, float delta, CallbackInfo ci) {
+        if (!(((Object) this) instanceof net.minecraft.client.gui.screens.inventory.AnvilScreen)) {
+            com.litness.optimizer.gui.AhPriceManager.scanCurrentContainer((AbstractContainerScreen<?>) (Object) this);
+        }
+    }
+
     @Inject(method = "extractRenderState", at = @At("TAIL"))
     private void litness_renderContainerTopLayer(GuiGraphicsExtractor extractor, int mouseX, int mouseY, float delta, CallbackInfo ci) {
         if (((Object) this) instanceof net.minecraft.client.gui.screens.inventory.AnvilScreen anvil) {
@@ -86,7 +93,7 @@ public abstract class ContainerScreenMixin extends Screen {
         if (stack.isEmpty()) return;
 
         long now = System.currentTimeMillis();
-        if (now - lastTargetCheck > 250) {
+        if (now - lastTargetCheck > 50) {
             cachedTargetEnchants = getTargetEnchantments();
             lastTargetCheck = now;
         }
@@ -96,12 +103,23 @@ public abstract class ContainerScreenMixin extends Screen {
         if (matchesAnyTargetEnchant(stack, cachedTargetEnchants)) {
             int x = slot.x;
             int y = slot.y;
-            // Evidenziazione verde smeraldo (fill traslucido + bordo solido di 1px)
-            extractor.fill(x, y, x + 16, y + 16, 0x4000FF66);
-            extractor.fill(x - 1, y - 1, x + 17, y, 0xFF00FF66);
-            extractor.fill(x - 1, y + 16, x + 17, y + 17, 0xFF00FF66);
-            extractor.fill(x - 1, y, x, y + 16, 0xFF00FF66);
-            extractor.fill(x + 16, y, x + 17, y + 16, 0xFF00FF66);
+            boolean isCheapest = com.litness.optimizer.gui.AhPriceManager.isCheapestSlot(slot.index);
+
+            if (isCheapest) {
+                // Evidenziazione ARANCIONE VIVIDO per il prezzo più basso assoluto
+                extractor.fill(x, y, x + 16, y + 16, 0x65FF9900);
+                extractor.fill(x - 1, y - 1, x + 17, y, 0xFFFF9900);
+                extractor.fill(x - 1, y + 16, x + 17, y + 17, 0xFFFF9900);
+                extractor.fill(x - 1, y, x, y + 16, 0xFFFF9900);
+                extractor.fill(x + 16, y, x + 17, y + 16, 0xFFFF9900);
+            } else {
+                // Evidenziazione VERDE SMERALDO per gli altri libri lisci corrispondenti
+                extractor.fill(x, y, x + 16, y + 16, 0x4000FF66);
+                extractor.fill(x - 1, y - 1, x + 17, y, 0xFF00FF66);
+                extractor.fill(x - 1, y + 16, x + 17, y + 17, 0xFF00FF66);
+                extractor.fill(x - 1, y, x, y + 16, 0xFF00FF66);
+                extractor.fill(x + 16, y, x + 17, y + 16, 0xFF00FF66);
+            }
         }
     }
 

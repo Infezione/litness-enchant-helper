@@ -74,11 +74,12 @@ public class AhPriceManager {
         }
     }
 
-    private static final Pattern SELLER_PATTERN = Pattern.compile("(?i)(?:seller|venditore)\\s*:\\s*([a-zA-Z0-9_]{3,16})");
+    private static final Pattern SELLER_PATTERN = Pattern.compile("(?i)(?:seller|venditore)\\s*[:\\-]?\\s*(?:\\[[^\\]]*\\]\\s*)?([a-zA-Z0-9_]{3,16})");
     private static final Pattern PRICE_PATTERN = Pattern.compile("(?i)(?:price|prezzo)\\s*:\\s*\\$?([0-9.,kKmM]+)\\$?(?:\\s*\\(\\s*([0-9.,kKmM]+)\\$?\\s*\\+\\s*([0-9.,kKmM]+)\\$?\\s*tax\\))?");
     private static final Pattern PRICE_FALLBACK_PATTERN = Pattern.compile("(?i)^\\s*\\$\\s*([0-9.,kKmM]+)\\s*$|^\\s*([0-9.,kKmM]+)\\s*\\$\\s*$");
 
     private static final Map<String, AhListing> cachedListings = new ConcurrentHashMap<>();
+    private static final Set<Integer> currentScreenCheapestSlots = Collections.newSetFromMap(new ConcurrentHashMap<>());
     private static long lastScanTime = 0;
     private static Set<String> lastKnownSearchEnchants = Collections.emptySet();
 
@@ -96,6 +97,11 @@ public class AhPriceManager {
 
     public static void clearCache() {
         cachedListings.clear();
+        currentScreenCheapestSlots.clear();
+    }
+
+    public static boolean isCheapestSlot(int slotIndex) {
+        return currentScreenCheapestSlots.contains(slotIndex);
     }
 
     /**
@@ -314,31 +320,56 @@ public class AhPriceManager {
 
     public static long parseMoneyAmount(String str) {
         if (str == null) return 0;
-        String clean = str.trim();
-        if (clean.isEmpty()) return 0;
+        String s = str.trim();
+        if (s.isEmpty()) return 0;
 
-        double multiplier = 1.0;
-        if (clean.toLowerCase().endsWith("m")) {
-            multiplier = 1_000_000.0;
-            clean = clean.substring(0, clean.length() - 1).trim();
-        } else if (clean.toLowerCase().endsWith("k")) {
-            multiplier = 1_000.0;
-            clean = clean.substring(0, clean.length() - 1).trim();
+        double mult = 1.0;
+        String lower = s.toLowerCase();
+        if (lower.endsWith("kkk") || lower.endsWith("b")) {
+            mult = 1_000_000_000.0;
+            s = s.replaceAll("(?i)(?:kkk|b)$", "").trim();
+        } else if (lower.endsWith("kk") || lower.endsWith("m")) {
+            mult = 1_000_000.0;
+            s = s.replaceAll("(?i)(?:kk|m)$", "").trim();
+        } else if (lower.endsWith("k")) {
+            mult = 1_000.0;
+            s = s.replaceAll("(?i)k$", "").trim();
         }
 
-        // Se ha formato italiano come 50.000 o 1.250 (punto seguito da 3 cifre)
-        if (clean.matches(".*\\d+\\.\\d{3}(?:\\.\\d{3})*.*")) {
-            clean = clean.replace(".", "");
-        } else if (clean.contains(",") && !clean.contains(".")) {
-            clean = clean.replace(',', '.');
-        } else if (clean.contains(".") && clean.contains(",")) {
-            clean = clean.replace(".", "").replace(',', '.');
+        // Rimuove qualsiasi simbolo non numerico tranne virgola e punto
+        s = s.replaceAll("[^0-9.,]", "").trim();
+        if (s.isEmpty()) return 0;
+
+        // Gestione formati valuta con separatore delle migliaia:
+        // Es. "2,688" o "2,400" (formato con virgola migliaia) -> "2688"
+        // Es. "50.000" o "1.500.000" (formato europeo con punto migliaia) -> "50000"
+        if (s.contains(",") && s.contains(".")) {
+            int lastComma = s.lastIndexOf(',');
+            int lastDot = s.lastIndexOf('.');
+            if (lastDot > lastComma) {
+                // "1,250,000.50" -> virgola separa migliaia, punto separa decimali
+                s = s.replace(",", "");
+            } else {
+                // "1.250.000,50" -> punto separa migliaia, virgola separa decimali
+                s = s.replace(".", "").replace(',', '.');
+            }
+        } else if (s.contains(",")) {
+            // Se la virgola è seguita da esattamente 3 cifre finali, è un separatore di migliaia (es: 2,688 o 1,500,000)
+            if (s.matches("^\\d{1,3}(?:,\\d{3})+$") || s.matches("^\\d+,\\d{3}$")) {
+                s = s.replace(",", "");
+            } else {
+                s = s.replace(',', '.');
+            }
+        } else if (s.contains(".")) {
+            // Se il punto è seguito da esattamente 3 cifre finali (es: 50.000 o 1.500.000)
+            if (s.matches("^\\d{1,3}(?:\\.\\d{3})+$") || s.matches("^\\d+\\.\\d{3}$")) {
+                s = s.replace(".", "");
+            }
         }
 
-        clean = clean.replaceAll("[^0-9.]", "").trim();
         try {
-            double val = Double.parseDouble(clean);
-            return (long) Math.round(val * multiplier);
+            double val = Double.parseDouble(s);
+            return (long) Math.round(val * mult);
         } catch (NumberFormatException e) {
             return 0;
         }
@@ -386,7 +417,7 @@ public class AhPriceManager {
     }
 
     private static class ParsedInfo {
-        String seller = "Player";
+        String seller = "Sconosciuto";
         long price = -1;
         long netPrice = -1;
         long tax = 0;
@@ -399,10 +430,25 @@ public class AhPriceManager {
             String clean = comp.getString().replaceAll("(?i)§[0-9a-fk-orx]", "").trim();
             if (clean.isEmpty()) continue;
 
-            if (info.seller.equals("Player")) {
+            if (info.seller.equals("Sconosciuto")) {
                 Matcher sm = SELLER_PATTERN.matcher(clean);
                 if (sm.find()) {
                     info.seller = sm.group(1).trim();
+                } else {
+                    String lower = clean.toLowerCase();
+                    if (lower.contains("seller") || lower.contains("venditore")) {
+                        int idx = Math.max(lower.indexOf("seller"), lower.indexOf("venditore"));
+                        String after = clean.substring(idx).replaceAll("(?i)^(?:seller|venditore)\\s*[:\\-]?\\s*", "").trim();
+                        after = after.replaceAll("^\\[[^\\]]*\\]\\s*", "").trim();
+                        String[] words = after.split("[\\s,;]+");
+                        for (String w : words) {
+                            String cand = w.replaceAll("[^a-zA-Z0-9_]", "");
+                            if (cand.length() >= 3 && cand.length() <= 16) {
+                                info.seller = cand;
+                                break;
+                            }
+                        }
+                    }
                 }
             }
 
@@ -434,7 +480,10 @@ public class AhPriceManager {
         if (mc.player == null) return;
 
         Set<String> searchEnchants = getEffectiveSearchEnchants();
-        if (searchEnchants == null || searchEnchants.isEmpty()) return;
+        if (searchEnchants == null || searchEnchants.isEmpty()) {
+            currentScreenCheapestSlots.clear();
+            return;
+        }
 
         // Se l'utente ha cambiato i filtri di ricerca, azzera la cache
         if (!searchEnchants.equals(lastKnownSearchEnchants)) {
@@ -442,11 +491,16 @@ public class AhPriceManager {
             lastKnownSearchEnchants = new HashSet<>(searchEnchants);
         }
 
+        // Scansione reattiva istantanea (eseguita a ogni frame/tick senza attese)
         long now = System.currentTimeMillis();
-        if (now - lastScanTime < 100) return;
+        if (now - lastScanTime < 20) return;
         lastScanTime = now;
 
         List<Slot> slots = screen.getMenu().slots;
+        Map<String, Long> minPriceOnScreen = new HashMap<>();
+        Map<Integer, String> slotEnchantMap = new HashMap<>();
+        Map<Integer, Long> slotPriceMap = new HashMap<>();
+
         for (Slot slot : slots) {
             if (slot.container == mc.player.getInventory()) continue;
 
@@ -468,8 +522,29 @@ public class AhPriceManager {
             if (info.price > 0) {
                 AhListing listing = new AhListing(singleId, eName, level, info.seller, info.price, info.netPrice, info.tax);
                 cachedListings.put(listing.key, listing);
+
+                slotEnchantMap.put(slot.index, singleId);
+                slotPriceMap.put(slot.index, info.price);
+
+                long currentMin = minPriceOnScreen.getOrDefault(singleId, Long.MAX_VALUE);
+                if (info.price < currentMin) {
+                    minPriceOnScreen.put(singleId, info.price);
+                }
             }
         }
+
+        // Aggiorna gli slot che detengono il prezzo più basso sullo schermo attuale per ciascun incantesimo
+        Set<Integer> newCheapest = new HashSet<>();
+        for (Map.Entry<Integer, Long> entry : slotPriceMap.entrySet()) {
+            int sIdx = entry.getKey();
+            long p = entry.getValue();
+            String eId = slotEnchantMap.get(sIdx);
+            if (eId != null && minPriceOnScreen.containsKey(eId) && p == minPriceOnScreen.get(eId)) {
+                newCheapest.add(sIdx);
+            }
+        }
+        currentScreenCheapestSlots.clear();
+        currentScreenCheapestSlots.addAll(newCheapest);
     }
 
     public static boolean handleMouseClicked(double mouseX, double mouseY, int button) {
@@ -493,12 +568,15 @@ public class AhPriceManager {
         Minecraft mc = Minecraft.getInstance();
         Font font = mc.font;
 
-        int sideW = 168;
+        // Larghezza ottimizzata adattiva (186px default per far entrare bene nomi e venditori)
+        int availableLeft = leftPos - 8;
+        int sideW = Math.min(190, Math.max(165, availableLeft));
         int sideX = leftPos - sideW - 6;
-        if (sideX < 4 && (screen.width - (leftPos + imageWidth)) > sideW + 10) {
+        if (sideX < 2 && (screen.width - (leftPos + imageWidth)) >= 170) {
             sideX = leftPos + imageWidth + 6;
+            sideW = Math.min(190, screen.width - sideX - 4);
         }
-        sideX = Math.max(4, sideX);
+        sideX = Math.max(2, sideX);
         int sideY = topPos;
         int sideH = imageHeight;
 
@@ -506,13 +584,13 @@ public class AhPriceManager {
         extractor.outline(sideX - 1, sideY - 1, sideW + 2, sideH + 2, 0xFF000000);
         extractor.fill(sideX, sideY, sideX + sideW, sideY + sideH, 0xF50F111A);
 
-        // Barra accento superiore verde smeraldo (AH / Economia)
-        extractor.fill(sideX, sideY, sideX + sideW, sideY + 2, 0xFF10B981);
+        // Barra accento superiore arancione vivido (collegata al miglior affare)
+        extractor.fill(sideX, sideY, sideX + sideW, sideY + 2, 0xFFF97316);
         extractor.outline(sideX, sideY, sideW, sideH, 0xFF2A2D40);
 
         // Titolo Header
         extractor.text(font, "⚡ PREZZI AH", sideX + 8, sideY + 6, 0xFFFFFFFF, true);
-        extractor.text(font, "LIVE", sideX + 88, sideY + 6, 0xFF34D399, true);
+        extractor.text(font, "LIVE", sideX + 86, sideY + 6, 0xFFF97316, true);
 
         Set<String> searchEnchants = getEffectiveSearchEnchants();
 
@@ -539,7 +617,7 @@ public class AhPriceManager {
 
             extractor.centeredText(font, "Nessun filtro AH", sideX + (sideW / 2), cardY + 36, 0xFFFFFFFF);
             extractor.centeredText(font, "Apri il Catalogo [N],", sideX + (sideW / 2), cardY + 52, 0xFF9CA3AF);
-            extractor.centeredText(font, "premi [+ Cerca AH]", sideX + (sideW / 2), cardY + 64, 0xFF34D399);
+            extractor.centeredText(font, "premi [+ Cerca AH]", sideX + (sideW / 2), cardY + 64, 0xFFF97316);
             extractor.centeredText(font, "oppure pinna un set!", sideX + (sideW / 2), cardY + 76, 0xFF9CA3AF);
             return;
         }
@@ -563,9 +641,9 @@ public class AhPriceManager {
         } else {
             filterInfo = filterCount + " incanti cercati";
         }
-        extractor.text(font, "§7Cerca: §e" + trimToWidth(font, filterInfo, sideW - 55), sideX + 8, curY, 0xFFFBBF24, false);
+        extractor.text(font, "§7Cerca: §e" + trimToWidth(font, filterInfo, sideW - 65), sideX + 8, curY, 0xFFFBBF24, false);
         curY += 10;
-        extractor.text(font, "§a✔ Solo libri lisci", sideX + 8, curY, 0xFF34D399, false);
+        extractor.text(font, "§6✔ Libri lisci (Migliori in Arancio)", sideX + 8, curY, 0xFFF97316, false);
         curY += 12;
 
         if (matchingListings.isEmpty()) {
@@ -585,27 +663,44 @@ public class AhPriceManager {
             return;
         }
 
-        // 1. Box Miglior Prezzo (Top 1 più economico)
+        // Variabili per il tooltip al passaggio del mouse
+        AhListing hoveredListing = null;
+        boolean hoveredIsBest = false;
+        int hoveredRank = 1;
+
+        // 1. Box Miglior Prezzo (Top 1 più economico in Arancione / Ambra)
         AhListing best = matchingListings.get(0);
         int bestBoxY = curY;
-        int bestBoxH = 40;
-        extractor.fill(sideX + 5, bestBoxY, sideX + sideW - 5, bestBoxY + bestBoxH, 0x3310B981);
-        extractor.outline(sideX + 5, bestBoxY, sideW - 10, bestBoxH, 0xFF10B981);
+        int bestBoxH = 43;
+        boolean isBestHovered = mouseX >= sideX + 5 && mouseX <= sideX + sideW - 5 && mouseY >= bestBoxY && mouseY <= bestBoxY + bestBoxH;
+        if (isBestHovered) {
+            hoveredListing = best;
+            hoveredIsBest = true;
+            hoveredRank = 1;
+        }
 
-        extractor.text(font, "🏆 MIGLIOR PREZZO:", sideX + 8, bestBoxY + 3, 0xFFFBBF24, false);
-        String bestName = trimToWidth(font, best.getDisplayNameWithLevel(), sideW - 24);
-        extractor.text(font, bestName, sideX + 8, bestBoxY + 13, 0xFFFFFFFF, false);
-        extractor.text(font, "💰 §a" + best.formattedPrice + " §7(da " + trimToWidth(font, best.seller, 55) + ")", sideX + 8, bestBoxY + 23, 0xFF34D399, false);
-        extractor.text(font, "§8" + best.formattedBreakdown, sideX + 8, bestBoxY + 31, 0xFF059669, false);
+        int bestBg = isBestHovered ? 0x48F97316 : 0x30F97316;
+        int bestBorder = isBestHovered ? 0xFFFED7AA : 0xFFF97316;
+        extractor.fill(sideX + 5, bestBoxY, sideX + sideW - 5, bestBoxY + bestBoxH, bestBg);
+        extractor.outline(sideX + 5, bestBoxY, sideW - 10, bestBoxH, bestBorder);
+
+        extractor.text(font, "🏆 MIGLIOR PREZZO:", sideX + 8, bestBoxY + 3, 0xFFFED7AA, false);
+        String bestName = trimToWidth(font, best.getDisplayNameWithLevel(), sideW - 20);
+        extractor.text(font, bestName, sideX + 8, bestBoxY + 13, 0xFFFFFFFF, true);
+
+        String sellerDisplay = trimToWidth(font, best.seller, 65);
+        String bestPriceLine = "💰 §6" + best.formattedPrice + " §7(da " + sellerDisplay + ")";
+        extractor.text(font, bestPriceLine, sideX + 8, bestBoxY + 23, 0xFFFFA500, false);
+        extractor.text(font, "§e" + best.formattedBreakdown, sideX + 8, bestBoxY + 33, 0xFFFDBA74, false);
 
         curY = bestBoxY + bestBoxH + 5;
 
-        // 2. Lista altri prezzi trovati (fino a 6 elementi successivi)
+        // 2. Lista altri prezzi trovati (fino a 7 elementi successivi)
         extractor.text(font, "Tutti i prezzi (" + matchingListings.size() + "):", sideX + 8, curY, 0xFF9CA3AF, false);
         curY += 10;
 
-        int rowH = 16;
-        int maxRows = Math.min(6, matchingListings.size());
+        int rowH = 15;
+        int maxRows = Math.min(7, matchingListings.size());
 
         for (int i = 0; i < maxRows; i++) {
             AhListing l = matchingListings.get(i);
@@ -614,28 +709,105 @@ public class AhPriceManager {
             int itemY = curY + i * rowH;
             if (itemY + rowH > sideY + sideH - 16) break;
 
-            int rowBg = isTop ? 0x2510B981 : (i % 2 == 0 ? 0x201E293B : 0x101E293B);
+            boolean isRowHovered = mouseX >= sideX + 5 && mouseX <= sideX + sideW - 5 && mouseY >= itemY && mouseY <= itemY + rowH - 1;
+            if (isRowHovered) {
+                hoveredListing = l;
+                hoveredIsBest = isTop;
+                hoveredRank = i + 1;
+            }
+
+            int rowBg = isRowHovered ? (isTop ? 0x50F97316 : 0x35334155) : (isTop ? 0x22F97316 : (i % 2 == 0 ? 0x181E293B : 0x0D1E293B));
             extractor.fill(sideX + 5, itemY, sideX + sideW - 5, itemY + rowH - 1, rowBg);
+            if (isRowHovered) {
+                extractor.outline(sideX + 5, itemY, sideW - 10, rowH - 1, isTop ? 0xFFF97316 : 0xFF475569);
+            }
 
-            // Pallino o rango
+            // Rango (#1 arancione, altri slate)
             String rank = (i + 1) + ".";
-            extractor.text(font, rank, sideX + 8, itemY + 3, isTop ? 0xFFFBBF24 : 0xFF6B7280, false);
+            extractor.text(font, rank, sideX + 8, itemY + 3, isTop ? 0xFFF97316 : 0xFF64748B, false);
 
-            // Prezzo
-            extractor.text(font, l.formattedPrice, sideX + 22, itemY + 3, isTop ? 0xFF34D399 : 0xFFE2E8F0, false);
+            // Prezzo formattato
+            extractor.text(font, l.formattedPrice, sideX + 22, itemY + 3, isTop ? 0xFFFFA500 : 0xFFE2E8F0, false);
 
-            // Nome incanto abbreviato & venditore
+            // Nome incanto
             String sub = AnvilOptimizer.formatEnchantName(l.enchantName, l.level);
-            String subTrimmed = trimToWidth(font, sub, 55);
-            extractor.text(font, subTrimmed, sideX + 78, itemY + 3, isTop ? 0xFFA5B4FC : 0xFF94A3B8, false);
+            String subTrimmed = trimToWidth(font, sub, 65);
+            extractor.text(font, subTrimmed, sideX + 78, itemY + 3, isTop ? 0xFFFFF0D0 : 0xFF94A3B8, false);
 
-            String sellerTrimmed = trimToWidth(font, l.seller, 32);
-            extractor.text(font, sellerTrimmed, sideX + sideW - 36, itemY + 3, 0xFF64748B, false);
+            // Venditore allineato a destra
+            String sellerTrimmed = trimToWidth(font, l.seller, Math.max(35, sideW - 146));
+            extractor.text(font, sellerTrimmed, sideX + sideW - font.width(sellerTrimmed) - 8, itemY + 3, isTop ? 0xFFFED7AA : 0xFF64748B, false);
         }
 
         // Footer informativo
         int footerY = sideY + sideH - 12;
-        extractor.centeredText(font, "💡 Sfoglia /ah per aggiornare", sideX + (sideW / 2), footerY, 0xFF6B7280);
+        extractor.centeredText(font, "💡 Sfoglia /ah per aggiornare", sideX + (sideW / 2), footerY, 0xFF64748B);
+
+        // Rendering tooltip interattivo su hover del mouse
+        if (hoveredListing != null) {
+            renderListingTooltip(extractor, font, hoveredListing, hoveredIsBest, hoveredRank, mouseX, mouseY, screen.width, screen.height);
+        }
+    }
+
+    private static void renderListingTooltip(GuiGraphicsExtractor extractor, Font font, AhListing listing, boolean isBest, int rank, int mouseX, int mouseY, int screenW, int screenH) {
+        if (listing == null) return;
+
+        List<Component> lines = new ArrayList<>();
+        if (isBest) {
+            lines.add(Component.literal("§6🏆 MIGLIOR PREZZO AH #1"));
+        } else {
+            lines.add(Component.literal("§e📋 OFFERTA IN CLASSIFICA #" + rank));
+        }
+        lines.add(Component.literal("§f📙 " + listing.getDisplayNameWithLevel()));
+        lines.add(Component.empty());
+        lines.add(Component.literal("§7Prezzo Totale:   " + (isBest ? "§6" : "§a") + listing.formattedPrice));
+        if (listing.tax > 0) {
+            lines.add(Component.literal("§7Netto Venditore: §f" + AhListing.formatPrice(listing.netPrice)));
+            lines.add(Component.literal("§7Tassa Asta:     §c" + AhListing.formatPrice(listing.tax)));
+        }
+        lines.add(Component.literal("§7Venditore:      §b" + listing.seller));
+        lines.add(Component.empty());
+        if (isBest) {
+            lines.add(Component.literal("§6👉 Evidenziato in §eARANCIONE §6nella cassa!"));
+        } else {
+            lines.add(Component.literal("§2👉 Evidenziato in §aVERDE §2nella cassa"));
+        }
+        lines.add(Component.literal("§8💡 Clicca sul libro per acquistarlo subito in /ah"));
+
+        int maxW = 160;
+        for (Component c : lines) {
+            maxW = Math.max(maxW, font.width(c));
+        }
+        int tipW = maxW + 16;
+        int tipH = lines.size() * 11 + 10;
+
+        int tipX = mouseX + 12;
+        int tipY = mouseY - 12;
+
+        if (tipX + tipW > screenW - 4) {
+            tipX = mouseX - tipW - 8;
+        }
+        if (tipY + tipH > screenH - 4) {
+            tipY = screenH - tipH - 4;
+        }
+        if (tipY < 4) tipY = 4;
+        if (tipX < 4) tipX = 4;
+
+        // Scatola Dark Glass per il tooltip
+        extractor.outline(tipX - 1, tipY - 1, tipW + 2, tipH + 2, 0xFF000000);
+        extractor.fill(tipX, tipY, tipX + tipW, tipY + tipH, 0xF80E111A);
+        extractor.fill(tipX, tipY, tipX + tipW, tipY + 2, isBest ? 0xFFF97316 : 0xFF10B981);
+        extractor.outline(tipX, tipY, tipW, tipH, isBest ? 0xFFEA580C : 0xFF2A2D40);
+
+        int textY = tipY + 6;
+        for (Component line : lines) {
+            if (line.getString().isEmpty()) {
+                textY += 4;
+            } else {
+                extractor.text(font, line, tipX + 8, textY, 0xFFFFFFFF, true);
+                textY += 11;
+            }
+        }
     }
 
     private static String trimToWidth(Font font, String s, int maxWidth) {
