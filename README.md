@@ -1,12 +1,12 @@
 # ⚡ Litness Enchant Helper
 
-[![DOWNLOAD MOD (.JAR)](https://img.shields.io/badge/⬇️%20SCARICA%20SUBITO%20LA%20MOD%20(.JAR)-VERSIONE%201.2.2-22c55e?style=for-the-badge&logo=curseforge&logoColor=white)](https://github.com/Infezione/litness-enchant-helper/releases/download/v1.2.2/LitnessEnchantHelper-1.2.2.jar)
+[![DOWNLOAD MOD (.JAR)](https://img.shields.io/badge/⬇️%20SCARICA%20SUBITO%20LA%20MOD%20(.JAR)-VERSIONE%201.2.3-22c55e?style=for-the-badge&logo=curseforge&logoColor=white)](https://github.com/Infezione/litness-enchant-helper/releases/download/v1.2.3/LitnessEnchantHelper-1.2.3.jar)
 [![ULTIMI AGGIORNAMENTI](https://img.shields.io/badge/🔄%20ULTIMI%20AGGIORNAMENTI-VEDI%20LE%20NOVITÀ-6366f1?style=for-the-badge&logo=sparkles&logoColor=white)](#ultimi-aggiornamenti)
 
 ![Minecraft](https://img.shields.io/badge/Minecraft-26.2-brightgreen.svg)
 ![Fabric](https://img.shields.io/badge/ModLoader-Fabric-blue.svg)
 ![Lunar Client](https://img.shields.io/badge/Lunar%20Client-Compatible-informational.svg)
-![Release](https://img.shields.io/badge/Release-v1.2.2-blueviolet.svg)
+![Release](https://img.shields.io/badge/Release-v1.2.3-blueviolet.svg)
 ![Author](https://img.shields.io/badge/Author-Waaxey-purple.svg)
 
 > [!TIP]
@@ -107,13 +107,13 @@ Sul server Litness, forgiare spade, archi, picconi o armature con 10–12 incant
 <a id="ultimi-aggiornamenti" name="ultimi-aggiornamenti"></a>
 <a id="-ultimi-aggiornamenti" name="-ultimi-aggiornamenti"></a>
 
-## 🔄 Ultimi Aggiornamenti (v1.2.2)
+## 🔄 Ultimi Aggiornamenti (v1.2.3)
 
-- 💰 **Correzione Completa Calcolo Prezzi & Tasse in `/ah`**: Risolto definitivamente l'errore di interpretazione dei prezzi con formattazione a virgola del server (es. `2,688$` e `2,400$` venivano erroneamente arrotondati a `3$` e `2$`). Ora qualsiasi cifra (anche con separatori delle migliaia `,` o `.`, e moltiplicatori) viene letta, calcolata e formattata con precisione matematica assoluta.
-- 🟠 **Evidenziazione in Arancione del Prezzo Più Basso**: L'offerta con il prezzo più basso sullo schermo viene ora evidenziata nella griglia della cassa/asta con un contorno e riempimento **Arancione / Ambra brillante** (`#FF9900`), distinguendosi all'istante dagli altri libri corrispondenti che restano evidenziati in verde smeraldo standard.
-- 🔍 **Tooltip Informativi al Passaggio del Mouse (Hover Info)**: Passando il cursore sul box "Miglior Prezzo" o su qualsiasi riga della classifica nella barra laterale, compare ora un popup completo con tutte le informazioni: nome completo dell'incanto, livello, prezzo totale, prezzo netto del venditore, tassa asta, nome del venditore e indicazione sul colore dello slot nella cassa.
-- ⚡ **Scansione Ultra-Reattiva & Istantanea**: Eliminato ogni ritardo e throttle di scansione; il rilevamento dei libri in asta e l'aggiornamento della classifica prezzi a sinistra avvengono ora a ogni tick/frame in tempo reale non appena si sfogliano le pagine di `/ah`.
-- 🎨 **GUI della Sidebar Migliorata & Allargata**: Larghezza del pannello laterale aumentata e resa adattiva per ospitare senza tagli né puntini di sospensione sia i nomi degli incantesimi che i nickname dei venditori. Box "Miglior Prezzo" rinnovato con tema arancione coerente.
+- 🎨 **Icone Native di Minecraft nei Menu & Ricerca AH**: Sostituite tutte le vecchie emoji Unicode con i veri sprite 16x16 originali di Minecraft (Spada, Arco, Corazza, Elmo, Gambali, Stivali, Elitre, Mazza, Tridente, Piccone, Balestra, Zappa, Canna da pesca, ecc.). Le icone sono visibili nelle categorie, sottomenu, creazione set, filtri catalogo e nella tendina di ricerca rapida `/ah`.
+- ⚔️ **Supporto Completo ad Armi, Archi e Strumenti**: Aggiunta la simulazione e calcolo passi all'incudine per Mazza, Tridente, Balestra, Canna da pesca e tutti gli attrezzi vanilla e custom.
+- 🔍 **Fix Digitazione Ricerca in `/ah`**: Risolto il problema che impediva di scrivere nella barra di ricerca rapida della sidebar aste; il tasto 'E' non chiude più l'asta mentre si digita.
+- 📌 **Tracciatore HUD Set Pinnati**: L'HUD ora ignora l'armatura indossata dal player, concentrandosi solo sull'oggetto tenuto in mano o nell'incudine.
+- ❓ **Badge Info [?] all'Incudine**: Spiegazione interattiva chiara che illustra la differenza tra la Guida teorica e l'Assistente Dinamico live.
 
 ---
 
@@ -132,7 +132,7 @@ Sul server Litness, forgiare spade, archi, picconi o armature con 10–12 incant
 ## 📥 Installazione
 
 ### Metodo 1: Per Lunar Client (Consigliato)
-1. Scarica il file **`LitnessEnchantHelper-1.2.2.jar`** dall'area [Releases](../../releases).
+1. Scarica il file **`LitnessEnchantHelper-1.2.3.jar`** dall'area [Releases](../../releases).
 2. Premi sulla tastiera `Win + R`, incolla la seguente stringa e premi **Invio**:
    ```text
    %userprofile%\.lunarclient\profiles\26\mods\fabric-26.2\
@@ -142,7 +142,7 @@ Sul server Litness, forgiare spade, archi, picconi o armature con 10–12 incant
 
 ### Metodo 2: Per Fabric Launcher Standard
 1. Assicurati di avere installato **Fabric Loader** per Minecraft 26.2 e la **Fabric API**.
-2. Posiziona il file `LitnessEnchantHelper-1.2.2.jar` nella cartella `.minecraft/mods/`.
+2. Posiziona il file `LitnessEnchantHelper-1.2.3.jar` nella cartella `.minecraft/mods/`.
 3. Avvia il gioco.
 
 ---
