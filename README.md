@@ -68,7 +68,7 @@ Sul server Litness, forgiare spade, archi, picconi o armature con 10–12 incant
 ---
 
 ### 4. 📌 Pin HUD Checklist in Gioco (Real-Time Tracking)
-![Pin HUD In Gioco](docs/images/preview_hud.png)
+![Pin HUD In Gioco](docs/images/preview_hud_v125.png)
 - **Checklist Sempre Attiva a Schermo**: segui l'avanzamento del tuo set direttamente in partita senza dover riaprire i menù.
 - **Tre Stati Visivi Intelligenti**:
   - 🟢 `✔ In Inventario`: se il libro incantato è presente nel tuo inventario.
