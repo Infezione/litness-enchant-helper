@@ -31,7 +31,7 @@ Sul server Litness, forgiare spade, archi, picconi o armature con 10–12 incant
 ## 🚀 Funzionalità Dettagliate
 
 ### 1. ⚡ Assistente Incudine in Tempo Reale
-![Assistente Incudine](docs/images/preview_anvil.png)
+![Assistente Incudine](docs/images/preview_anvil_v125.png)
 - **Sidebar integrata in Dark Glass**: non appena apri un'incudine di gioco, compare lateralmente un'elegante interfaccia trasparente a tema scuro perfettamente allineata alla GUI nativa di Minecraft.
 - **Ologramma Pulsante (Ghost Slot)**: quando lo slot 1 dell'incudine è vuoto, viene renderizzata una sagoma olografica semitrasparente e dorata che pulsa morbidamente, con il tooltip: *"Inserisci l'item desiderato per iniziare la guida."*. L'ologramma svanisce istantaneamente non appena posizioni l'arma o l'armatura!
 - **Analisi Intelligente Maxabilità & Limite 39 Livelli ("Troppo Costoso!")**:
