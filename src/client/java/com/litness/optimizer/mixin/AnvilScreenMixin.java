@@ -55,7 +55,7 @@ public abstract class AnvilScreenMixin extends ItemCombinerScreen<AnvilMenu> {
     }
 
     private int getSidebarWidth() {
-        return 160;
+        return 182;
     }
 
     private int getSidebarX() {
@@ -80,12 +80,14 @@ public abstract class AnvilScreenMixin extends ItemCombinerScreen<AnvilMenu> {
     private void litness_addOptimizerButton(CallbackInfo ci) {
         int sideW = getSidebarWidth();
         int sideX = getSidebarX();
-        int btnY = this.topPos + this.imageHeight - 20;
+        int sideY = this.topPos - 14;
+        int sideH = this.imageHeight + 10;
+        int btnY = sideY + sideH + 3;
 
         // 1. Tasto nella sidebar sotto l'helper
         this.addRenderableWidget(Button.builder(Component.literal("📋 Guida Completa [N]"), button -> {
             openOptimizer();
-        }).bounds(sideX, btnY, sideW, 20).build());
+        }).bounds(sideX, btnY, sideW, 18).build());
 
         // 2. Tasto rapido direttamente sopra l'incudine (nessuna sovrapposizione con il titolo)
         int topBtnW = 80;
@@ -111,8 +113,8 @@ public abstract class AnvilScreenMixin extends ItemCombinerScreen<AnvilMenu> {
 
             int sideW = getSidebarWidth();
             int sideX = getSidebarX();
-            int sideY = this.topPos;
-            int sideH = this.imageHeight - 24;
+            int sideY = this.topPos - 14;
+            int sideH = this.imageHeight + 10;
 
             // Box scuro elegante laterale (stile dark glass premium)
             extractor.fill(sideX, sideY, sideX + sideW, sideY + sideH, 0xF20F111A);
@@ -146,36 +148,36 @@ public abstract class AnvilScreenMixin extends ItemCombinerScreen<AnvilMenu> {
 
                 // Box interno per l'oggetto inserito
                 int wellY = sideY + 18;
-                int wellH = 37;
+                int wellH = 38;
                 extractor.fill(sideX + 6, wellY, sideX + sideW - 6, wellY + wellH, 0x60161826);
                 extractor.outline(sideX + 6, wellY, sideW - 12, wellH, 0xFF26293D);
 
                 // Icona 3D dell'oggetto
-                extractor.fakeItem(slot0, sideX + 9, wellY + 10);
+                extractor.fakeItem(slot0, sideX + 9, wellY + 11);
 
                 // Nome oggetto
                 String itemName = slot0.getHoverName().getString();
-                String trimmedName = trimToWidth(itemName, sideW - 44);
+                String trimmedName = trimToWidth(itemName, sideW - 38);
                 extractor.text(this.font, trimmedName, sideX + 30, wellY + 4, 0xFFFFFFFF, false);
 
                 // Penalità di lavoro
                 if (penalty == 0) {
-                    extractor.text(this.font, "Penalità: 0 liv.", sideX + 30, wellY + 14, 0xFF34D399, false);
+                    extractor.text(this.font, "Penalità: 0 liv.", sideX + 30, wellY + 15, 0xFF34D399, false);
                 } else {
-                    extractor.text(this.font, "Penalità: +" + penalty + " liv.", sideX + 30, wellY + 14, 0xFFF59E0B, false);
+                    extractor.text(this.font, "Penalità: +" + penalty + " liv.", sideX + 30, wellY + 15, 0xFFF59E0B, false);
                 }
 
                 // Analisi Maxabilità (se il player ha già incantato senza guida)
                 com.litness.optimizer.calculator.MaxabilityAnalyzer.MaxabilityResult maxability =
                         com.litness.optimizer.calculator.MaxabilityAnalyzer.analyze(slot0, cachedSlot0Enchants);
                 String maxBadge = trimToWidth(maxability.statusBadge, sideW - 36);
-                extractor.text(this.font, maxBadge, sideX + 30, wellY + 25, 0xFFFFFFFF, false);
+                extractor.text(this.font, maxBadge, sideX + 30, wellY + 26, 0xFFFFFFFF, false);
 
                 if (mouseX >= sideX + 6 && mouseX <= sideX + sideW - 6 && mouseY >= wellY && mouseY <= wellY + wellH) {
                     com.litness.optimizer.gui.AnvilTooltipState.hoveredMaxabilityResult = maxability;
                 }
 
-                int curY = wellY + wellH + 4;
+                int curY = wellY + wellH + 5;
 
                 // Incantesimi già presenti sull'oggetto
                 if (!cachedSlot0Enchants.isEmpty()) {
@@ -200,9 +202,9 @@ public abstract class AnvilScreenMixin extends ItemCombinerScreen<AnvilMenu> {
                 }
 
                 // Card Prossima Mossa
-                int cardBottom = sideY + sideH - 12;
-                int moveY = Math.max(curY + 3, sideY + 54);
-                int moveH = Math.max(44, cardBottom - moveY);
+                int cardBottom = sideY + sideH - 7;
+                int moveY = Math.max(curY + 4, sideY + 60);
+                int moveH = cardBottom - moveY;
 
                 if (cachedSolution != null && !cachedSolution.steps.isEmpty()) {
                     MergeStep nextStep = cachedSolution.steps.get(0);
@@ -246,30 +248,36 @@ public abstract class AnvilScreenMixin extends ItemCombinerScreen<AnvilMenu> {
                     String icon = ItemTypeHelper.getActionIcon(cachedItemKey);
 
                     String badge = nextStep.isBookToBook 
-                        ? "🔨 UNISCI LIBRI (1/" + totalSteps + ")" 
+                        ? "🔨 UNISCI 2 LIBRI (1/" + totalSteps + ")" 
                         : icon + " " + actionName + " (1/" + totalSteps + ")";
                     int badgeColor = nextStep.isBookToBook ? 0xFFFBBF24 : 0xFF34D399;
-                    extractor.text(this.font, badge, sideX + 10, moveY + 4, badgeColor, false);
+                    extractor.text(this.font, badge, sideX + 10, moveY + 5, badgeColor, false);
 
                     if (!slot1.isEmpty()) {
                         if (activeConflict != null) {
-                            extractor.text(this.font, "§e⚠️ Conflitto!", sideX + sideW - 68, moveY + 4, 0xFFFBBF24, false);
+                            extractor.text(this.font, "§e⚠️ Conflitto!", sideX + sideW - 68, moveY + 5, 0xFFFBBF24, false);
                         } else {
-                            extractor.text(this.font, "✓ Inserito", sideX + sideW - 54, moveY + 4, 0xFF34D399, false);
+                            extractor.text(this.font, "✓ Inserito", sideX + sideW - 54, moveY + 5, 0xFF34D399, false);
                         }
                     }
 
                     if (nextStep.isBookToBook) {
-                        String l1 = trimToWidth("1. " + nextStep.leftLabel, sideW - 20);
-                        String l2 = trimToWidth("2. " + nextStep.rightLabel, sideW - 20);
-                        extractor.text(this.font, l1, sideX + 10, moveY + 16, 0xFF93C5FD, false);
-                        extractor.text(this.font, l2, sideX + 10, moveY + 26, 0xFFF472B6, false);
-                        extractor.text(this.font, "Costo: " + nextStep.cost + " liv. XP", sideX + 10, moveY + 36, 0xFFFBBF24, false);
+                        String l1 = trimToWidth(nextStep.leftLabel, sideW - 55);
+                        String l2 = trimToWidth(nextStep.rightLabel, sideW - 55);
+                        extractor.text(this.font, "Slot 1: §b" + l1, sideX + 10, moveY + 18, 0xFF9CA3AF, false);
+                        extractor.text(this.font, "Slot 2: §d" + l2, sideX + 10, moveY + 30, 0xFF9CA3AF, false);
+                        extractor.text(this.font, "⚡ Costo: §a" + nextStep.cost + " liv. XP", sideX + 10, moveY + 42, 0xFF34D399, false);
+                        if (!slot0.is(Items.ENCHANTED_BOOK) && !slot0.is(Items.BOOK) && moveH >= 65) {
+                            extractor.text(this.font, "§6💡 Metti prima i 2 libri", sideX + 10, moveY + 54, 0xFFF59E0B, false);
+                        }
                     } else {
-                        extractor.text(this.font, "Metti nello slot 2:", sideX + 10, moveY + 15, 0xFFE0E7FF, false);
+                        extractor.text(this.font, "Metti nello §eSlot 2§7:", sideX + 10, moveY + 18, 0xFFE0E7FF, false);
                         String bName = trimToWidth("• " + nextStep.rightLabel, sideW - 20);
-                        extractor.text(this.font, bName, sideX + 10, moveY + 26, 0xFF34D399, false);
-                        extractor.text(this.font, "Costo: " + nextStep.cost + " liv. XP", sideX + 10, moveY + 37, 0xFFFBBF24, false);
+                        extractor.text(this.font, bName, sideX + 10, moveY + 30, 0xFF34D399, false);
+                        extractor.text(this.font, "⚡ Costo: §a" + nextStep.cost + " liv. XP", sideX + 10, moveY + 42, 0xFF34D399, false);
+                        if (moveH >= 65) {
+                            extractor.text(this.font, "§8(Premi [N] per tutta la guida)", sideX + 10, moveY + 54, 0xFF94A3B8, false);
+                        }
                     }
                 } else {
                     maxability = com.litness.optimizer.calculator.MaxabilityAnalyzer.analyze(slot0, cachedSlot0Enchants);
@@ -277,20 +285,20 @@ public abstract class AnvilScreenMixin extends ItemCombinerScreen<AnvilMenu> {
                     extractor.outline(sideX + 6, moveY, sideW - 12, moveH, 0xFF334155);
 
                     if (maxability.status == com.litness.optimizer.calculator.MaxabilityAnalyzer.Status.SATURATED) {
-                        extractor.text(this.font, "§c⛔ TROPPO COSTOSO!", sideX + 10, moveY + 4, 0xFFEF4444, false);
-                        extractor.text(this.font, "Penalità +" + penalty + " troppo alta,", sideX + 10, moveY + 16, 0xFFE2E8F0, false);
-                        extractor.text(this.font, "l'incudine blocca i libri.", sideX + 10, moveY + 26, 0xFF94A3B8, false);
-                        extractor.text(this.font, "Premi [N] per spiegazione", sideX + 10, moveY + 37, 0xFF818CF8, false);
+                        extractor.text(this.font, "§c⛔ TROPPO COSTOSO!", sideX + 10, moveY + 5, 0xFFEF4444, false);
+                        extractor.text(this.font, "Penalità +" + penalty + " troppo alta,", sideX + 10, moveY + 18, 0xFFE2E8F0, false);
+                        extractor.text(this.font, "l'incudine blocca i libri.", sideX + 10, moveY + 30, 0xFF94A3B8, false);
+                        extractor.text(this.font, "Premi [N] per spiegazione", sideX + 10, moveY + 43, 0xFF818CF8, false);
                     } else if (maxability.status == com.litness.optimizer.calculator.MaxabilityAnalyzer.Status.PARTIALLY_MAXABLE) {
-                        extractor.text(this.font, "§e⚠️ ATTENZIONE PENALITÀ", sideX + 10, moveY + 4, 0xFFF59E0B, false);
-                        extractor.text(this.font, "Puoi aggiungere ancora", sideX + 10, moveY + 15, 0xFFE2E8F0, false);
-                        extractor.text(this.font, "fino a §a+" + maxability.maxAddable + " incanti §7con guida.", sideX + 10, moveY + 26, 0xFFFFFFFF, false);
-                        extractor.text(this.font, "Premi [N] per simulare!", sideX + 10, moveY + 37, 0xFF818CF8, false);
+                        extractor.text(this.font, "§e⚠️ ATTENZIONE PENALITÀ", sideX + 10, moveY + 5, 0xFFF59E0B, false);
+                        extractor.text(this.font, "Puoi aggiungere ancora", sideX + 10, moveY + 18, 0xFFE2E8F0, false);
+                        extractor.text(this.font, "fino a §a+" + maxability.maxAddable + " incanti §7con guida.", sideX + 10, moveY + 30, 0xFFFFFFFF, false);
+                        extractor.text(this.font, "Premi [N] per simulare!", sideX + 10, moveY + 43, 0xFF818CF8, false);
                     } else {
-                        extractor.text(this.font, "ENCHANT HELPER", sideX + 10, moveY + 4, 0xFF94A3B8, false);
-                        extractor.text(this.font, "Nessun libro compatibile", sideX + 10, moveY + 16, 0xFFE2E8F0, false);
-                        extractor.text(this.font, "trovato nell'inventario.", sideX + 10, moveY + 26, 0xFF94A3B8, false);
-                        extractor.text(this.font, "Premi [N] per simulare!", sideX + 10, moveY + 37, 0xFF818CF8, false);
+                        extractor.text(this.font, "⚡ ENCHANT HELPER", sideX + 10, moveY + 5, 0xFF94A3B8, false);
+                        extractor.text(this.font, "Nessun libro compatibile", sideX + 10, moveY + 18, 0xFFE2E8F0, false);
+                        extractor.text(this.font, "trovato nell'inventario.", sideX + 10, moveY + 30, 0xFF94A3B8, false);
+                        extractor.text(this.font, "Premi [N] per simulare!", sideX + 10, moveY + 43, 0xFF818CF8, false);
                     }
                 }
             } else {
@@ -329,22 +337,23 @@ public abstract class AnvilScreenMixin extends ItemCombinerScreen<AnvilMenu> {
 
                 // Empty state pulito e curato con suggerimento dinamico dell'oggetto
                 int cardY = sideY + 20;
-                int cardH = sideH - 34;
+                int cardH = sideH - 32;
 
                 extractor.fill(sideX + 6, cardY, sideX + sideW - 6, cardY + cardH, 0x40161826);
                 extractor.outline(sideX + 6, cardY, sideW - 12, cardH, 0xFF2A2D40);
 
-                extractor.fakeItem(ghostItem, sideX + (sideW / 2) - 8, cardY + 10);
+                int midX = sideX + (sideW / 2);
+                extractor.fakeItem(ghostItem, midX - 8, cardY + 18);
 
-                extractor.centeredText(this.font, "Slot 1 vuoto", sideX + (sideW / 2), cardY + 30, 0xFFFFFFFF);
-                extractor.centeredText(this.font, "Inserisci l'item", sideX + (sideW / 2), cardY + 44, 0xFFFCD34D);
-                extractor.centeredText(this.font, "desiderato per", sideX + (sideW / 2), cardY + 55, 0xFFFCD34D);
-                extractor.centeredText(this.font, "iniziare la guida.", sideX + (sideW / 2), cardY + 66, 0xFF9CA3AF);
+                extractor.centeredText(this.font, "Slot 1 vuoto", midX, cardY + 42, 0xFFFFFFFF);
+                extractor.centeredText(this.font, "Inserisci l'item", midX, cardY + 58, 0xFFFCD34D);
+                extractor.centeredText(this.font, "desiderato per", midX, cardY + 70, 0xFFFCD34D);
+                extractor.centeredText(this.font, "iniziare la guida.", midX, cardY + 82, 0xFF9CA3AF);
 
-                int pillY = cardY + cardH - 18;
-                extractor.fill(sideX + 12, pillY, sideX + sideW - 12, pillY + 14, 0x406366F1);
-                extractor.outline(sideX + 12, pillY, sideW - 24, 14, 0x806366F1);
-                extractor.centeredText(this.font, "Premi [N] per il tool", sideX + (sideW / 2), pillY + 3, 0xFFA5B4FC);
+                int pillY = cardY + cardH - 22;
+                extractor.fill(sideX + 12, pillY, sideX + sideW - 12, pillY + 16, 0x406366F1);
+                extractor.outline(sideX + 12, pillY, sideW - 24, 16, 0x806366F1);
+                extractor.centeredText(this.font, "Premi [N] per il tool", midX, pillY + 4, 0xFFA5B4FC);
             }
         } catch (Throwable t) {
             // Silenzia

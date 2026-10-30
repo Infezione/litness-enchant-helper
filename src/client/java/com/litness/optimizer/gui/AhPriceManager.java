@@ -784,28 +784,41 @@ public class AhPriceManager {
         double mouseX = event.x();
         double mouseY = event.y();
         int button = event.button();
+        boolean isLeftClick = (button == 0 || button == InputConstants.MOUSE_BUTTON_LEFT);
 
-        if (button == 0 && hoveredSuggestionIndex >= 0 && hoveredSuggestionIndex < currentSuggestions.size()) {
-            AutocompleteSuggestion s = currentSuggestions.get(hoveredSuggestionIndex);
-            ActiveSessionManager.toggleSearchEnchant(s.searchKey);
-            if (searchBox != null) {
-                searchBox.setValue("");
-                searchBox.setFocused(false);
+        // 1. Click su un suggerimento della tendina di completamento
+        if (isLeftClick && !currentSuggestions.isEmpty() && dropW > 0 && dropH > 0) {
+            int targetIndex = -1;
+            if (mouseX >= dropX && mouseX <= dropX + dropW && mouseY >= dropY && mouseY <= dropY + dropH) {
+                targetIndex = (int) ((mouseY - (dropY + 2)) / 18);
+            } else if (hoveredSuggestionIndex >= 0) {
+                targetIndex = hoveredSuggestionIndex;
             }
-            if (screen != null && screen.getFocused() == searchBox) {
-                screen.setFocused(null);
+
+            if (targetIndex >= 0 && targetIndex < currentSuggestions.size()) {
+                AutocompleteSuggestion s = currentSuggestions.get(targetIndex);
+                ActiveSessionManager.toggleSearchEnchant(s.searchKey);
+                if (searchBox != null) {
+                    searchBox.setValue("");
+                    searchBox.setFocused(false);
+                }
+                if (screen != null && screen.getFocused() == searchBox) {
+                    screen.setFocused(null);
+                }
+                currentSuggestions.clear();
+                hoveredSuggestionIndex = -1;
+                clearCache();
+                Minecraft mc = Minecraft.getInstance();
+                if (mc.player != null) {
+                    mc.player.sendOverlayMessage(Component.literal("§a✔ Filtro attivato: " + s.displayName));
+                }
+                return true;
             }
-            currentSuggestions.clear();
-            hoveredSuggestionIndex = -1;
-            clearCache();
-            Minecraft mc = Minecraft.getInstance();
-            if (mc.player != null) {
-                mc.player.sendOverlayMessage(Component.literal("§a✔ Filtro attivato: " + s.displayName));
-            }
-            return true;
         }
 
-        if (button == 0 && isClearHovered) {
+        // 2. Click sul pulsante Azzera
+        boolean clickedClear = isClearHovered || (mouseX >= btnClearX && mouseX <= btnClearX + btnClearW && mouseY >= btnClearY && mouseY <= btnClearY + btnClearH);
+        if (isLeftClick && clickedClear) {
             ActiveSessionManager.clearSearchEnchants();
             if (searchBox != null) {
                 searchBox.setValue("");
@@ -824,8 +837,8 @@ public class AhPriceManager {
             return true;
         }
 
-        // Click sulla barra di ricerca
-        if (button == 0 && searchBox != null && searchBox.visible) {
+        // 3. Click sulla barra di ricerca
+        if (isLeftClick && searchBox != null && searchBox.visible) {
             if (mouseX >= lastSearchBoxX && mouseX <= lastSearchBoxX + lastSearchBoxW &&
                 mouseY >= lastSearchBoxY && mouseY <= lastSearchBoxY + lastSearchBoxH) {
                 searchBox.setFocused(true);
