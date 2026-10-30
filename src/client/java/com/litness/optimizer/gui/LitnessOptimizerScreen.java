@@ -29,7 +29,7 @@ import net.minecraft.world.item.Items;
 import net.minecraft.world.item.TooltipFlag;
 import net.minecraft.world.item.component.ItemLore;
 import net.minecraft.world.item.enchantment.ItemEnchantments;
-import org.lwjgl.glfw.GLFW;
+import com.mojang.blaze3d.platform.InputConstants;
 
 import java.util.*;
 
@@ -246,7 +246,7 @@ public class LitnessOptimizerScreen extends Screen {
             int upBtnW = Math.min(105, this.width / 2 - tabWidth - 12);
             String upTxt = "§6⚡ " + UpdateChecker.getLatestVersion();
             this.addRenderableWidget(Button.builder(Component.literal(upTxt), b -> {
-                net.minecraft.util.Util.getPlatform().openUri(java.net.URI.create(UpdateChecker.getReleasePageUrl()));
+                com.mojang.blaze3d.Blaze3D.openUri(java.net.URI.create(UpdateChecker.getReleasePageUrl()));
             }).bounds(8, topY, upBtnW, 19).build());
         }
 
@@ -2228,9 +2228,8 @@ public class LitnessOptimizerScreen extends Screen {
 
     private static boolean isShiftKeyDown() {
         try {
-            long handle = Minecraft.getInstance().getWindow().handle();
-            return GLFW.glfwGetKey(handle, GLFW.GLFW_KEY_LEFT_SHIFT) == GLFW.GLFW_PRESS
-                || GLFW.glfwGetKey(handle, GLFW.GLFW_KEY_RIGHT_SHIFT) == GLFW.GLFW_PRESS;
+            return InputConstants.isKeyDown(InputConstants.KEY_LSHIFT)
+                || InputConstants.isKeyDown(InputConstants.KEY_RSHIFT);
         } catch (Throwable ignored) {
             return false;
         }

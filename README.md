@@ -3,7 +3,7 @@
 [![DOWNLOAD MOD (.JAR)](https://img.shields.io/badge/⚡%20SCARICA%20SUBITO%20LA%20MOD%20(.JAR)-VERSIONE%201.2.5-22c55e?style=for-the-badge&logo=curseforge&logoColor=white)](https://github.com/Infezione/litness-enchant-helper/releases/download/v1.2.5/LitnessEnchantHelper-1.2.5.jar)
 [![ULTIMI AGGIORNAMENTI](https://img.shields.io/badge/🌟%20ULTIMI%20AGGIORNAMENTI-VEDI%20LE%20NOVITÀ-6366f1?style=for-the-badge&logo=sparkles&logoColor=white)](#ultimi-aggiornamenti)
 
-![Minecraft](https://img.shields.io/badge/Minecraft-26.2-brightgreen.svg)
+![Minecraft](https://img.shields.io/badge/Minecraft-26.3-brightgreen.svg)
 ![Fabric](https://img.shields.io/badge/ModLoader-Fabric-blue.svg)
 ![Lunar Client](https://img.shields.io/badge/Lunar%20Client-Compatible-informational.svg)
 ![Release](https://img.shields.io/badge/Release-v1.2.5-blueviolet.svg)
@@ -133,6 +133,10 @@ Sul server Litness, forgiare spade, archi, picconi o armature con 10–12 incant
 
 ## 🌟 Ultimi Aggiornamenti (v1.2.5)
 
+- 🚀 **Compatibilità Ufficiale Minecraft 26.3 & Lunar Client 26.3**:
+  - Aggiornato l'intero codice sorgente per supportare nativamente **Minecraft 26.3** e Fabric API 0.160.7.
+  - Migrazione al nuovo motore di input standard (`InputConstants.Type.KEYBOARD`), aggiornate le API delle Bundle (`itemCopies()`) e del browser di sistema.
+  - Pienamente compatibile con il profilo **Lunar Client 26.3** (`fabric-26.3`).
 - 🛡️ **Analisi Intelligente Maxabilità & Calcolo Limite 39 Livelli ("Troppo Costoso!")**:
   - Se inserisci nell'incudine un'arma o armatura che è già stata incantata in precedenza (accumulando la *Prior Work Penalty*), la mod analizza istantaneamente la fattibilità matematica di tutti i rami di fusione possibili.
   - **Avviso Preventivo Troppo Costoso**: se l'oggetto non può raggiungere tutti gli incantesimi massimi (es. 12/12) a causa del tetto vanilla dei 39 livelli, la mod lo segnala subito:
@@ -171,13 +175,13 @@ Sul server Litness, forgiare spade, archi, picconi o armature con 10–12 incant
 1. Scarica il file **`LitnessEnchantHelper-1.2.5.jar`** dall'area [Releases](../../releases).
 2. Premi sulla tastiera `Win + R`, incolla la seguente stringa e premi **Invio**:
    ```text
-   %userprofile%\.lunarclient\profiles\26\mods\fabric-26.2\
+   %userprofile%\.lunarclient\profiles\26\mods\fabric-26.3\
    ```
 3. Incolla il file `.jar` scaricato all'interno di questa cartella.
-4. Avvia Minecraft selezionando la versione **Lunar Client 26.2 (Fabric)**.
+4. Avvia Minecraft selezionando la versione **Lunar Client 26.3 (Fabric)**.
 
 ### Metodo 2: Per Fabric Launcher Standard
-1. Assicurati di avere installato **Fabric Loader** per Minecraft 26.2 e la **Fabric API**.
+1. Assicurati di avere installato **Fabric Loader** per Minecraft 26.3 e la **Fabric API**.
 2. Posiziona il file `LitnessEnchantHelper-1.2.5.jar` nella cartella `.minecraft/mods/`.
 3. Avvia il gioco.
 

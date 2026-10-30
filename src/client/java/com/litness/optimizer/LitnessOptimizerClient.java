@@ -22,7 +22,7 @@ public class LitnessOptimizerClient implements ClientModInitializer {
 
     @Override
     public void onInitializeClient() {
-        System.out.println("[LitnessOptimizer] Inizializzazione mod client per Fabric 26.2...");
+        System.out.println("[LitnessOptimizer] Inizializzazione mod client per Fabric 26.3...");
 
         // Controllo asincrono aggiornamenti in background
         UpdateChecker.checkForUpdatesAsync();
@@ -30,7 +30,7 @@ public class LitnessOptimizerClient implements ClientModInitializer {
         // Registrazione del KeyMapping per il tasto 'N'
         openGuiKeyMapping = KeyMappingHelper.registerKeyMapping(new KeyMapping(
             "key.litnessoptimizer.open_gui",
-            InputConstants.Type.KEYSYM,
+            InputConstants.Type.KEYBOARD,
             InputConstants.KEY_N,
             KeyMapping.Category.MISC
         ));

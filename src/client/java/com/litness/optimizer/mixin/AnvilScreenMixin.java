@@ -28,7 +28,7 @@ import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.Items;
 import net.minecraft.world.item.TooltipFlag;
 import net.minecraft.world.item.enchantment.ItemEnchantments;
-import org.lwjgl.glfw.GLFW;
+import com.mojang.blaze3d.platform.InputConstants;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.Shadow;
 import org.spongepowered.asm.mixin.injection.At;
@@ -98,7 +98,7 @@ public abstract class AnvilScreenMixin extends ItemCombinerScreen<AnvilMenu> {
 
     @Inject(method = "keyPressed", at = @At("HEAD"), cancellable = true)
     private void litness_onKeyPressed(KeyEvent event, CallbackInfoReturnable<Boolean> cir) {
-        if (event.key() == GLFW.GLFW_KEY_N && (name == null || !name.isFocused())) {
+        if (event.key() == InputConstants.KEY_N && (name == null || !name.isFocused())) {
             openOptimizer();
             cir.setReturnValue(true);
         }

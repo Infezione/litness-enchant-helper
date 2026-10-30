@@ -26,7 +26,7 @@ import net.minecraft.world.item.component.BundleContents;
 import net.minecraft.world.item.component.ItemContainerContents;
 import net.minecraft.world.item.component.ItemLore;
 import net.minecraft.world.item.enchantment.ItemEnchantments;
-import org.lwjgl.glfw.GLFW;
+import com.mojang.blaze3d.platform.InputConstants;
 
 import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
@@ -445,7 +445,7 @@ public class AhPriceManager {
         BundleContents bundle = stack.getOrDefault(DataComponents.BUNDLE_CONTENTS, null);
         if (bundle != null) {
             try {
-                if (bundle.itemCopyStream().anyMatch(inner -> isCleanMatchingBook(inner, targetEnchants))) {
+                if (bundle.itemCopies().anyMatch(inner -> isCleanMatchingBook(inner, targetEnchants))) {
                     return true;
                 }
             } catch (Exception ignored) {}
@@ -695,12 +695,12 @@ public class AhPriceManager {
 
     public static boolean handleKeyPressed(KeyEvent event) {
         if (searchBox != null && searchBox.isFocused() && searchBox.visible) {
-            if (event.key() == GLFW.GLFW_KEY_ESCAPE) {
+            if (event.key() == InputConstants.KEY_ESCAPE) {
                 searchBox.setFocused(false);
                 currentSuggestions.clear();
                 return true;
             }
-            if (event.key() == GLFW.GLFW_KEY_ENTER) {
+            if (event.key() == InputConstants.KEY_RETURN || event.key() == InputConstants.KEY_NUMPADENTER) {
                 if (!currentSuggestions.isEmpty()) {
                     AutocompleteSuggestion s = currentSuggestions.get(0);
                     ActiveSessionManager.toggleSearchEnchant(s.searchKey);
