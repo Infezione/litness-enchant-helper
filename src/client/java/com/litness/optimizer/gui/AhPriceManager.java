@@ -135,15 +135,15 @@ public class AhPriceManager {
     private static boolean cachedIsAh = false;
 
     // Coordinate tasto [Azzera]
-    private static int btnClearX = 0;
-    private static int btnClearY = 0;
+    private static int btnClearX = -9999;
+    private static int btnClearY = -9999;
     private static int btnClearW = 38;
     private static int btnClearH = 12;
     private static boolean isClearHovered = false;
 
     // Coordinate barra di ricerca
-    private static int lastSearchBoxX = 0;
-    private static int lastSearchBoxY = 0;
+    private static int lastSearchBoxX = -9999;
+    private static int lastSearchBoxY = -9999;
     private static int lastSearchBoxW = 0;
     private static int lastSearchBoxH = 0;
 
@@ -180,12 +180,16 @@ public class AhPriceManager {
     public static boolean isAuctionHouse(AbstractContainerScreen<?> screen) {
         if (screen == null || screen.getMenu() == null) return false;
 
+        String title = screen.getTitle().getString();
+        if (isKnownStorageContainerTitle(title)) {
+            return false;
+        }
+
         int menuId = screen.getMenu().containerId;
         if (menuId == cachedContainerId && cachedIsAh) {
             return true;
         }
 
-        String title = screen.getTitle().getString();
         if (isAuctionHouseTitle(title)) {
             cachedContainerId = menuId;
             cachedIsAh = true;
@@ -193,7 +197,10 @@ public class AhPriceManager {
         }
 
         // Verifica contenuto degli slot (firma inconfondibile di /ah di Litness)
+        // Richiede che ci siano ALMENO 3 inserzioni con "click to buy" o venditore+prezzo tipici di AH
+        // per evitare categoricamente falsi positivi su casse contenenti item comprati in asta
         Minecraft mc = Minecraft.getInstance();
+        int ahSignatures = 0;
         for (Slot slot : screen.getMenu().slots) {
             if (mc.player != null && slot.container == mc.player.getInventory()) continue;
             ItemStack stack = slot.getItem();
@@ -202,18 +209,34 @@ public class AhPriceManager {
             ItemLore lore = stack.getOrDefault(DataComponents.LORE, ItemLore.EMPTY);
             for (Component c : lore.lines()) {
                 String s = c.getString().toLowerCase();
-                if (s.contains("click to buy") || s.contains("seller:") || s.contains("venditore:")
-                        || s.contains("expire:") || s.contains("scadenza:") || s.contains("tax)")) {
-                    cachedContainerId = menuId;
-                    cachedIsAh = true;
-                    return true;
+                if (s.contains("click to buy") || s.contains("clicca per acquistare") || s.contains("clicca per comprare")
+                        || (s.contains("seller:") && s.contains("price:")) || (s.contains("venditore:") && s.contains("prezzo:"))) {
+                    ahSignatures++;
+                    break;
                 }
+            }
+            if (ahSignatures >= 3) {
+                cachedContainerId = menuId;
+                cachedIsAh = true;
+                return true;
             }
         }
 
         cachedContainerId = menuId;
         cachedIsAh = false;
         return false;
+    }
+
+    private static boolean isKnownStorageContainerTitle(String title) {
+        if (title == null) return false;
+        String clean = title.replaceAll("(?i)§[0-9a-fk-orx]", "").replace('\u00A0', ' ').trim().toLowerCase();
+        return clean.equals("chest") || clean.equals("large chest") 
+            || clean.equals("cassa") || clean.equals("cassa grande")
+            || clean.equals("barile") || clean.equals("barrel")
+            || clean.contains("shulker") || clean.contains("ender chest") || clean.contains("baule ender")
+            || clean.equals("dispenser") || clean.equals("dropper") || clean.equals("tramoggia") || clean.equals("hopper")
+            || clean.equals("fornace") || clean.equals("furnace") || clean.equals("affumicatore") || clean.equals("smoker")
+            || clean.equals("altoforno") || clean.equals("blast furnace");
     }
 
     private static boolean isAuctionHouseTitle(String title) {
@@ -611,7 +634,7 @@ public class AhPriceManager {
     }
 
     public static void scanCurrentContainer(AbstractContainerScreen<?> screen) {
-        if (screen == null || screen.getMenu() == null) return;
+        if (screen == null || screen.getMenu() == null || !isAuctionHouse(screen)) return;
         Minecraft mc = Minecraft.getInstance();
         if (mc.player == null) return;
 
@@ -672,25 +695,37 @@ public class AhPriceManager {
 
     public static void initSearchWidget(AbstractContainerScreen<?> screen, Consumer<EditBox> widgetAdder) {
         Minecraft mc = Minecraft.getInstance();
-        searchBox = new EditBox(mc.font, 0, 0, 100, 16, Component.literal(""));
+        searchBox = new EditBox(mc.font, -9999, -9999, 100, 16, Component.literal(""));
         searchBox.setHint(Component.literal("🔍 Cerca incanto..."));
         searchBox.setMaxLength(30);
         searchBox.setResponder(text -> {
             searchBoxQuery = text;
             updateAutocompleteSuggestions(text);
         });
-        searchBox.visible = true;
+        searchBox.visible = false;
         widgetAdder.accept(searchBox);
     }
 
     public static void onContainerClosed() {
+        cachedContainerId = -1;
+        cachedIsAh = false;
         if (searchBox != null) {
             searchBox.setValue("");
             searchBox.setFocused(false);
             searchBox.visible = false;
+            searchBox.setPosition(-9999, -9999);
         }
         currentSuggestions.clear();
         hoveredSuggestionIndex = -1;
+        isClearHovered = false;
+        btnClearX = -9999;
+        btnClearY = -9999;
+        lastSearchBoxX = -9999;
+        lastSearchBoxY = -9999;
+        dropX = -9999;
+        dropY = -9999;
+        dropW = 0;
+        dropH = 0;
     }
 
     public static boolean handleKeyPressed(KeyEvent event) {
@@ -781,6 +816,10 @@ public class AhPriceManager {
     }
 
     public static boolean handleMouseClicked(Screen screen, MouseButtonEvent event, boolean isDown) {
+        if (!(screen instanceof AbstractContainerScreen<?> containerScreen) || !isAuctionHouse(containerScreen)) {
+            return false;
+        }
+
         double mouseX = event.x();
         double mouseY = event.y();
         int button = event.button();
@@ -816,8 +855,10 @@ public class AhPriceManager {
             }
         }
 
-        // 2. Click sul pulsante Azzera
-        boolean clickedClear = isClearHovered || (mouseX >= btnClearX && mouseX <= btnClearX + btnClearW && mouseY >= btnClearY && mouseY <= btnClearY + btnClearH);
+        // 2. Click sul pulsante Azzera (rigorosamente entro i confini visivi del pulsante)
+        boolean clickedClear = (btnClearW > 0 && btnClearH > 0 
+                && mouseX >= btnClearX && mouseX <= btnClearX + btnClearW 
+                && mouseY >= btnClearY && mouseY <= btnClearY + btnClearH);
         if (isLeftClick && clickedClear) {
             ActiveSessionManager.clearSearchEnchants();
             if (searchBox != null) {
@@ -869,7 +910,11 @@ public class AhPriceManager {
             if (searchBox != null) {
                 searchBox.visible = false;
                 searchBox.setFocused(false);
+                searchBox.setPosition(-9999, -9999);
             }
+            btnClearX = -9999;
+            btnClearY = -9999;
+            isClearHovered = false;
             return;
         }
 
