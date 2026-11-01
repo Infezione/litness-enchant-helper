@@ -152,39 +152,6 @@ Sul server Litness, forgiare spade, archi, picconi o armature con 10–12 incant
 
 ---
 
-## 🌟 Aggiornamenti Precedenti (v1.2.5)
-
-- 🚀 **Compatibilità Ufficiale Minecraft 26.3 & Lunar Client 26.3**:
-  - Aggiornato l'intero codice sorgente per supportare nativamente **Minecraft 26.3** e Fabric API 0.160.7.
-  - Migrazione al nuovo motore di input standard (`InputConstants.Type.KEYBOARD`), aggiornate le API delle Bundle (`itemCopies()`) e del browser di sistema.
-  - Pienamente compatibile con il profilo **Lunar Client 26.3** (`fabric-26.3`).
-- 📐 **Interfaccia Laterale Incudine Ingrandita & Layout Anti-Taglio**:
-  - Sidebar estesa a 182px di larghezza e 176px di altezza (`imageHeight + 10`), allineandosi al tasto superiore `Guida Passi`.
-  - Spaziatura interna riprogettata per garantire che nessuna riga di testo venga mai tagliata o collida con il bordo inferiore.
-  - Istruzioni di forgiatura perfezionate: `Slot 1` in celeste, `Slot 2` in rosa, costo XP in verde smeraldo e suggerimento intelligente `💡 Metti prima i 2 libri`.
-  - Tasto `Guida Completa [N]` integrato subito sotto la sidebar.
-- 🖱️ **Fix Selezione Dropdown & Tasto Azzera in `/ah`**:
-  - Risolto il problema del click sinistro sui suggerimenti della tendina di completamento e sul pulsante `Azzera` della sidebar dell'asta, ora compatibile con il modello eventi di Minecraft 26.3.
-- 🛡️ **Analisi Intelligente Maxabilità & Calcolo Limite 39 Livelli ("Troppo Costoso!")**:
-  - Se inserisci nell'incudine un'arma o armatura che è già stata incantata in precedenza (accumulando la *Prior Work Penalty*), la mod analizza istantaneamente la fattibilità matematica di tutti i rami di fusione possibili.
-  - **Avviso Preventivo Troppo Costoso**: se l'oggetto non può raggiungere tutti gli incantesimi massimi (es. 12/12) a causa del tetto vanilla dei 39 livelli, la mod lo segnala subito:
-    `⚠️ ATTENZIONE PENALITÀ: Puoi aggiungere ancora fino a +N incanti con guida.` oppure `⛔ TROPPO COSTOSO!`.
-  - **Badge e Tooltip Trasparente**: un badge dinamico nella sidebar e un tooltip dedicato mostrano il livello di penalità esatto, il numero di lavorazioni pregresse e gli incantesimi residui applicabili.
-- 👻 **Ologramma Pulsante (Ghost Slot) nello Slot 1 dell'Incudine**:
-  - Quando lo slot 1 reale dell'incudine è vuoto, viene renderizzata una sagoma olografica semitrasparente e pulsante (con animazione dorata fluida) dell'arma o armatura consigliata.
-  - Tooltip esplicativo: *"Inserisci l'item desiderato per iniziare la guida."*. Non appena posizioni l'oggetto, l'ologramma svanisce all'istante!
-- ⛏️ **Supporto Completo ad Efficienza VI (Vanilla+)**:
-  - Introdotto l'incantesimo Vanilla+ *Efficienza VI* (costo base 6 livelli XP).
-  - Integrato nel Catalogo incantesimi, nella Creazione e Modifica dei Set Futuri e nel calcolatore matematico dell'incudine con gestione bidirezionale dei conflitti con Efficienza I-V.
-- 🎯 **Fix Riconoscimento Armi/Archi (Bow vs Sword)**:
-  - Risolto il problema per cui inserendo un arco nell'incudine veniva indicato il tema "Spada". Ora rileva in modo affidabile Archi, Balestre, Spade, Mazze, Tridenti e attrezzi, aggiornando badge (`🏹 TEMPRA ARCO`), categorie e guida in automatico.
-- 📊 **Sidebar Prezzi Live, Ricerca Rapida e Icone Grafiche in `/ah`**:
-  - Interfaccia laterale integrata con barra di ricerca, icone native Minecraft, calcolo delle tasse, evidenziazione del miglior prezzo in arancione, lista venditori e tag `[V]`, `[V+]`, `[C]`.
-- 📖 **Documentazione e Screenshot Sincronizzati**:
-  - Aggiornati tutti gli screenshot (`preview_anvil_v125.png`, `preview_ah_v125.png`, `preview_hud_v125.png`) e riscritte tutte le descrizioni sotto ogni sezione.
-
----
-
 ## 🎮 Controlli & Tasti Rapidi
 
 | Tasto / Controllo | Azione |
