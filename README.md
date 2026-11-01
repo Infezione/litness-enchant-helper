@@ -1,12 +1,12 @@
 # ⚡ Litness Enchant Helper
 
-[![DOWNLOAD MOD (.JAR)](https://img.shields.io/badge/⚡%20SCARICA%20SUBITO%20LA%20MOD%20(.JAR)-VERSIONE%201.2.5-22c55e?style=for-the-badge&logo=curseforge&logoColor=white)](https://github.com/Infezione/litness-enchant-helper/releases/download/v1.2.5/LitnessEnchantHelper-1.2.5.jar)
+[![DOWNLOAD MOD (.JAR)](https://img.shields.io/badge/⚡%20SCARICA%20SUBITO%20LA%20MOD%20(.JAR)-VERSIONE%201.2.6-22c55e?style=for-the-badge&logo=curseforge&logoColor=white)](https://github.com/Infezione/litness-enchant-helper/releases/download/v1.2.6/LitnessEnchantHelper-1.2.6.jar)
 [![ULTIMI AGGIORNAMENTI](https://img.shields.io/badge/🌟%20ULTIMI%20AGGIORNAMENTI-VEDI%20LE%20NOVITÀ-6366f1?style=for-the-badge&logo=sparkles&logoColor=white)](#ultimi-aggiornamenti)
 
 ![Minecraft](https://img.shields.io/badge/Minecraft-26.3-brightgreen.svg)
 ![Fabric](https://img.shields.io/badge/ModLoader-Fabric-blue.svg)
 ![Lunar Client](https://img.shields.io/badge/Lunar%20Client-Compatible-informational.svg)
-![Release](https://img.shields.io/badge/Release-v1.2.5-blueviolet.svg)
+![Release](https://img.shields.io/badge/Release-v1.2.6-blueviolet.svg)
 ![Author](https://img.shields.io/badge/Author-Waaxey-purple.svg)
 
 > [!TIP]
@@ -134,7 +134,22 @@ Sul server Litness, forgiare spade, archi, picconi o armature con 10–12 incant
 <a id="ultimi-aggiornamenti" name="ultimi-aggiornamenti"></a>
 <a id="-ultimi-aggiornamenti" name="-ultimi-aggiornamenti"></a>
 
-## 🌟 Ultimi Aggiornamenti (v1.2.5)
+## 🌟 Ultimi Aggiornamenti (v1.2.6)
+
+- 🖱️ **Risolto Blocco Click e Shift-Click nelle Casse & Inventario**:
+  - Eliminata categoricamente qualsiasi intercettazione accidentale dei click del mouse al di fuori della schermata dell'Asta (`/ah`).
+  - Spostare oggetti, fare shift-click e gestire l'inventario all'interno di Casse singole, Casse doppie, Barili, Scatole di Shulker ed Ender Chest ora funziona in modo impeccabile e al 100% nativo.
+  - Risolto il problema per cui cliccando nelle casse veniva mostrato l'avviso errato *"Ricerca azzerata"*.
+- ⚡ **Calcolo Automatico Incudine 100% Universale Senza Set**:
+  - Non è più necessario creare o salvare preventivamente un set: inserendo un'arma, armatura o attrezzo nello Slot 1 dell'incudine, la mod calcola all'istante l'albero di fusione a costo XP minimo per **tutti i libri compatibili presenti nel tuo inventario**.
+- 📈 **Riconoscimento Upgrade di Livello (es. Efficienza IV + IV -> V)**:
+  - Corretto il controllo di compatibilità: ora la mod riconosce che combinare due libri dello stesso livello produce il livello successivo (fino al cap massimo), includendoli regolarmente nei passaggi dell'incudine anziché scartarli come duplicati.
+- 📚 **Scansione Completa Libri Custom Litness (NBT, Lore e Nomi Custom)**:
+  - Scansione profonda e affidabile di tutti gli incantesimi speciali del server, sia registrati nei data component standard sia inviati dal server tramite Lore o Titoli personalizzati.
+
+---
+
+## 🌟 Aggiornamenti Precedenti (v1.2.5)
 
 - 🚀 **Compatibilità Ufficiale Minecraft 26.3 & Lunar Client 26.3**:
   - Aggiornato l'intero codice sorgente per supportare nativamente **Minecraft 26.3** e Fabric API 0.160.7.
@@ -182,7 +197,7 @@ Sul server Litness, forgiare spade, archi, picconi o armature con 10–12 incant
 ## 📦 Installazione
 
 ### Metodo 1: Per Lunar Client (Consigliato)
-1. Scarica il file **`LitnessEnchantHelper-1.2.5.jar`** dall'area [Releases](../../releases).
+1. Scarica il file **`LitnessEnchantHelper-1.2.6.jar`** dall'area [Releases](../../releases).
 2. Premi sulla tastiera `Win + R`, incolla la seguente stringa e premi **Invio**:
    ```text
    %userprofile%\.lunarclient\profiles\26\mods\fabric-26.3\
@@ -192,7 +207,7 @@ Sul server Litness, forgiare spade, archi, picconi o armature con 10–12 incant
 
 ### Metodo 2: Per Fabric Launcher Standard
 1. Assicurati di avere installato **Fabric Loader** per Minecraft 26.3 e la **Fabric API**.
-2. Posiziona il file `LitnessEnchantHelper-1.2.5.jar` nella cartella `.minecraft/mods/`.
+2. Posiziona il file `LitnessEnchantHelper-1.2.6.jar` nella cartella `.minecraft/mods/`.
 3. Avvia il gioco.
 
 ---
