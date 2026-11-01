@@ -5,11 +5,13 @@ import com.litness.optimizer.calculator.AnvilOptimizer.BookInput;
 import com.litness.optimizer.calculator.AnvilOptimizer.EnchantApplied;
 import com.litness.optimizer.calculator.AnvilOptimizer.MergeStep;
 import com.litness.optimizer.calculator.AnvilOptimizer.Solution;
+import com.litness.optimizer.data.ActiveSessionManager;
 import com.litness.optimizer.data.EnchantmentDatabase;
 import com.litness.optimizer.data.EnchantmentDatabase.EnchantmentEntry;
 import com.litness.optimizer.data.EnchantmentDatabase.ItemEntry;
 import com.litness.optimizer.data.InventoryTracker;
 import com.litness.optimizer.data.ItemTypeHelper;
+import com.litness.optimizer.data.SavedSetsManager;
 import com.litness.optimizer.gui.LitnessOptimizerScreen;
 import com.litness.optimizer.tooltip.LitnessTooltipHandler;
 import net.minecraft.client.gui.GuiGraphicsExtractor;
@@ -27,6 +29,7 @@ import net.minecraft.world.item.Item;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.Items;
 import net.minecraft.world.item.TooltipFlag;
+import net.minecraft.world.item.component.ItemLore;
 import net.minecraft.world.item.enchantment.ItemEnchantments;
 import com.mojang.blaze3d.platform.InputConstants;
 import org.spongepowered.asm.mixin.Mixin;
@@ -46,7 +49,7 @@ public abstract class AnvilScreenMixin extends ItemCombinerScreen<AnvilMenu> {
 
     private Solution cachedSolution = null;
     private int lastSlot0Hash = 0;
-    private int lastInvBookCount = 0;
+    private int lastInvBooksHash = 0;
     private List<EnchantApplied> cachedSlot0Enchants = new ArrayList<>();
     private String cachedItemKey = "sword";
 
@@ -302,6 +305,9 @@ public abstract class AnvilScreenMixin extends ItemCombinerScreen<AnvilMenu> {
                     }
                 }
             } else {
+                this.cachedSolution = null;
+                this.lastSlot0Hash = 0;
+                this.lastInvBooksHash = 0;
                 // Ghost Slot nello Slot 1 dell'Incudine reale
                 net.minecraft.world.inventory.Slot s0 = this.menu.getSlot(0);
                 int slot0X = this.leftPos + (s0 != null ? s0.x : 27);
@@ -363,14 +369,21 @@ public abstract class AnvilScreenMixin extends ItemCombinerScreen<AnvilMenu> {
     private void updateAutoCalculation(ItemStack slot0) {
         if (this.minecraft == null || this.minecraft.player == null) return;
 
-        int currentHash = Objects.hash(slot0.getItem().toString(), slot0.getOrDefault(DataComponents.REPAIR_COST, 0));
+        int slot0RepCost = slot0.getOrDefault(DataComponents.REPAIR_COST, 0);
+        int currentHash = Objects.hash(
+            slot0.getItem().toString(), 
+            slot0RepCost, 
+            slot0.getOrDefault(DataComponents.ENCHANTMENTS, ItemEnchantments.EMPTY).hashCode(),
+            slot0.getOrDefault(DataComponents.STORED_ENCHANTMENTS, ItemEnchantments.EMPTY).hashCode()
+        );
 
         // Rileva tutti i libri dall'inventario
         List<BookInput> books = new ArrayList<>();
+        int invHash = 0;
         int invSize = this.minecraft.player.getInventory().getContainerSize();
         for (int i = 0; i < invSize; i++) {
             ItemStack stack = this.minecraft.player.getInventory().getItem(i);
-            if (stack.getItem() == Items.ENCHANTED_BOOK) {
+            if (stack.is(Items.ENCHANTED_BOOK) || stack.is(Items.BOOK)) {
                 int repCost = stack.getOrDefault(DataComponents.REPAIR_COST, 0);
                 int work = 0;
                 while ((1 << work) - 1 < repCost) work++;
@@ -386,13 +399,17 @@ public abstract class AnvilScreenMixin extends ItemCombinerScreen<AnvilMenu> {
                 }
                 if (!book.enchantments.isEmpty()) {
                     books.add(book);
+                    invHash = 31 * invHash + Objects.hash(stack.getItem().toString(), repCost, loreCost, i);
+                    for (EnchantApplied ea : book.enchantments) {
+                        invHash = 31 * invHash + Objects.hash(ea.id, ea.level);
+                    }
                 }
             }
         }
 
         // Se lo slot 1 dell'incudine ha un libro, aggiungi anche quello!
         ItemStack slot1 = this.menu.getSlot(1).getItem();
-        if (slot1.getItem() == Items.ENCHANTED_BOOK) {
+        if (slot1.is(Items.ENCHANTED_BOOK) || slot1.is(Items.BOOK)) {
             int repCost = slot1.getOrDefault(DataComponents.REPAIR_COST, 0);
             int work = 0;
             while ((1 << work) - 1 < repCost) work++;
@@ -408,12 +425,16 @@ public abstract class AnvilScreenMixin extends ItemCombinerScreen<AnvilMenu> {
             }
             if (!book.enchantments.isEmpty()) {
                 books.add(0, book);
+                invHash = 31 * invHash + Objects.hash(slot1.getItem().toString(), repCost, loreCost, 9999);
+                for (EnchantApplied ea : book.enchantments) {
+                    invHash = 31 * invHash + Objects.hash(ea.id, ea.level);
+                }
             }
         }
 
-        if (currentHash != lastSlot0Hash || books.size() != lastInvBookCount) {
+        if (currentHash != lastSlot0Hash || invHash != lastInvBooksHash) {
             lastSlot0Hash = currentHash;
-            lastInvBookCount = books.size();
+            lastInvBooksHash = invHash;
             cachedSlot0Enchants = extractAllEnchantments(slot0);
 
             String itemKey = ItemTypeHelper.detectItemKey(slot0);
@@ -422,70 +443,108 @@ public abstract class AnvilScreenMixin extends ItemCombinerScreen<AnvilMenu> {
             ItemEntry itemEntry = EnchantmentDatabase.getItem(itemKey);
             if (itemEntry == null) itemEntry = EnchantmentDatabase.getItem("sword");
 
-            int penalty = slot0.getOrDefault(DataComponents.REPAIR_COST, 0);
+            int penalty = slot0RepCost;
             int work = 0;
             while ((1 << work) - 1 < penalty) work++;
 
-            Set<String> plannedEnchants = com.litness.optimizer.data.ActiveSessionManager.getSelectedEnchants(itemKey);
+            // Se l'utente ha esplicitamente fissato (pinnato) un set per questo item, prova prima con quello
+            String pinnedSetId = ActiveSessionManager.getPinnedSetId();
+            SavedSetsManager.CustomSet pinnedSet = (pinnedSetId != null) ? SavedSetsManager.getSetById(pinnedSetId) : null;
+            Set<String> plannedEnchants = null;
+            if (pinnedSet != null && pinnedSet.itemKey != null && pinnedSet.itemKey.equalsIgnoreCase(itemKey)
+                    && pinnedSet.enchantments != null && !pinnedSet.enchantments.isEmpty()) {
+                plannedEnchants = new LinkedHashSet<>(pinnedSet.enchantments);
+            }
 
-            List<BookInput> applicableBooks = new ArrayList<>();
-            for (BookInput b : books) {
-                BookInput filtered = new BookInput(b.works);
-                filtered.explicitCost = b.explicitCost;
-                for (EnchantApplied ea : b.enchantments) {
-                    EnchantmentEntry ee = EnchantmentDatabase.getEnchantment(ea.id);
-                    if (ee != null && EnchantmentDatabase.isApplicable(ee, itemEntry.id)) {
-                        if (plannedEnchants != null && !plannedEnchants.isEmpty()) {
-                            boolean isPartOfPlan = false;
-                            for (String pid : plannedEnchants) {
-                                if (pid.equalsIgnoreCase(ee.id) || pid.equalsIgnoreCase(ee.name)) {
-                                    isPartOfPlan = true;
-                                    break;
-                                }
-                            }
-                            if (!isPartOfPlan) continue;
-                        }
-
-                        boolean alreadyOnItem = false;
-                        boolean conflictsWithItem = false;
-                        List<String> confs = EnchantmentDatabase.getResolvedConflicts(ee.id);
-                        for (EnchantApplied exist : cachedSlot0Enchants) {
-                            if (exist.id.equalsIgnoreCase(ea.id) && exist.level >= ea.level) {
-                                alreadyOnItem = true;
-                                break;
-                            }
-                            EnchantmentEntry eeExist = EnchantmentDatabase.getEnchantment(exist.id);
-                            String existName = eeExist != null ? eeExist.name : exist.id;
-                            if (confs.contains(existName) || confs.contains(exist.id)) {
-                                conflictsWithItem = true;
-                                break;
-                            }
-                        }
-                        if (!alreadyOnItem && !conflictsWithItem) {
-                            filtered.enchantments.add(ea);
-                        }
-                    }
-                }
-                if (!filtered.enchantments.isEmpty()) {
-                    applicableBooks.add(filtered);
-                }
+            List<BookInput> applicableBooks = filterBooks(books, itemEntry, cachedSlot0Enchants, plannedEnchants);
+            // Fallback: se il set pinnato non trova alcun libro compatibile presente nell'inventario, usa tutti i libri compatibili presenti!
+            if (applicableBooks.isEmpty() && plannedEnchants != null) {
+                applicableBooks = filterBooks(books, itemEntry, cachedSlot0Enchants, null);
             }
 
             if (!applicableBooks.isEmpty()) {
-                cachedSolution = AnvilOptimizer.optimize(applicableBooks, work, itemEntry, Collections.emptyList());
+                cachedSolution = AnvilOptimizer.optimize(applicableBooks, work, itemEntry, cachedSlot0Enchants);
             } else {
                 cachedSolution = null;
             }
         }
     }
 
+    private List<BookInput> filterBooks(List<BookInput> books, ItemEntry itemEntry, List<EnchantApplied> existingEnchants, Set<String> plannedEnchants) {
+        List<BookInput> applicableBooks = new ArrayList<>();
+        if (books == null || books.isEmpty() || itemEntry == null) return applicableBooks;
+
+        for (BookInput b : books) {
+            BookInput filtered = new BookInput(b.works);
+            filtered.explicitCost = b.explicitCost;
+            for (EnchantApplied ea : b.enchantments) {
+                EnchantmentEntry ee = EnchantmentDatabase.getEnchantment(ea.id);
+                if (ee == null) {
+                    ee = new EnchantmentEntry();
+                    ee.id = ea.id;
+                    ee.name = ea.id;
+                    ee.maxLevel = Math.max(1, ea.level);
+                    ee.applicableTo = Collections.singletonList(itemEntry.id);
+                }
+
+                if (!EnchantmentDatabase.isApplicable(ee, itemEntry.id)) {
+                    continue;
+                }
+
+                if (plannedEnchants != null && !plannedEnchants.isEmpty()) {
+                    boolean isPartOfPlan = false;
+                    for (String pid : plannedEnchants) {
+                        if (pid.equalsIgnoreCase(ee.id) || pid.equalsIgnoreCase(ee.name)) {
+                            isPartOfPlan = true;
+                            break;
+                        }
+                    }
+                    if (!isPartOfPlan) continue;
+                }
+
+                boolean alreadyOnItem = false;
+                boolean conflictsWithItem = false;
+                List<String> confs = EnchantmentDatabase.getResolvedConflicts(ee.id);
+                for (EnchantApplied exist : existingEnchants) {
+                    if (exist.id.equalsIgnoreCase(ea.id)) {
+                        // Se l'oggetto ha già un livello superiore (es. piccone ha V, libro è IV), il libro è inutile
+                        if (exist.level > ea.level) {
+                            alreadyOnItem = true;
+                            break;
+                        }
+                        // Se l'oggetto ha lo stesso livello del libro:
+                        // - Se il libro è già al livello massimo dell'incantesimo (es. Efficienza V su V), non si sale oltre
+                        // - Se è inferiore al livello massimo (es. Efficienza IV su IV -> diventa V!), È UN UPGRADE UTILE!
+                        if (exist.level == ea.level && ea.level >= ee.maxLevel) {
+                            alreadyOnItem = true;
+                            break;
+                        }
+                    }
+                    EnchantmentEntry eeExist = EnchantmentDatabase.getEnchantment(exist.id);
+                    String existName = eeExist != null ? eeExist.name : exist.id;
+                    if (confs.contains(existName) || confs.contains(exist.id)) {
+                        conflictsWithItem = true;
+                        break;
+                    }
+                }
+                if (!alreadyOnItem && !conflictsWithItem) {
+                    filtered.enchantments.add(ea);
+                }
+            }
+            if (!filtered.enchantments.isEmpty()) {
+                applicableBooks.add(filtered);
+            }
+        }
+        return applicableBooks;
+    }
+
     private List<EnchantApplied> extractAllEnchantments(ItemStack stack) {
         List<EnchantApplied> list = new ArrayList<>();
-        if (stack.isEmpty()) return list;
+        if (stack == null || stack.isEmpty()) return list;
 
         Set<String> seen = new HashSet<>();
 
-        // 1. STORED_ENCHANTMENTS (libri incantati)
+        // 1. STORED_ENCHANTMENTS (libri incantati vanilla)
         ItemEnchantments stored = stack.getOrDefault(DataComponents.STORED_ENCHANTMENTS, ItemEnchantments.EMPTY);
         for (var entry : stored.entrySet()) {
             String rawId = entry.getKey().unwrapKey().map(k -> k.identifier().getPath()).orElse("");
@@ -521,14 +580,47 @@ public abstract class AnvilScreenMixin extends ItemCombinerScreen<AnvilMenu> {
             }
         }
 
-        // 3. Scansione righe Lore per incantesimi inviati come testo dal server
+        // 3. Da LORE (per incantesimi custom o inviati come testo dal server)
+        ItemLore lore = stack.getOrDefault(DataComponents.LORE, ItemLore.EMPTY);
+        for (Component c : lore.lines()) {
+            LitnessTooltipHandler.MatchedEnchantment match = LitnessTooltipHandler.matchEnchantment(c.getString());
+            if (match != null && match.entry != null) {
+                int lvl = match.level > 0 ? match.level : match.entry.maxLevel;
+                String vPlusId = EnchantmentDatabase.resolveVanillaPlusId(match.entry.id, lvl);
+                String id = vPlusId != null ? vPlusId : match.entry.id;
+                if (!id.isEmpty() && seen.add(id)) {
+                    list.add(new EnchantApplied(id, lvl));
+                }
+            }
+        }
+
+        // 4. Da CUSTOM_NAME (se il nome stesso del libro/item riporta l'incantesimo)
+        Component customName = stack.get(DataComponents.CUSTOM_NAME);
+        if (customName != null) {
+            LitnessTooltipHandler.MatchedEnchantment match = LitnessTooltipHandler.matchEnchantment(customName.getString());
+            if (match != null && match.entry != null) {
+                int lvl = match.level > 0 ? match.level : match.entry.maxLevel;
+                String vPlusId = EnchantmentDatabase.resolveVanillaPlusId(match.entry.id, lvl);
+                String id = vPlusId != null ? vPlusId : match.entry.id;
+                if (!id.isEmpty() && seen.add(id)) {
+                    list.add(new EnchantApplied(id, lvl));
+                }
+            }
+        }
+
+        // 5. Fallback con getTooltipLines per eventuali tooltip sintetici
         try {
             if (this.minecraft != null && this.minecraft.player != null) {
                 var lines = stack.getTooltipLines(Item.TooltipContext.EMPTY, this.minecraft.player, TooltipFlag.NORMAL);
                 for (Component comp : lines) {
                     LitnessTooltipHandler.MatchedEnchantment match = LitnessTooltipHandler.matchEnchantment(comp.getString());
-                    if (match != null && match.entry != null && seen.add(match.entry.id)) {
-                        list.add(new EnchantApplied(match.entry.id, match.level > 0 ? match.level : 1));
+                    if (match != null && match.entry != null) {
+                        int lvl = match.level > 0 ? match.level : match.entry.maxLevel;
+                        String vPlusId = EnchantmentDatabase.resolveVanillaPlusId(match.entry.id, lvl);
+                        String id = vPlusId != null ? vPlusId : match.entry.id;
+                        if (!id.isEmpty() && seen.add(id)) {
+                            list.add(new EnchantApplied(id, lvl));
+                        }
                     }
                 }
             }
