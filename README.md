@@ -136,16 +136,19 @@ Sul server Litness, forgiare spade, archi, picconi o armature con 10–12 incant
 
 ## 🌟 Ultimi Aggiornamenti (v1.2.6)
 
-- 🖱️ **Risolto Blocco Click e Shift-Click nelle Casse & Inventario**:
-  - Eliminata categoricamente qualsiasi intercettazione accidentale dei click del mouse al di fuori della schermata dell'Asta (`/ah`).
-  - Spostare oggetti, fare shift-click e gestire l'inventario all'interno di Casse singole, Casse doppie, Barili, Scatole di Shulker ed Ender Chest ora funziona in modo impeccabile e al 100% nativo.
-  - Risolto il problema per cui cliccando nelle casse veniva mostrato l'avviso errato *"Ricerca azzerata"*.
-- ⚡ **Calcolo Automatico Incudine 100% Universale Senza Set**:
-  - Non è più necessario creare o salvare preventivamente un set: inserendo un'arma, armatura o attrezzo nello Slot 1 dell'incudine, la mod calcola all'istante l'albero di fusione a costo XP minimo per **tutti i libri compatibili presenti nel tuo inventario**.
+- 🖱️ **Risolto Blocco Spostamento Oggetti & Shift-Click nelle Casse (Fix Bug "Ricerca Azzerata")**:
+  - Risolta alla radice l'intercettazione dei click del mouse che si verificava dopo aver scritto o cercato in `/ah`. Ora spostare oggetti, fare shift-click e riordinare l'inventario all'interno di **Casse singole, Casse doppie, Barili, Scatole di Shulker ed Ender Chest** funziona in modo impeccabile, immediato e al 100% nativo.
+  - Eliminato il messaggio fantasma *"Ricerca azzerata"* che appariva a schermo cliccando nell'inventario dopo essere stati all'Asta.
+  - Reset immediato e totale di coordinate, focus della casella di testo e stati di hover non appena si chiude un contenitore.
+- ⚡ **Calcolo Automatico Incudine 100% Universale Senza Creare un Set**:
+  - Non è più obbligatorio creare o salvare un set in anticipo dal menù `[N]`: appena inserisci un piccone, una spada, un'ascia o un pezzo d'armatura nello Slot 1 dell'incudine, la mod rileva e calcola in automatico la sequenza di fusione a costo XP minimo per **tutti i libri compatibili che hai realmente con te nell'inventario**.
+  - **Sistema di Fallback Intelligente**: se avevi pinnato un set ma nell'inventario hai libri diversi per quell'oggetto, la mod non si blocca più e genera la guida per i libri presenti.
 - 📈 **Riconoscimento Upgrade di Livello (es. Efficienza IV + IV -> V)**:
-  - Corretto il controllo di compatibilità: ora la mod riconosce che combinare due libri dello stesso livello produce il livello successivo (fino al cap massimo), includendoli regolarmente nei passaggi dell'incudine anziché scartarli come duplicati.
-- 📚 **Scansione Completa Libri Custom Litness (NBT, Lore e Nomi Custom)**:
-  - Scansione profonda e affidabile di tutti gli incantesimi speciali del server, sia registrati nei data component standard sia inviati dal server tramite Lore o Titoli personalizzati.
+  - Corretto il controllo di compatibilità: prima la mod scartava i libri con lo stesso livello dell'oggetto considerandoli duplicati inutili. Ora riconosce correttamente che unire due libri di pari livello genera il livello successivo (es. *Efficienza IV + IV = Efficienza V*), inserendoli regolarmente nei passaggi della guida.
+- 📚 **Scansione Profonda Libri Custom Litness (NBT, Lore e Nomi Custom)**:
+  - Riconoscimento al 100% di tutti gli incantesimi personalizzati ed esclusivi di Litness, rilevati sia tramite i data component vanilla, sia dalle righe di Lore testuali inviate dal server, sia dai nomi personalizzati dei libri.
+- 🛡️ **Prestazioni & Zero Lag**:
+  - Nessun calcolo residuo in background e zero perdite di FPS durante l'apertura delle casse e l'interazione con l'incudine.
 
 ---
 
