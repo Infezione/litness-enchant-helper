@@ -120,6 +120,17 @@ public class AhPriceManager {
     private static final Map<String, Long> currentScreenMinPrices = new ConcurrentHashMap<>();
     private static Set<String> lastKnownSearchEnchants = Collections.emptySet();
 
+    // Tracking pagine e rimozione automatica item acquistati/scomparsi
+    private static final Map<Integer, Set<String>> pageToListings = new ConcurrentHashMap<>();
+    private static Set<String> lastScreenListingKeys = new HashSet<>();
+    private static int lastScannedPage = -1;
+    private static String pendingBuyKey = null;
+    private static long pendingBuyPrice = -1;
+    private static long pendingBuyTime = 0;
+
+    private static final Pattern PAGE_REGEX_1 = Pattern.compile("(?i)(?:pagina|page|pag\\.|p\\.)\\s*#?\\s*(\\d+)");
+    private static final Pattern PAGE_REGEX_2 = Pattern.compile("(\\d+)\\s*/\\s*(\\d+)");
+
     // Barra di ricerca rapida nella sidebar AH
     public static EditBox searchBox = null;
     public static String searchBoxQuery = "";
@@ -167,6 +178,11 @@ public class AhPriceManager {
     public static void clearCache() {
         cachedListings.clear();
         currentScreenMinPrices.clear();
+        pageToListings.clear();
+        lastScreenListingKeys.clear();
+        lastScannedPage = -1;
+        pendingBuyKey = null;
+        pendingBuyPrice = -1;
         scrollOffset = 0;
         maxScroll = 0;
         isDraggingScrollbar = false;
@@ -631,6 +647,111 @@ public class AhPriceManager {
         return info;
     }
 
+    public static int detectPageNumber(AbstractContainerScreen<?> screen) {
+        if (screen == null || screen.getMenu() == null) return -1;
+        List<Slot> slots = screen.getMenu().slots;
+        int maxSlot = Math.min(54, slots.size());
+        for (int i = 45; i < maxSlot; i++) {
+            ItemStack stack = slots.get(i).getItem();
+            if (stack.isEmpty()) continue;
+            String hoverName = stack.getHoverName().getString();
+            int p = parsePageFromString(hoverName);
+            if (p > 0) return p;
+
+            ItemLore lore = stack.getOrDefault(DataComponents.LORE, ItemLore.EMPTY);
+            for (Component c : lore.lines()) {
+                p = parsePageFromString(c.getString());
+                if (p > 0) return p;
+            }
+        }
+        return -1;
+    }
+
+    private static int parsePageFromString(String text) {
+        if (text == null || text.isEmpty()) return -1;
+        Matcher m1 = PAGE_REGEX_1.matcher(text);
+        if (m1.find()) {
+            try { return Integer.parseInt(m1.group(1)); } catch (Exception ignored) {}
+        }
+        Matcher m2 = PAGE_REGEX_2.matcher(text);
+        if (m2.find()) {
+            try { return Integer.parseInt(m2.group(1)); } catch (Exception ignored) {}
+        }
+        return -1;
+    }
+
+    public static void onSlotClicked(AbstractContainerScreen<?> screen, Slot slot) {
+        if (screen == null || slot == null || !isAuctionHouse(screen)) return;
+        ItemStack stack = slot.getItem();
+        if (stack.isEmpty() || !isBook(stack)) return;
+
+        ParsedInfo info = parseSellerAndPrice(stack);
+        if (info.price > 0) {
+            Set<String> distinct = extractDistinctEnchantments(stack);
+            if (distinct.size() == 1) {
+                String singleId = distinct.iterator().next();
+                int level = extractLevel(stack, singleId);
+                String sellerClean = (info.seller != null && !info.seller.isEmpty()) ? info.seller : "Sconosciuto";
+                pendingBuyKey = sellerClean.toLowerCase() + ":" + singleId + ":" + level + ":" + info.price;
+                pendingBuyPrice = info.price;
+                pendingBuyTime = System.currentTimeMillis();
+            }
+        }
+    }
+
+    public static void onChatMessage(String text) {
+        if (text == null || text.isEmpty()) return;
+        String lower = text.toLowerCase(Locale.ROOT);
+        // Riconoscimento acquisto su Litness: "Asta » Hai appena comprato x1 Enchanted Book per 210$."
+        if (lower.contains("hai appena comprato") || lower.contains("hai comprato") || lower.contains("you bought") || lower.contains("bought x1")) {
+            long parsedPrice = -1;
+            Matcher m = Pattern.compile("(?i)(?:per|for)\\s+([0-9.,kKmM]+)\\s*\\$").matcher(text);
+            if (m.find()) {
+                parsedPrice = parseMoneyAmount(m.group(1));
+            }
+
+            // 1. Rimuovi la chiave cliccata di recente (ultimi 15 secondi)
+            if (pendingBuyKey != null && System.currentTimeMillis() - pendingBuyTime < 15000) {
+                cachedListings.remove(pendingBuyKey);
+                for (Set<String> pageSet : pageToListings.values()) {
+                    pageSet.remove(pendingBuyKey);
+                }
+                lastScreenListingKeys.remove(pendingBuyKey);
+            }
+
+            // 2. Rimuovi tutti i listing che corrispondono al prezzo pagato
+            if (parsedPrice > 0) {
+                long priceToMatch = parsedPrice;
+                cachedListings.entrySet().removeIf(entry -> entry.getValue().price == priceToMatch);
+                for (Set<String> pageSet : pageToListings.values()) {
+                    pageSet.removeIf(k -> k.endsWith(":" + priceToMatch));
+                }
+                lastScreenListingKeys.removeIf(k -> k.endsWith(":" + priceToMatch));
+            }
+
+            pendingBuyKey = null;
+            pendingBuyPrice = -1;
+            recalculateMinPrices();
+        }
+    }
+
+    private static void recalculateMinPrices() {
+        Map<String, Long> minMap = new HashMap<>();
+        for (AhListing l : cachedListings.values()) {
+            String matchKey = l.enchantId + ":" + l.level;
+            long cur = minMap.getOrDefault(matchKey, Long.MAX_VALUE);
+            if (l.price < cur) {
+                minMap.put(matchKey, l.price);
+            }
+            long curGen = minMap.getOrDefault(l.enchantId, Long.MAX_VALUE);
+            if (l.price < curGen) {
+                minMap.put(l.enchantId, l.price);
+            }
+        }
+        currentScreenMinPrices.clear();
+        currentScreenMinPrices.putAll(minMap);
+    }
+
     public static void scanCurrentContainer(AbstractContainerScreen<?> screen) {
         if (screen == null || screen.getMenu() == null || !isAuctionHouse(screen)) return;
         Minecraft mc = Minecraft.getInstance();
@@ -652,7 +773,13 @@ public class AhPriceManager {
         Map<String, Long> minPriceOnScreen = new HashMap<>();
         List<EnchantFilter> filters = getEffectiveFilters();
 
-        for (Slot slot : slots) {
+        int currentPage = detectPageNumber(screen);
+        Set<String> currentFoundKeys = new HashSet<>();
+
+        // Scansiona solo gli slot delle inserzioni (fino a 45 per chest a 6 righe)
+        int maxAuctionSlot = Math.min(45, slots.size());
+        for (int i = 0; i < maxAuctionSlot; i++) {
+            Slot slot = slots.get(i);
             if (slot.container == mc.player.getInventory()) continue;
 
             ItemStack stack = slot.getItem();
@@ -674,6 +801,7 @@ public class AhPriceManager {
             if (info.price > 0) {
                 AhListing listing = new AhListing(singleId, eName, level, info.seller, info.price, info.netPrice, info.tax);
                 cachedListings.put(listing.key, listing);
+                currentFoundKeys.add(listing.key);
 
                 String matchKey = singleId + ":" + level;
                 long currentMin = minPriceOnScreen.getOrDefault(matchKey, Long.MAX_VALUE);
@@ -685,6 +813,46 @@ public class AhPriceManager {
                     minPriceOnScreen.put(singleId, info.price);
                 }
             }
+        }
+
+        // Se un acquisto era pendente e l'oggetto non compare più nella pagina attuale, rimuovilo subito
+        if (pendingBuyKey != null && !currentFoundKeys.contains(pendingBuyKey)) {
+            cachedListings.remove(pendingBuyKey);
+        }
+
+        // Rimozione automatica elementi acquistati o scaduti su questa pagina
+        if (currentPage > 0) {
+            if (pageToListings.containsKey(currentPage)) {
+                Set<String> oldKeys = pageToListings.get(currentPage);
+                if (oldKeys != null) {
+                    for (String oldKey : oldKeys) {
+                        if (!currentFoundKeys.contains(oldKey)) {
+                            // Questo libro era in vendita su questa pagina ma adesso non c'è più -> RIMOSSO/COMPRATO!
+                            cachedListings.remove(oldKey);
+                        }
+                    }
+                }
+            }
+            pageToListings.put(currentPage, currentFoundKeys);
+            lastScannedPage = currentPage;
+        } else {
+            // Se non è stato possibile rilevare il numero di pagina, confronta con la schermata precedente
+            if (!lastScreenListingKeys.isEmpty()) {
+                int common = 0;
+                for (String k : currentFoundKeys) {
+                    if (lastScreenListingKeys.contains(k)) common++;
+                }
+
+                // Se la schermata è la stessa (molti item identici) ma uno o più sono spariti -> COMPRATI!
+                if (common > 0 || (currentFoundKeys.isEmpty() && lastScreenListingKeys.size() <= 2)) {
+                    for (String oldKey : lastScreenListingKeys) {
+                        if (!currentFoundKeys.contains(oldKey)) {
+                            cachedListings.remove(oldKey);
+                        }
+                    }
+                }
+            }
+            lastScreenListingKeys = currentFoundKeys;
         }
 
         currentScreenMinPrices.clear();
@@ -710,6 +878,7 @@ public class AhPriceManager {
         scrollOffset = 0;
         maxScroll = 0;
         isDraggingScrollbar = false;
+        clearCache();
         if (searchBox != null) {
             searchBox.setValue("");
             searchBox.setFocused(false);

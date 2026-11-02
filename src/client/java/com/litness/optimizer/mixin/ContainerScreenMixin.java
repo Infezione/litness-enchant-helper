@@ -39,6 +39,7 @@ public abstract class ContainerScreenMixin extends Screen {
     @Shadow protected int topPos;
     @Shadow protected int imageWidth;
     @Shadow protected int imageHeight;
+    @Shadow protected Slot hoveredSlot;
 
     private static long lastTargetCheck = 0;
     private static Set<String> cachedTargetEnchants = Collections.emptySet();
@@ -82,6 +83,14 @@ public abstract class ContainerScreenMixin extends Screen {
     private void litness_onContainerMouseClicked(MouseButtonEvent event, boolean isDown, CallbackInfoReturnable<Boolean> cir) {
         if (com.litness.optimizer.gui.AhPriceManager.handleMouseClicked(this, event, isDown)) {
             cir.setReturnValue(true);
+            return;
+        }
+
+        if (isDown && this.hoveredSlot != null) {
+            Minecraft mc = Minecraft.getInstance();
+            if (mc.player != null && this.hoveredSlot.container != mc.player.getInventory()) {
+                com.litness.optimizer.gui.AhPriceManager.onSlotClicked((AbstractContainerScreen<?>) (Object) this, this.hoveredSlot);
+            }
         }
     }
 
