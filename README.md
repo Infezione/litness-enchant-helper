@@ -132,6 +132,9 @@ Sul server Litness, forgiare spade, archi, picconi o armature con 10–12 incant
 - **Doppia Evidenziazione Visiva in Asta**:
   - 🟠 **Arancione Oro Brillante**: mette in risalto lo slot del libro con il **Miglior Prezzo** assoluto.
   - 🟢 **Verde Smeraldo**: evidenzia tutti gli altri libri lisci corrispondenti alla ricerca per distinguerli a colpo d'occhio dai libri con incantesimi spazzatura misti.
+- **Rimozione Automatica Istantanea Inserzioni Acquistate (v1.2.9)**:
+  - Non appena acquisti un libro in asta (o viene comprato/scade da un altro giocatore), la mod rileva all'istante la rimozione sia tramite gli slot del container sia intercettando la notifica in chat del server (`Asta » Hai appena comprato...`), cancellandolo immediatamente dalla sidebar e ricalcolando all'istante il nuovo miglior prezzo.
+  - Alla chiusura dell'interfaccia dell'asta, la memoria temporanea viene ripulita automaticamente evitando offerte fantasma nelle sessioni future.
 - **Rilevamento Profondo in Bauli, Casse, Barili e Shulker**:
   - Puoi attivare la ricerca anche dal **Catalogo Incantesimi** (tasto `N`) con il pulsante `[+ Cerca AH]`.
   - Aprendo qualsiasi Baule, Cassa doppia, Barile o Ender Chest, tutti i libri cercati si illuminano di verde.
@@ -152,8 +155,11 @@ Sul server Litness, forgiare spade, archi, picconi o armature con 10–12 incant
   - **Lista Incantesimi a Tutta Altezza**: la schermata sfrutta al meglio la risoluzione verticale, visualizzando fino a 24 incantesimi per schermata per una navigazione molto più comoda e veloce, supportando anche lo scrolling fluido con la rotella del mouse.
   - **Anteprima Compatta dell'Item**: posizionata in alto a destra nel banner senza ingombrare; mostra l'icona 3D dell'oggetto (es. spada, armatura), il conteggio `(X/12)` e un tooltip completo all'hover del mouse con l'elenco di tutti gli incantesimi inclusi.
 - 📜 **Fix e Ottimizzazioni Sidebar Prezzi `/ah`**:
+  - **Rimozione Automatica Inserzioni Comprate**: non appena acquisti un libro (o viene comprato da altri), la barra laterale lo rimuove all'istante aggiornando la classifica dei prezzi in tempo reale senza dover riaprire l'asta.
   - **Risoluzione Overflow & Sovrapposizioni**: eliminato qualsiasi problema di testo o card sbordanti oltre il riquadro dell'asta. Il footer e le card scrollabili ora sono perfettamente mascherati e ritagliati.
   - **Scorrimento con Rotella**: navigazione fluida tra tutti i prezzi trovati e i singoli incanti cercati.
+- 🛡️ **Fix Stabilità Lunar Client (`RenderStateCache`)**:
+  - Risolto il crash all'avvio/in gioco causato dalla pipeline di sicurezza di Lunar Client su classi interne dei mixin.
 - ✨ **Risoluzione Glifi e Caratteri Buggati**:
   - Eliminati tutti i caratteri emoji speciali/surrogati non supportati dal font di Minecraft vicino ai pallini elenco `•` in tutta la mod (HUD, Catalogo, AH, Incudine, Tooltip).
 
