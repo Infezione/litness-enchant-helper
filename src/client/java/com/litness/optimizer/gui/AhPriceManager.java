@@ -147,9 +147,29 @@ public class AhPriceManager {
     private static int lastSearchBoxW = 0;
     private static int lastSearchBoxH = 0;
 
+    // Coordinate e stato di scorrimento (Scrolling) della sidebar AH
+    private static int scrollOffset = 0;
+    private static int maxScroll = 0;
+    private static int scrollAreaY = 0;
+    private static int scrollAreaH = 0;
+    private static int lastSideX = 0;
+    private static int lastSideY = 0;
+    private static int lastSideW = 0;
+    private static int lastSideH = 0;
+    private static int scrollBarX = 0;
+    private static int scrollBarW = 3;
+    private static int scrollThumbY = 0;
+    private static int scrollThumbH = 0;
+    private static boolean isDraggingScrollbar = false;
+    private static double dragStartMouseY = 0;
+    private static int dragStartScrollOffset = 0;
+
     public static void clearCache() {
         cachedListings.clear();
         currentScreenMinPrices.clear();
+        scrollOffset = 0;
+        maxScroll = 0;
+        isDraggingScrollbar = false;
     }
 
     public static boolean isCheapestOnScreen(ItemStack stack) {
@@ -687,6 +707,9 @@ public class AhPriceManager {
     public static void onContainerClosed() {
         cachedContainerId = -1;
         cachedIsAh = false;
+        scrollOffset = 0;
+        maxScroll = 0;
+        isDraggingScrollbar = false;
         if (searchBox != null) {
             searchBox.setValue("");
             searchBox.setFocused(false);
@@ -874,11 +897,64 @@ public class AhPriceManager {
             }
         }
 
+        // 4. Click sulla scrollbar per scorrere o iniziare il trascinamento
+        if (isLeftClick && maxScroll > 0 && scrollAreaH > 0
+                && mouseX >= scrollBarX - 3 && mouseX <= scrollBarX + scrollBarW + 3
+                && mouseY >= scrollAreaY && mouseY <= scrollAreaY + scrollAreaH) {
+            isDraggingScrollbar = true;
+            dragStartMouseY = mouseY;
+            if (mouseY < scrollThumbY) {
+                scrollOffset = Math.max(0, scrollOffset - scrollAreaH / 2);
+            } else if (mouseY > scrollThumbY + scrollThumbH) {
+                scrollOffset = Math.min(maxScroll, scrollOffset + scrollAreaH / 2);
+            }
+            dragStartScrollOffset = scrollOffset;
+            return true;
+        }
+
         if (!currentSuggestions.isEmpty() && (mouseX < dropX || mouseX > dropX + dropW || mouseY < dropY || mouseY > dropY + dropH)) {
             currentSuggestions.clear();
             hoveredSuggestionIndex = -1;
         }
 
+        return false;
+    }
+
+    public static boolean handleMouseScrolled(Screen screen, double mouseX, double mouseY, double horizontalAmount, double verticalAmount) {
+        if (!(screen instanceof AbstractContainerScreen<?> containerScreen) || !isAuctionHouse(containerScreen)) {
+            return false;
+        }
+        // Se il cursore si trova dentro la sidebar AH
+        if (mouseX >= lastSideX && mouseX <= lastSideX + lastSideW && mouseY >= lastSideY && mouseY <= lastSideY + lastSideH) {
+            if (maxScroll > 0) {
+                int scrollStep = 22;
+                int delta = (int) (verticalAmount * scrollStep);
+                scrollOffset = Math.max(0, Math.min(maxScroll, scrollOffset - delta));
+                return true;
+            }
+        }
+        return false;
+    }
+
+    public static boolean handleMouseDragged(Screen screen, MouseButtonEvent event, double dx, double dy) {
+        if (!(screen instanceof AbstractContainerScreen<?> containerScreen) || !isAuctionHouse(containerScreen)) {
+            return false;
+        }
+        if (isDraggingScrollbar && maxScroll > 0 && scrollAreaH > scrollThumbH) {
+            double deltaY = event.y() - dragStartMouseY;
+            double trackRange = scrollAreaH - scrollThumbH;
+            int newOffset = dragStartScrollOffset + (int) ((deltaY / trackRange) * maxScroll);
+            scrollOffset = Math.max(0, Math.min(maxScroll, newOffset));
+            return true;
+        }
+        return false;
+    }
+
+    public static boolean handleMouseReleased(Screen screen, MouseButtonEvent event) {
+        if (isDraggingScrollbar) {
+            isDraggingScrollbar = false;
+            return true;
+        }
         return false;
     }
 
@@ -912,6 +988,11 @@ public class AhPriceManager {
         sideX = Math.max(2, sideX);
         int sideY = topPos;
         int sideH = imageHeight;
+
+        lastSideX = sideX;
+        lastSideY = sideY;
+        lastSideW = sideW;
+        lastSideH = sideH;
 
         // Sfondo dark glass solido
         extractor.outline(sideX - 1, sideY - 1, sideW + 2, sideH + 2, 0xFF000000);
@@ -959,6 +1040,8 @@ public class AhPriceManager {
         int curY = searchBoxY + searchBoxH + 5;
 
         if (searchEnchants == null || searchEnchants.isEmpty()) {
+            scrollOffset = 0;
+            maxScroll = 0;
             // Stato vuoto: Nessun incanto cercato
             int cardY = curY + 2;
             int cardH = sideH - (cardY - sideY) - 10;
@@ -1008,6 +1091,8 @@ public class AhPriceManager {
         curY += 12;
 
         if (matchingListings.isEmpty()) {
+            scrollOffset = 0;
+            maxScroll = 0;
             // Nessun libro trovato finora
             int boxY = curY + 2;
             int boxH = sideH - (boxY - sideY) - 10;
@@ -1027,11 +1112,6 @@ public class AhPriceManager {
             return;
         }
 
-        // Variabili per il tooltip al passaggio del mouse
-        AhListing hoveredListing = null;
-        boolean hoveredIsBest = false;
-        int hoveredRank = 1;
-
         // Trova il miglior listing per ciascun incantesimo cercato
         Map<String, AhListing> bestPerEnchant = new LinkedHashMap<>();
         Set<String> bestKeys = new HashSet<>();
@@ -1050,112 +1130,174 @@ public class AhPriceManager {
             }
         }
 
+        // Calcolo area di scorrimento (Scroll Area)
+        scrollAreaY = curY + 2;
+        int footerH = 14;
+        scrollAreaH = Math.max(30, (sideY + sideH - footerH) - scrollAreaY);
+
+        int rowH = 15;
+        int totalRows = Math.min(100, matchingListings.size());
+
+        int totalContentHeight = 0;
+        if (bestPerEnchant.size() <= 1) {
+            totalContentHeight += 43 + 5;
+        } else {
+            totalContentHeight += 12;
+            totalContentHeight += bestPerEnchant.size() * (26 + 3);
+            totalContentHeight += 2;
+        }
+        totalContentHeight += 12; // "Tutti i prezzi (X):"
+        totalContentHeight += totalRows * rowH;
+        totalContentHeight += 4;
+
+        maxScroll = Math.max(0, totalContentHeight - scrollAreaH);
+        scrollOffset = Math.max(0, Math.min(maxScroll, scrollOffset));
+
+        int rightPadding = maxScroll > 0 ? 9 : 5;
+        int cardWidth = sideW - 5 - rightPadding;
+
+        scrollBarW = 3;
+        scrollBarX = sideX + sideW - scrollBarW - 2;
+        scrollThumbH = Math.max(12, (int) ((float) scrollAreaH * scrollAreaH / Math.max(scrollAreaH + 1, totalContentHeight)));
+        scrollThumbY = scrollAreaY + (maxScroll > 0 ? (int) ((float) scrollOffset / maxScroll * (scrollAreaH - scrollThumbH)) : 0);
+
+        // Abilita il ritaglio (Scissoring) per non far sbordare il contenuto scrollabile
+        extractor.enableScissor(sideX + 2, scrollAreaY, sideX + sideW - 1, scrollAreaY + scrollAreaH);
+
+        // Variabili per il tooltip al passaggio del mouse
+        AhListing hoveredListing = null;
+        boolean hoveredIsBest = false;
+        int hoveredRank = 1;
+
+        int drawY = scrollAreaY - scrollOffset;
+        boolean isMouseInScrollArea = (mouseX >= sideX + 5 && mouseX <= sideX + 5 + cardWidth 
+                && mouseY >= scrollAreaY && mouseY <= scrollAreaY + scrollAreaH);
+
         // 1. Box Miglior Prezzo (per ciascun incanto trovato, o singolo se 1 solo)
         if (bestPerEnchant.size() <= 1) {
             AhListing best = !bestPerEnchant.isEmpty() ? bestPerEnchant.values().iterator().next() : matchingListings.get(0);
-            int bestBoxY = curY;
+            int bestBoxY = drawY;
             int bestBoxH = 43;
-            boolean isBestHovered = mouseX >= sideX + 5 && mouseX <= sideX + sideW - 5 && mouseY >= bestBoxY && mouseY <= bestBoxY + bestBoxH;
-            if (isBestHovered) {
-                hoveredListing = best;
-                hoveredIsBest = true;
-                hoveredRank = 1;
-            }
-
-            int bestBg = isBestHovered ? 0x48F97316 : 0x30F97316;
-            int bestBorder = isBestHovered ? 0xFFFED7AA : 0xFFF97316;
-            extractor.fill(sideX + 5, bestBoxY, sideX + sideW - 5, bestBoxY + bestBoxH, bestBg);
-            extractor.outline(sideX + 5, bestBoxY, sideW - 10, bestBoxH, bestBorder);
-
-            extractor.text(font, "🏆 MIGLIOR PREZZO:", sideX + 8, bestBoxY + 3, 0xFFFED7AA, false);
-            EnchantmentEntry eeSingle = EnchantmentDatabase.getEnchantment(best.enchantId);
-            ItemStack iconSingle = EnchantmentThematicIconHelper.getIcon(eeSingle);
-            extractor.fakeItem(iconSingle, sideX + sideW - 24, bestBoxY + 3);
-
-            String bestName = trimToWidth(font, best.getDisplayNameWithLevel(), sideW - 36);
-            extractor.text(font, bestName, sideX + 8, bestBoxY + 13, 0xFFFFFFFF, true);
-
-            String sellerDisplay = trimToWidth(font, best.seller, 65);
-            String bestPriceLine = "💰 §6" + best.formattedPrice + " §7(da " + sellerDisplay + ")";
-            extractor.text(font, bestPriceLine, sideX + 8, bestBoxY + 23, 0xFFFFA500, false);
-            extractor.text(font, "§e" + best.formattedBreakdown, sideX + 8, bestBoxY + 33, 0xFFFDBA74, false);
-
-            curY = bestBoxY + bestBoxH + 5;
-        } else {
-            // Più incanti in ricerca: mostra una card per ciascun incanto trovato
-            extractor.text(font, "🏆 MIGLIORI PREZZI:", sideX + 8, curY, 0xFFFED7AA, false);
-            curY += 10;
-            int cardH = 26;
-            for (AhListing best : bestPerEnchant.values()) {
-                boolean isCardHovered = mouseX >= sideX + 5 && mouseX <= sideX + sideW - 5 && mouseY >= curY && mouseY <= curY + cardH;
-                if (isCardHovered) {
+            if (bestBoxY + bestBoxH >= scrollAreaY && bestBoxY <= scrollAreaY + scrollAreaH) {
+                boolean isBestHovered = isMouseInScrollArea && (mouseY >= bestBoxY && mouseY <= bestBoxY + bestBoxH);
+                if (isBestHovered) {
                     hoveredListing = best;
                     hoveredIsBest = true;
                     hoveredRank = 1;
                 }
-                int cardBg = isCardHovered ? 0x48F97316 : 0x2CF97316;
-                int cardBorder = isCardHovered ? 0xFFFED7AA : 0xFFF97316;
-                extractor.fill(sideX + 5, curY, sideX + sideW - 5, curY + cardH, cardBg);
-                extractor.outline(sideX + 5, curY, sideW - 10, cardH, cardBorder);
 
-                EnchantmentEntry eeMulti = EnchantmentDatabase.getEnchantment(best.enchantId);
-                ItemStack iconMulti = EnchantmentThematicIconHelper.getIcon(eeMulti);
-                extractor.fakeItem(iconMulti, sideX + 8, curY + 5);
+                int bestBg = isBestHovered ? 0x48F97316 : 0x30F97316;
+                int bestBorder = isBestHovered ? 0xFFFED7AA : 0xFFF97316;
+                extractor.fill(sideX + 5, bestBoxY, sideX + 5 + cardWidth, bestBoxY + bestBoxH, bestBg);
+                extractor.outline(sideX + 5, bestBoxY, cardWidth, bestBoxH, bestBorder);
 
-                String nameStr = trimToWidth(font, best.getDisplayNameWithLevel(), sideW - 90);
-                extractor.text(font, nameStr, sideX + 27, curY + 3, 0xFFFFFFFF, true);
-                extractor.text(font, best.formattedPrice, sideX + sideW - font.width(best.formattedPrice) - 8, curY + 3, 0xFFFFA500, true);
+                extractor.text(font, "🏆 MIGLIOR PREZZO:", sideX + 8, bestBoxY + 3, 0xFFFED7AA, false);
+                EnchantmentEntry eeSingle = EnchantmentDatabase.getEnchantment(best.enchantId);
+                ItemStack iconSingle = EnchantmentThematicIconHelper.getIcon(eeSingle);
+                if (bestBoxY + 3 >= scrollAreaY - 2 && bestBoxY + 19 <= scrollAreaY + scrollAreaH + 2) {
+                    extractor.fakeItem(iconSingle, sideX + 5 + cardWidth - 19, bestBoxY + 3);
+                }
 
-                String subStr = "§e" + best.formattedBreakdown + " §7(da " + trimToWidth(font, best.seller, 40) + ")";
-                extractor.text(font, trimToWidth(font, subStr, sideW - 35), sideX + 27, curY + 14, 0xFFFDBA74, false);
+                String bestName = trimToWidth(font, best.getDisplayNameWithLevel(), cardWidth - 28);
+                extractor.text(font, bestName, sideX + 8, bestBoxY + 13, 0xFFFFFFFF, true);
 
-                curY += cardH + 3;
+                String sellerDisplay = trimToWidth(font, best.seller, 65);
+                String bestPriceLine = "💰 §6" + best.formattedPrice + " §7(da " + sellerDisplay + ")";
+                extractor.text(font, bestPriceLine, sideX + 8, bestBoxY + 23, 0xFFFFA500, false);
+                extractor.text(font, "§e" + best.formattedBreakdown, sideX + 8, bestBoxY + 33, 0xFFFDBA74, false);
             }
-            curY += 2;
+            drawY = bestBoxY + bestBoxH + 5;
+        } else {
+            // Più incanti in ricerca: mostra una card per ciascun incanto trovato
+            if (drawY + 10 >= scrollAreaY && drawY <= scrollAreaY + scrollAreaH) {
+                extractor.text(font, "🏆 MIGLIORI PREZZI:", sideX + 8, drawY, 0xFFFED7AA, false);
+            }
+            drawY += 10;
+            int cardH = 26;
+            for (AhListing best : bestPerEnchant.values()) {
+                if (drawY + cardH >= scrollAreaY && drawY <= scrollAreaY + scrollAreaH) {
+                    boolean isCardHovered = isMouseInScrollArea && (mouseY >= drawY && mouseY <= drawY + cardH);
+                    if (isCardHovered) {
+                        hoveredListing = best;
+                        hoveredIsBest = true;
+                        hoveredRank = 1;
+                    }
+                    int cardBg = isCardHovered ? 0x48F97316 : 0x2CF97316;
+                    int cardBorder = isCardHovered ? 0xFFFED7AA : 0xFFF97316;
+                    extractor.fill(sideX + 5, drawY, sideX + 5 + cardWidth, drawY + cardH, cardBg);
+                    extractor.outline(sideX + 5, drawY, cardWidth, cardH, cardBorder);
+
+                    EnchantmentEntry eeMulti = EnchantmentDatabase.getEnchantment(best.enchantId);
+                    ItemStack iconMulti = EnchantmentThematicIconHelper.getIcon(eeMulti);
+                    if (drawY + 5 >= scrollAreaY - 2 && drawY + 21 <= scrollAreaY + scrollAreaH + 2) {
+                        extractor.fakeItem(iconMulti, sideX + 8, drawY + 5);
+                    }
+
+                    int nameMaxW = Math.max(30, cardWidth - 80);
+                    String nameStr = trimToWidth(font, best.getDisplayNameWithLevel(), nameMaxW);
+                    extractor.text(font, nameStr, sideX + 27, drawY + 3, 0xFFFFFFFF, true);
+                    extractor.text(font, best.formattedPrice, sideX + 5 + cardWidth - font.width(best.formattedPrice) - 3, drawY + 3, 0xFFFFA500, true);
+
+                    String subStr = "§e" + best.formattedBreakdown + " §7(da " + trimToWidth(font, best.seller, 40) + ")";
+                    extractor.text(font, trimToWidth(font, subStr, cardWidth - 28), sideX + 27, drawY + 14, 0xFFFDBA74, false);
+                }
+                drawY += cardH + 3;
+            }
+            drawY += 2;
         }
 
         // 2. Lista tutti i prezzi trovati
-        extractor.text(font, "Tutti i prezzi (" + matchingListings.size() + "):", sideX + 8, curY, 0xFF9CA3AF, false);
-        curY += 10;
+        if (drawY + 10 >= scrollAreaY && drawY <= scrollAreaY + scrollAreaH) {
+            extractor.text(font, "Tutti i prezzi (" + matchingListings.size() + "):", sideX + 8, drawY, 0xFF9CA3AF, false);
+        }
+        drawY += 10;
 
-        int rowH = 15;
-        int maxRows = Math.min(6, matchingListings.size());
-
-        for (int i = 0; i < maxRows; i++) {
+        for (int i = 0; i < totalRows; i++) {
             AhListing l = matchingListings.get(i);
             boolean isTop = bestKeys.contains(l.key);
 
-            int itemY = curY + i * rowH;
-            if (itemY + rowH > sideY + sideH - 16) break;
+            int itemY = drawY + i * rowH;
+            if (itemY + rowH >= scrollAreaY && itemY <= scrollAreaY + scrollAreaH) {
+                boolean isRowHovered = isMouseInScrollArea && (mouseY >= itemY && mouseY <= itemY + rowH - 1);
+                if (isRowHovered) {
+                    hoveredListing = l;
+                    hoveredIsBest = isTop;
+                    hoveredRank = i + 1;
+                }
 
-            boolean isRowHovered = mouseX >= sideX + 5 && mouseX <= sideX + sideW - 5 && mouseY >= itemY && mouseY <= itemY + rowH - 1;
-            if (isRowHovered) {
-                hoveredListing = l;
-                hoveredIsBest = isTop;
-                hoveredRank = i + 1;
+                int rowBg = isRowHovered ? (isTop ? 0x50F97316 : 0x35334155) : (isTop ? 0x28F97316 : (i % 2 == 0 ? 0x181E293B : 0x0D1E293B));
+                extractor.fill(sideX + 5, itemY, sideX + 5 + cardWidth, itemY + rowH - 1, rowBg);
+                if (isRowHovered) {
+                    extractor.outline(sideX + 5, itemY, cardWidth, rowH - 1, isTop ? 0xFFF97316 : 0xFF475569);
+                }
+
+                // Rango (#1 arancione se è il migliore del suo incanto, altri slate)
+                String rank = (i + 1) + ".";
+                extractor.text(font, rank, sideX + 8, itemY + 3, isTop ? 0xFFF97316 : 0xFF64748B, false);
+
+                // Prezzo formattato
+                extractor.text(font, l.formattedPrice, sideX + 22, itemY + 3, isTop ? 0xFFFFA500 : 0xFFE2E8F0, false);
+
+                // Nome incanto
+                String sub = AnvilOptimizer.formatEnchantName(l.enchantName, l.level);
+                String subTrimmed = trimToWidth(font, sub, 65);
+                extractor.text(font, subTrimmed, sideX + 78, itemY + 3, isTop ? 0xFFFFF0D0 : 0xFF94A3B8, false);
+
+                // Venditore allineato a destra
+                String sellerTrimmed = trimToWidth(font, l.seller, Math.max(30, cardWidth - 138));
+                extractor.text(font, sellerTrimmed, sideX + 5 + cardWidth - font.width(sellerTrimmed) - 3, itemY + 3, isTop ? 0xFFFED7AA : 0xFF64748B, false);
             }
+        }
 
-            int rowBg = isRowHovered ? (isTop ? 0x50F97316 : 0x35334155) : (isTop ? 0x28F97316 : (i % 2 == 0 ? 0x181E293B : 0x0D1E293B));
-            extractor.fill(sideX + 5, itemY, sideX + sideW - 5, itemY + rowH - 1, rowBg);
-            if (isRowHovered) {
-                extractor.outline(sideX + 5, itemY, sideW - 10, rowH - 1, isTop ? 0xFFF97316 : 0xFF475569);
-            }
+        // Disabilita lo scissoring
+        extractor.disableScissor();
 
-            // Rango (#1 arancione se è il migliore del suo incanto, altri slate)
-            String rank = (i + 1) + ".";
-            extractor.text(font, rank, sideX + 8, itemY + 3, isTop ? 0xFFF97316 : 0xFF64748B, false);
-
-            // Prezzo formattato
-            extractor.text(font, l.formattedPrice, sideX + 22, itemY + 3, isTop ? 0xFFFFA500 : 0xFFE2E8F0, false);
-
-            // Nome incanto
-            String sub = AnvilOptimizer.formatEnchantName(l.enchantName, l.level);
-            String subTrimmed = trimToWidth(font, sub, 65);
-            extractor.text(font, subTrimmed, sideX + 78, itemY + 3, isTop ? 0xFFFFF0D0 : 0xFF94A3B8, false);
-
-            // Venditore allineato a destra
-            String sellerTrimmed = trimToWidth(font, l.seller, Math.max(35, sideW - 146));
-            extractor.text(font, sellerTrimmed, sideX + sideW - font.width(sellerTrimmed) - 8, itemY + 3, isTop ? 0xFFFED7AA : 0xFF64748B, false);
+        // 3. Barra di scorrimento laterale (Scrollbar) se il contenuto eccede
+        if (maxScroll > 0) {
+            extractor.fill(scrollBarX, scrollAreaY, scrollBarX + scrollBarW, scrollAreaY + scrollAreaH, 0x301E293B);
+            boolean isThumbHovered = mouseX >= scrollBarX - 1 && mouseX <= scrollBarX + scrollBarW + 1 && mouseY >= scrollThumbY && mouseY <= scrollThumbY + scrollThumbH;
+            int thumbColor = (isDraggingScrollbar || isThumbHovered) ? 0xFFFB923C : 0xFFF97316;
+            extractor.fill(scrollBarX, scrollThumbY, scrollBarX + scrollBarW, scrollThumbY + scrollThumbH, thumbColor);
         }
 
         // Footer informativo
