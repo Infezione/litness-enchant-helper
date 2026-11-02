@@ -71,6 +71,7 @@ public abstract class ContainerScreenMixin extends Screen {
     @Inject(method = "extractRenderState", at = @At("TAIL"))
     private void litness_renderContainerTopLayer(GuiGraphicsExtractor extractor, int mouseX, int mouseY, float delta, CallbackInfo ci) {
         if (((Object) this) instanceof net.minecraft.client.gui.screens.inventory.AnvilScreen anvil) {
+            com.litness.optimizer.gui.AnvilTooltipState.renderInventoryHighlightsAndBadges(extractor, anvil, this.leftPos, this.topPos, mouseX, mouseY);
             com.litness.optimizer.gui.AnvilTooltipState.renderTopLayer(extractor, anvil, mouseX, mouseY);
         } else {
             com.litness.optimizer.gui.AhPriceManager.renderAhSidebar(extractor, (AbstractContainerScreen<?>) (Object) this, this.leftPos, this.topPos, this.imageWidth, this.imageHeight, mouseX, mouseY, delta);

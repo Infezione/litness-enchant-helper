@@ -14,6 +14,7 @@ import com.litness.optimizer.data.ItemTypeHelper;
 import com.litness.optimizer.data.SavedSetsManager;
 import com.litness.optimizer.gui.LitnessOptimizerScreen;
 import com.litness.optimizer.tooltip.LitnessTooltipHandler;
+import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.GuiGraphicsExtractor;
 import net.minecraft.client.gui.components.Button;
 import net.minecraft.client.gui.components.EditBox;
@@ -88,7 +89,7 @@ public abstract class AnvilScreenMixin extends ItemCombinerScreen<AnvilMenu> {
         int btnY = sideY + sideH + 3;
 
         // 1. Tasto nella sidebar sotto l'helper
-        this.addRenderableWidget(Button.builder(Component.literal("📋 Guida Completa [N]"), button -> {
+        this.addRenderableWidget(Button.builder(Component.literal("Guida Completa [N]"), button -> {
             openOptimizer();
         }).bounds(sideX, btnY, sideW, 18).build());
 
@@ -96,7 +97,7 @@ public abstract class AnvilScreenMixin extends ItemCombinerScreen<AnvilMenu> {
         int topBtnW = 80;
         int topBtnX = this.leftPos + this.imageWidth - topBtnW;
         int topBtnY = this.topPos - 18;
-        this.addRenderableWidget(Button.builder(Component.literal("📋 Guida Passi"), button -> {
+        this.addRenderableWidget(Button.builder(Component.literal("Guida Passi"), button -> {
             openOptimizer();
         }).bounds(topBtnX, topBtnY, topBtnW, 16).build());
     }
@@ -131,7 +132,7 @@ public abstract class AnvilScreenMixin extends ItemCombinerScreen<AnvilMenu> {
             extractor.outline(sideX, sideY, sideW, sideH, 0xFF2A2D40);
 
             // Titolo Header con badge info [?] affiancato
-            extractor.text(this.font, "⚡ LITNESS HELPER", sideX + 8, sideY + 6, 0xFFA5B4FC, false);
+            extractor.text(this.font, "LITNESS HELPER", sideX + 8, sideY + 6, 0xFFA5B4FC, false);
 
             int infoBtnX = sideX + sideW - 18;
             int infoBtnY = sideY + 5;
@@ -251,16 +252,16 @@ public abstract class AnvilScreenMixin extends ItemCombinerScreen<AnvilMenu> {
                     String icon = ItemTypeHelper.getActionIcon(cachedItemKey);
 
                     String badge = nextStep.isBookToBook 
-                        ? "🔨 UNISCI 2 LIBRI (1/" + totalSteps + ")" 
-                        : icon + " " + actionName + " (1/" + totalSteps + ")";
+                        ? "UNISCI 2 LIBRI (1/" + totalSteps + ")" 
+                        : (icon.isEmpty() ? "" : icon + " ") + actionName + " (1/" + totalSteps + ")";
                     int badgeColor = nextStep.isBookToBook ? 0xFFFBBF24 : 0xFF34D399;
                     extractor.text(this.font, badge, sideX + 10, moveY + 5, badgeColor, false);
 
                     if (!slot1.isEmpty()) {
                         if (activeConflict != null) {
-                            extractor.text(this.font, "§e⚠️ Conflitto!", sideX + sideW - 68, moveY + 5, 0xFFFBBF24, false);
+                            extractor.text(this.font, "§e[!] Conflitto!", sideX + sideW - 68, moveY + 5, 0xFFFBBF24, false);
                         } else {
-                            extractor.text(this.font, "✓ Inserito", sideX + sideW - 54, moveY + 5, 0xFF34D399, false);
+                            extractor.text(this.font, "• Inserito", sideX + sideW - 54, moveY + 5, 0xFF34D399, false);
                         }
                     }
 
@@ -269,15 +270,15 @@ public abstract class AnvilScreenMixin extends ItemCombinerScreen<AnvilMenu> {
                         String l2 = trimToWidth(nextStep.rightLabel, sideW - 55);
                         extractor.text(this.font, "Slot 1: §b" + l1, sideX + 10, moveY + 18, 0xFF9CA3AF, false);
                         extractor.text(this.font, "Slot 2: §d" + l2, sideX + 10, moveY + 30, 0xFF9CA3AF, false);
-                        extractor.text(this.font, "⚡ Costo: §a" + nextStep.cost + " liv. XP", sideX + 10, moveY + 42, 0xFF34D399, false);
+                        extractor.text(this.font, "Costo: §a" + nextStep.cost + " liv. XP", sideX + 10, moveY + 42, 0xFF34D399, false);
                         if (!slot0.is(Items.ENCHANTED_BOOK) && !slot0.is(Items.BOOK) && moveH >= 65) {
-                            extractor.text(this.font, "§6💡 Metti prima i 2 libri", sideX + 10, moveY + 54, 0xFFF59E0B, false);
+                            extractor.text(this.font, "§6• Metti prima i 2 libri", sideX + 10, moveY + 54, 0xFFF59E0B, false);
                         }
                     } else {
                         extractor.text(this.font, "Metti nello §eSlot 2§7:", sideX + 10, moveY + 18, 0xFFE0E7FF, false);
                         String bName = trimToWidth("• " + nextStep.rightLabel, sideW - 20);
                         extractor.text(this.font, bName, sideX + 10, moveY + 30, 0xFF34D399, false);
-                        extractor.text(this.font, "⚡ Costo: §a" + nextStep.cost + " liv. XP", sideX + 10, moveY + 42, 0xFF34D399, false);
+                        extractor.text(this.font, "Costo: §a" + nextStep.cost + " liv. XP", sideX + 10, moveY + 42, 0xFF34D399, false);
                         if (moveH >= 65) {
                             extractor.text(this.font, "§8(Premi [N] per tutta la guida)", sideX + 10, moveY + 54, 0xFF94A3B8, false);
                         }
@@ -288,17 +289,17 @@ public abstract class AnvilScreenMixin extends ItemCombinerScreen<AnvilMenu> {
                     extractor.outline(sideX + 6, moveY, sideW - 12, moveH, 0xFF334155);
 
                     if (maxability.status == com.litness.optimizer.calculator.MaxabilityAnalyzer.Status.SATURATED) {
-                        extractor.text(this.font, "§c⛔ TROPPO COSTOSO!", sideX + 10, moveY + 5, 0xFFEF4444, false);
+                        extractor.text(this.font, "§c[!] TROPPO COSTOSO!", sideX + 10, moveY + 5, 0xFFEF4444, false);
                         extractor.text(this.font, "Penalità +" + penalty + " troppo alta,", sideX + 10, moveY + 18, 0xFFE2E8F0, false);
                         extractor.text(this.font, "l'incudine blocca i libri.", sideX + 10, moveY + 30, 0xFF94A3B8, false);
                         extractor.text(this.font, "Premi [N] per spiegazione", sideX + 10, moveY + 43, 0xFF818CF8, false);
                     } else if (maxability.status == com.litness.optimizer.calculator.MaxabilityAnalyzer.Status.PARTIALLY_MAXABLE) {
-                        extractor.text(this.font, "§e⚠️ ATTENZIONE PENALITÀ", sideX + 10, moveY + 5, 0xFFF59E0B, false);
+                        extractor.text(this.font, "§e[!] ATTENZIONE PENALITÀ", sideX + 10, moveY + 5, 0xFFF59E0B, false);
                         extractor.text(this.font, "Puoi aggiungere ancora", sideX + 10, moveY + 18, 0xFFE2E8F0, false);
                         extractor.text(this.font, "fino a §a+" + maxability.maxAddable + " incanti §7con guida.", sideX + 10, moveY + 30, 0xFFFFFFFF, false);
                         extractor.text(this.font, "Premi [N] per simulare!", sideX + 10, moveY + 43, 0xFF818CF8, false);
                     } else {
-                        extractor.text(this.font, "⚡ ENCHANT HELPER", sideX + 10, moveY + 5, 0xFF94A3B8, false);
+                        extractor.text(this.font, "ENCHANT HELPER", sideX + 10, moveY + 5, 0xFF94A3B8, false);
                         extractor.text(this.font, "Nessun libro compatibile", sideX + 10, moveY + 18, 0xFFE2E8F0, false);
                         extractor.text(this.font, "trovato nell'inventario.", sideX + 10, moveY + 30, 0xFF94A3B8, false);
                         extractor.text(this.font, "Premi [N] per simulare!", sideX + 10, moveY + 43, 0xFF818CF8, false);
@@ -467,6 +468,8 @@ public abstract class AnvilScreenMixin extends ItemCombinerScreen<AnvilMenu> {
             } else {
                 cachedSolution = null;
             }
+            com.litness.optimizer.gui.AnvilTooltipState.cachedSolution = this.cachedSolution;
+            com.litness.optimizer.gui.AnvilTooltipState.cachedItemKey = this.cachedItemKey;
         }
     }
 
@@ -538,7 +541,7 @@ public abstract class AnvilScreenMixin extends ItemCombinerScreen<AnvilMenu> {
         return applicableBooks;
     }
 
-    private List<EnchantApplied> extractAllEnchantments(ItemStack stack) {
+    public static List<EnchantApplied> extractAllEnchantments(ItemStack stack) {
         List<EnchantApplied> list = new ArrayList<>();
         if (stack == null || stack.isEmpty()) return list;
 
@@ -610,8 +613,9 @@ public abstract class AnvilScreenMixin extends ItemCombinerScreen<AnvilMenu> {
 
         // 5. Fallback con getTooltipLines per eventuali tooltip sintetici
         try {
-            if (this.minecraft != null && this.minecraft.player != null) {
-                var lines = stack.getTooltipLines(Item.TooltipContext.EMPTY, this.minecraft.player, TooltipFlag.NORMAL);
+            Minecraft mc = Minecraft.getInstance();
+            if (mc != null && mc.player != null) {
+                var lines = stack.getTooltipLines(Item.TooltipContext.EMPTY, mc.player, TooltipFlag.NORMAL);
                 for (Component comp : lines) {
                     LitnessTooltipHandler.MatchedEnchantment match = LitnessTooltipHandler.matchEnchantment(comp.getString());
                     if (match != null && match.entry != null) {

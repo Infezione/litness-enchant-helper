@@ -29,7 +29,7 @@ public class MaxabilityAnalyzer {
         public int currentEnchants = 0;
         public int remainingSlots = 12;
         public int maxAddable = 12;
-        public String statusBadge = "§a✔ Maxabile al 100%";
+        public String statusBadge = "§a• Maxabile al 100%";
         public String statusSummary = "Puoi maxare l'oggetto senza 'Troppo Costoso!'";
         public List<String> details = new ArrayList<>();
     }
@@ -61,9 +61,9 @@ public class MaxabilityAnalyzer {
             res.status = Status.PERMANENTLY_LOCKED;
             res.isFullyMaxable = false;
             res.maxAddable = 0;
-            res.statusBadge = "§c⛔ Bloccato (+63)";
+            res.statusBadge = "§c[!] Bloccato (+63)";
             res.statusSummary = "Troppo Costoso: blocco permanente";
-            res.details.add("§c⛔ Oggetto bloccato (Troppo Costoso!)");
+            res.details.add("§c[!] Oggetto bloccato (Troppo Costoso!)");
             res.details.add("§7La penalità ha raggiunto +63 livelli.");
             res.details.add("§7Minecraft impedisce qualsiasi ulteriore operazione.");
             cache(stack, penalty, res);
@@ -75,9 +75,9 @@ public class MaxabilityAnalyzer {
             res.status = Status.FULLY_MAXABLE;
             res.isFullyMaxable = true;
             res.maxAddable = 0;
-            res.statusBadge = "§6⭐ Già Maxato (12/12)";
+            res.statusBadge = "§6• Già Maxato (12/12)";
             res.statusSummary = "Oggetto con 12/12 incantesimi";
-            res.details.add("§6⭐ Oggetto già completato al massimo!");
+            res.details.add("§6• Oggetto già completato al massimo!");
             res.details.add("§7Hai già raggiunto il limite di 12 incantesimi.");
             cache(stack, penalty, res);
             return res;
@@ -88,9 +88,9 @@ public class MaxabilityAnalyzer {
             res.status = Status.FULLY_MAXABLE;
             res.isFullyMaxable = true;
             res.maxAddable = res.remainingSlots;
-            res.statusBadge = "§a✔ Maxabile al 100%";
+            res.statusBadge = "§a• Maxabile al 100%";
             res.statusSummary = "Puoi aggiungere tutti i " + res.remainingSlots + " incanti mancanti";
-            res.details.add("§a✔ Maxabile al 100%!");
+            res.details.add("§a• Maxabile al 100%!");
             res.details.add("§7L'oggetto non ha alcuna penalità pregressa (+0).");
             res.details.add("§7Puoi raggiungere 12/12 senza 'Troppo Costoso!'.");
             cache(stack, penalty, res);
@@ -109,7 +109,7 @@ public class MaxabilityAnalyzer {
             res.status = Status.FULLY_MAXABLE;
             res.isFullyMaxable = true;
             res.maxAddable = 0;
-            res.statusBadge = "§a✔ Compatibilità piena";
+            res.statusBadge = "§a• Compatibilità piena";
             res.statusSummary = "Nessun altro incanto compatibile rimasto";
             cache(stack, penalty, res);
             return res;
@@ -131,9 +131,9 @@ public class MaxabilityAnalyzer {
             res.status = Status.FULLY_MAXABLE;
             res.isFullyMaxable = true;
             res.maxAddable = maxSlotsToTest;
-            res.statusBadge = "§a✔ Maxabile (" + (res.currentEnchants + maxSlotsToTest) + "/12)";
+            res.statusBadge = "§a• Maxabile (" + (res.currentEnchants + maxSlotsToTest) + "/12)";
             res.statusSummary = "Puoi ancora aggiungere tutti i " + maxSlotsToTest + " incanti mancanti";
-            res.details.add("§a✔ Maxabile al 100% con la guida!");
+            res.details.add("§a• Maxabile al 100% con la guida!");
             res.details.add("§7Anche con la penalità attuale (+" + penalty + "),");
             res.details.add("§7puoi ancora aggiungere tutti i " + maxSlotsToTest + " incantesimi mancanti.");
             res.details.add("§8Picco massimo stimato: " + fullSol.peakCost + "/39 livelli.");
@@ -158,22 +158,22 @@ public class MaxabilityAnalyzer {
             res.status = Status.PARTIALLY_MAXABLE;
             res.isFullyMaxable = false;
             res.maxAddable = bestK;
-            res.statusBadge = "§c⚠️ Troppo Costoso per full! §e(Max +" + bestK + ")";
+            res.statusBadge = "§c[!] Troppo Costoso per full! §e(Max +" + bestK + ")";
             res.statusSummary = "Puoi aggiungere ancora fino a " + bestK + " incantesimi";
-            res.details.add("§c⚠️ Troppo Costoso se provi a maxarlo tutto!");
+            res.details.add("§c[!] Troppo Costoso se provi a maxarlo tutto!");
             res.details.add("§7A causa delle fusioni precedenti effettuate senza guida (Penalità +" + penalty + "),");
             res.details.add("§7applicando troppi libri l'incudine si bloccherebbe.");
             res.details.add("");
-            res.details.add("§e💡 Puoi ancora aggiungere fino a " + bestK + " incantesimi:");
+            res.details.add("§e• Puoi ancora aggiungere fino a " + bestK + " incantesimi:");
             res.details.add("§7Totale raggiungibile: §f" + (res.currentEnchants + bestK) + "/12 incantesimi§7.");
             res.details.add("§8Picco previsto: " + bestPeak + "/39 liv. (Unisci sempre i libri tra loro!)");
         } else {
             res.status = Status.SATURATED;
             res.isFullyMaxable = false;
             res.maxAddable = 0;
-            res.statusBadge = "§c⛔ Saturo: Troppo Costoso (0 incanti)";
+            res.statusBadge = "§c[!] Saturo: Troppo Costoso (0 incanti)";
             res.statusSummary = "Nessun altro incanto può essere applicato";
-            res.details.add("§c⛔ Oggetto saturo (Troppo Costoso!)");
+            res.details.add("§c[!] Oggetto saturo (Troppo Costoso!)");
             res.details.add("§7Con la penalità attuale (+" + penalty + "), qualsiasi");
             res.details.add("§7ulteriore libro supera il limite di 39 livelli.");
         }

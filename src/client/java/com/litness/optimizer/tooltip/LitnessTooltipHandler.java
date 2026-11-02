@@ -499,12 +499,12 @@ public class LitnessTooltipHandler {
             boolean isMax = lvl >= ee.maxLevel;
             String maxRoman = AnvilOptimizer.toRoman(ee.maxLevel);
 
-            String maxTag = isMax ? " §8[§a✓ Max " + maxRoman + "§8]" : " §8[§eMax " + maxRoman + "§8]";
+            String maxTag = isMax ? " §8[§aMax " + maxRoman + "§8]" : " §8[§eMax " + maxRoman + "§8]";
             String rarityBadge = (isCustom && ee.rarity != null && !ee.rarity.isEmpty())
                     ? " " + getRarityColorCode(ee.rarity) + "[" + ee.rarity.toUpperCase() + "]"
                     : "";
 
-            String icon = isCustom ? "§6⚡ " : "§9✦ ";
+            String icon = isCustom ? "§6• " : "§9• ";
             int insertOffset = 1;
 
             if (targetLineIdx >= 0) {
@@ -531,7 +531,7 @@ public class LitnessTooltipHandler {
             if (!conflicts.isEmpty()) {
                 List<String> wrappedConflicts = wrapConflictLines(conflicts, 45);
                 if (!wrappedConflicts.isEmpty()) {
-                    lines.add(targetLineIdx + insertOffset, Component.literal("  §c⚔ Conflitti: §f" + wrappedConflicts.get(0)));
+                    lines.add(targetLineIdx + insertOffset, Component.literal("  §cConflitti: §f" + wrappedConflicts.get(0)));
                     insertOffset++;
                     for (int w = 1; w < wrappedConflicts.size(); w++) {
                         lines.add(targetLineIdx + insertOffset, Component.literal("    §f" + wrappedConflicts.get(w)));
@@ -592,7 +592,7 @@ public class LitnessTooltipHandler {
             String maxRoman = AnvilOptimizer.toRoman(ee.maxLevel);
 
             // Tag Max Enchant e Costo:
-            String maxTag = isMax ? " §8[§a✓ Max " + maxRoman + "§8]" : " §8[§eMax " + maxRoman + "§8]";
+            String maxTag = isMax ? " §8[§aMax " + maxRoman + "§8]" : " §8[§eMax " + maxRoman + "§8]";
             String rarityBadge = (isCustom && ee.rarity != null && !ee.rarity.isEmpty())
                     ? " " + getRarityColorCode(ee.rarity) + "[" + ee.rarity.toUpperCase() + "]"
                     : "";
@@ -607,7 +607,7 @@ public class LitnessTooltipHandler {
             }
 
             String displayBase = fullText.replaceAll("^[§0-9a-fk-orx\\s]*[✦⚡•»►*#\\-◆★✧✨⚔⚜✪✯⚙☠🗡🛡🏹⛏]+\\s*", "").trim();
-            String icon = isCustom ? "§6⚡ " : "§9✦ ";
+            String icon = isCustom ? "§6• " : "§9• ";
             String headerLine = icon + displayBase + maxTag + rarityBadge;
 
             if (targetIdx >= 0) {
@@ -634,7 +634,7 @@ public class LitnessTooltipHandler {
             if (!conflicts.isEmpty()) {
                 List<String> wrappedConflicts = wrapConflictLines(conflicts, 45);
                 if (!wrappedConflicts.isEmpty()) {
-                    lines.add(targetIdx + insertOffset, Component.literal("  §c⚔ Conflitti: §f" + wrappedConflicts.get(0)));
+                    lines.add(targetIdx + insertOffset, Component.literal("  §cConflitti: §f" + wrappedConflicts.get(0)));
                     insertOffset++;
                     for (int w = 1; w < wrappedConflicts.size(); w++) {
                         lines.add(targetIdx + insertOffset, Component.literal("    §f" + wrappedConflicts.get(w)));

@@ -119,14 +119,14 @@ public class HudMixin {
             boolean isApplied = InventoryTracker.matchesApplied(enchId, applied);
             if (isApplied) {
                 appliedCount++;
-                String txt = "✔ " + base;
+                String txt = "• " + base;
                 next.lines.add(new HudItemLine(txt, 0xFFF87171));
                 maxTextWidth = Math.max(maxTextWidth, font.width(txt));
             } else {
                 boolean hasBook = InventoryTracker.matchesEnchant(enchId, bookMap);
                 if (hasBook) {
                     inInvCount++;
-                    String txt = "✔ " + base;
+                    String txt = "• " + base;
                     next.lines.add(new HudItemLine(txt, 0xFF34D399));
                     maxTextWidth = Math.max(maxTextWidth, font.width(txt));
                 } else {
@@ -142,10 +142,10 @@ public class HudMixin {
         next.allDone = (appliedCount == total);
 
         if (next.allDone) {
-            next.title = "⚡ " + set.name + " ✔ COMPLETO";
+            next.title = set.name + " [COMPLETO]";
             next.titleColor = 0xFF34D399;
         } else {
-            next.title = "⚡ " + set.name + " (" + completed + "/" + total + ")";
+            next.title = set.name + " (" + completed + "/" + total + ")";
             next.titleColor = 0xFFFDE047;
         }
 

@@ -160,7 +160,7 @@ public class UpdateChecker {
         if (client.player == null) return;
 
         client.player.sendSystemMessage(Component.literal("§8§m--------------------------------------------------"));
-        client.player.sendSystemMessage(Component.literal("§6⚡ §e§lLITNESS ENCHANT HELPER §r§7- §a§lNUOVO AGGIORNAMENTO! §b(" + latestVersion + ")"));
+        client.player.sendSystemMessage(Component.literal("§6• §e§lLITNESS ENCHANT HELPER §r§7- §a§lNUOVO AGGIORNAMENTO! §b(" + latestVersion + ")"));
         client.player.sendSystemMessage(Component.literal("§7È disponibile una nuova versione della mod con correzioni e migliorie."));
 
         MutableComponent downloadBtn = Component.literal("§a§n[SCARICA SUBITO .JAR]§r")
@@ -175,7 +175,7 @@ public class UpdateChecker {
                         .withHoverEvent(new HoverEvent.ShowText(Component.literal("§bClicca per leggere il changelog su GitHub!")))
                 );
 
-        MutableComponent line = Component.literal("👉 ").append(downloadBtn).append(" §7oppure ").append(releaseBtn);
+        MutableComponent line = Component.literal("• ").append(downloadBtn).append(" §7oppure ").append(releaseBtn);
         client.player.sendSystemMessage(line);
         client.player.sendSystemMessage(Component.literal("§8§m--------------------------------------------------"));
     }

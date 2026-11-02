@@ -694,7 +694,7 @@ public class AhPriceManager {
     public static void initSearchWidget(AbstractContainerScreen<?> screen, Consumer<EditBox> widgetAdder) {
         Minecraft mc = Minecraft.getInstance();
         searchBox = new EditBox(mc.font, -9999, -9999, 100, 16, Component.literal(""));
-        searchBox.setHint(Component.literal("🔍 Cerca incanto..."));
+        searchBox.setHint(Component.literal("Cerca incanto..."));
         searchBox.setMaxLength(30);
         searchBox.setResponder(text -> {
             searchBoxQuery = text;
@@ -747,7 +747,7 @@ public class AhPriceManager {
                     clearCache();
                     Minecraft mc = Minecraft.getInstance();
                     if (mc.player != null) {
-                        mc.player.sendOverlayMessage(Component.literal("§a✔ Filtro attivato: " + s.displayName));
+                        mc.player.sendOverlayMessage(Component.literal("§a• Filtro attivato: " + s.displayName));
                     }
                     return true;
                 } else {
@@ -850,7 +850,7 @@ public class AhPriceManager {
                 clearCache();
                 Minecraft mc = Minecraft.getInstance();
                 if (mc.player != null) {
-                    mc.player.sendOverlayMessage(Component.literal("§a✔ Filtro attivato: " + s.displayName));
+                    mc.player.sendOverlayMessage(Component.literal("§a• Filtro attivato: " + s.displayName));
                 }
                 return true;
             }
@@ -874,7 +874,7 @@ public class AhPriceManager {
             clearCache();
             Minecraft mc = Minecraft.getInstance();
             if (mc.player != null) {
-                mc.player.sendOverlayMessage(Component.literal("§c✔ Ricerca azzerata"));
+                mc.player.sendOverlayMessage(Component.literal("§c• Ricerca azzerata"));
             }
             return true;
         }
@@ -1005,7 +1005,7 @@ public class AhPriceManager {
         extractor.outline(sideX, sideY, sideW, sideH, 0xFF2A2D40);
 
         // Titolo Header con colore tema Litness
-        extractor.text(font, "⚡ PREZZI AH", sideX + 8, sideY + 6, 0xFFFFB800, true);
+        extractor.text(font, "PREZZI AH", sideX + 8, sideY + 6, 0xFFFFB800, true);
 
         Set<String> searchEnchants = getEffectiveSearchEnchants();
 
@@ -1051,7 +1051,7 @@ public class AhPriceManager {
             extractor.fakeItem(new ItemStack(Items.ENCHANTED_BOOK), sideX + (sideW / 2) - 8, cardY + 14);
 
             extractor.centeredText(font, "Nessun filtro attivo", sideX + (sideW / 2), cardY + 36, 0xFFFFFFFF);
-            extractor.centeredText(font, "Scrivi nella barra sopra [🔍],", sideX + (sideW / 2), cardY + 52, 0xFF9CA3AF);
+            extractor.centeredText(font, "Scrivi nella barra sopra,", sideX + (sideW / 2), cardY + 52, 0xFF9CA3AF);
             extractor.centeredText(font, "premi [+ Cerca] in [N],", sideX + (sideW / 2), cardY + 64, 0xFFF97316);
             extractor.centeredText(font, "oppure pinna un set!", sideX + (sideW / 2), cardY + 76, 0xFF9CA3AF);
 
@@ -1087,7 +1087,7 @@ public class AhPriceManager {
         }
         extractor.text(font, "§7Cerca: §e" + trimToWidth(font, filterInfo, sideW - 65), sideX + 8, curY, 0xFFFBBF24, false);
         curY += 10;
-        extractor.text(font, "§6✔ Libri lisci (Migliori in Arancio)", sideX + 8, curY, 0xFFF97316, false);
+        extractor.text(font, "§6• Libri lisci (Migliori in Arancio)", sideX + 8, curY, 0xFFF97316, false);
         curY += 12;
 
         if (matchingListings.isEmpty()) {
@@ -1105,7 +1105,7 @@ public class AhPriceManager {
             extractor.centeredText(font, "di /ah per leggere", sideX + (sideW / 2), boxY + 54, 0xFFE2E8F0);
             extractor.centeredText(font, "in automatico i prezzi!", sideX + (sideW / 2), boxY + 64, 0xFFE2E8F0);
 
-            extractor.centeredText(font, "💡 Solo libri lisci", sideX + (sideW / 2), boxY + boxH - 14, 0xFF6B7280);
+            extractor.centeredText(font, "Solo libri lisci", sideX + (sideW / 2), boxY + boxH - 14, 0xFF6B7280);
 
             // Rendering Menu a Discesa Autocomplete
             renderAutocompleteDropdown(extractor, font, searchBoxX, searchBoxY + searchBoxH + 1, searchBoxW, mouseX, mouseY);
@@ -1178,7 +1178,7 @@ public class AhPriceManager {
             AhListing best = !bestPerEnchant.isEmpty() ? bestPerEnchant.values().iterator().next() : matchingListings.get(0);
             int bestBoxY = drawY;
             int bestBoxH = 43;
-            if (bestBoxY + bestBoxH >= scrollAreaY && bestBoxY <= scrollAreaY + scrollAreaH) {
+            if (bestBoxY >= scrollAreaY - 4 && bestBoxY + bestBoxH <= scrollAreaY + scrollAreaH + 4) {
                 boolean isBestHovered = isMouseInScrollArea && (mouseY >= bestBoxY && mouseY <= bestBoxY + bestBoxH);
                 if (isBestHovered) {
                     hoveredListing = best;
@@ -1191,7 +1191,7 @@ public class AhPriceManager {
                 extractor.fill(sideX + 5, bestBoxY, sideX + 5 + cardWidth, bestBoxY + bestBoxH, bestBg);
                 extractor.outline(sideX + 5, bestBoxY, cardWidth, bestBoxH, bestBorder);
 
-                extractor.text(font, "🏆 MIGLIOR PREZZO:", sideX + 8, bestBoxY + 3, 0xFFFED7AA, false);
+                extractor.text(font, "• MIGLIOR PREZZO:", sideX + 8, bestBoxY + 3, 0xFFFED7AA, false);
                 EnchantmentEntry eeSingle = EnchantmentDatabase.getEnchantment(best.enchantId);
                 ItemStack iconSingle = EnchantmentThematicIconHelper.getIcon(eeSingle);
                 if (bestBoxY + 3 >= scrollAreaY - 2 && bestBoxY + 19 <= scrollAreaY + scrollAreaH + 2) {
@@ -1202,20 +1202,20 @@ public class AhPriceManager {
                 extractor.text(font, bestName, sideX + 8, bestBoxY + 13, 0xFFFFFFFF, true);
 
                 String sellerDisplay = trimToWidth(font, best.seller, 65);
-                String bestPriceLine = "💰 §6" + best.formattedPrice + " §7(da " + sellerDisplay + ")";
+                String bestPriceLine = "§6" + best.formattedPrice + " §7(da " + sellerDisplay + ")";
                 extractor.text(font, bestPriceLine, sideX + 8, bestBoxY + 23, 0xFFFFA500, false);
                 extractor.text(font, "§e" + best.formattedBreakdown, sideX + 8, bestBoxY + 33, 0xFFFDBA74, false);
             }
             drawY = bestBoxY + bestBoxH + 5;
         } else {
             // Più incanti in ricerca: mostra una card per ciascun incanto trovato
-            if (drawY + 10 >= scrollAreaY && drawY <= scrollAreaY + scrollAreaH) {
-                extractor.text(font, "🏆 MIGLIORI PREZZI:", sideX + 8, drawY, 0xFFFED7AA, false);
+            if (drawY >= scrollAreaY && drawY + 10 <= scrollAreaY + scrollAreaH) {
+                extractor.text(font, "• MIGLIORI PREZZI:", sideX + 8, drawY, 0xFFFED7AA, false);
             }
             drawY += 10;
             int cardH = 26;
             for (AhListing best : bestPerEnchant.values()) {
-                if (drawY + cardH >= scrollAreaY && drawY <= scrollAreaY + scrollAreaH) {
+                if (drawY >= scrollAreaY - 4 && drawY + cardH <= scrollAreaY + scrollAreaH + 4) {
                     boolean isCardHovered = isMouseInScrollArea && (mouseY >= drawY && mouseY <= drawY + cardH);
                     if (isCardHovered) {
                         hoveredListing = best;
@@ -1247,7 +1247,7 @@ public class AhPriceManager {
         }
 
         // 2. Lista tutti i prezzi trovati
-        if (drawY + 10 >= scrollAreaY && drawY <= scrollAreaY + scrollAreaH) {
+        if (drawY >= scrollAreaY && drawY + 10 <= scrollAreaY + scrollAreaH) {
             extractor.text(font, "Tutti i prezzi (" + matchingListings.size() + "):", sideX + 8, drawY, 0xFF9CA3AF, false);
         }
         drawY += 10;
@@ -1257,7 +1257,7 @@ public class AhPriceManager {
             boolean isTop = bestKeys.contains(l.key);
 
             int itemY = drawY + i * rowH;
-            if (itemY + rowH >= scrollAreaY && itemY <= scrollAreaY + scrollAreaH) {
+            if (itemY >= scrollAreaY - 2 && itemY + rowH <= scrollAreaY + scrollAreaH + 2) {
                 boolean isRowHovered = isMouseInScrollArea && (mouseY >= itemY && mouseY <= itemY + rowH - 1);
                 if (isRowHovered) {
                     hoveredListing = l;
@@ -1300,9 +1300,15 @@ public class AhPriceManager {
             extractor.fill(scrollBarX, scrollThumbY, scrollBarX + scrollBarW, scrollThumbY + scrollThumbH, thumbColor);
         }
 
-        // Footer informativo
-        int footerY = sideY + sideH - 12;
-        extractor.centeredText(font, "💡 Sfoglia /ah per aggiornare", sideX + (sideW / 2), footerY, 0xFF64748B);
+        // Footer informativo con background scuro per mascherare elementi scrollati
+        int footerBoxH = 15;
+        int footerY = sideY + sideH - footerBoxH;
+        extractor.fill(sideX + 1, footerY, sideX + sideW - 1, sideY + sideH - 1, 0xF80F111A);
+        extractor.horizontalLine(sideX + 2, sideX + sideW - 2, footerY, 0xFF1E293B);
+        extractor.centeredText(font, "Sfoglia /ah per aggiornare", sideX + (sideW / 2), footerY + 3, 0xFF64748B);
+
+        // Bordo finale contenitore
+        extractor.outline(sideX, sideY, sideW, sideH, 0xFF2A2D40);
 
         // Rendering Menu a Discesa Autocomplete (in primo piano, sopra le card e i listing)
         renderAutocompleteDropdown(extractor, font, searchBoxX, searchBoxY + searchBoxH + 1, searchBoxW, mouseX, mouseY);
@@ -1355,11 +1361,11 @@ public class AhPriceManager {
 
         List<Component> lines = new ArrayList<>();
         if (isBest) {
-            lines.add(Component.literal("§6🏆 MIGLIOR PREZZO AH #1"));
+            lines.add(Component.literal("§6• MIGLIOR PREZZO AH #1"));
         } else {
-            lines.add(Component.literal("§e📋 OFFERTA IN CLASSIFICA #" + rank));
+            lines.add(Component.literal("§e• OFFERTA IN CLASSIFICA #" + rank));
         }
-        lines.add(Component.literal("§f📙 " + listing.getDisplayNameWithLevel()));
+        lines.add(Component.literal("§f" + listing.getDisplayNameWithLevel()));
         lines.add(Component.empty());
         lines.add(Component.literal("§7Prezzo Totale:   " + (isBest ? "§6" : "§a") + listing.formattedPrice));
         if (listing.tax > 0) {
@@ -1368,7 +1374,7 @@ public class AhPriceManager {
         }
         lines.add(Component.literal("§7Venditore:      §b" + listing.seller));
         lines.add(Component.empty());
-        lines.add(Component.literal("§8💡 Clicca sul libro per acquistarlo subito in /ah"));
+        lines.add(Component.literal("§8Clicca sul libro per acquistarlo subito in /ah"));
 
         int maxW = 160;
         for (Component c : lines) {

@@ -57,7 +57,7 @@ public class LitnessOptimizerClient implements ClientModInitializer {
         // Messaggio all'ingresso nel server per ricordare il tasto [N] e programmazione notifica aggiornamenti
         ClientPlayConnectionEvents.JOIN.register((handler, sender, client) -> {
             if (client.player != null) {
-                client.player.sendSystemMessage(Component.literal("§6⚡ §eLitness Enchant Helper §7attivo! Premi §a[N] §7per aprire il menu."));
+                client.player.sendSystemMessage(Component.literal("§6• §eLitness Enchant Helper §7attivo! Premi §a[N] §7per aprire il menu."));
             }
             UpdateChecker.checkForUpdatesAsync();
             updateNotifyDelayTicks = 60; // 3 secondi dopo il join per superare il login/MOTD

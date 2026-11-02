@@ -166,8 +166,17 @@ public class LitnessOptimizerScreen extends Screen {
     private EnchantmentEntry hoveredCatalogEntry = null;
     private HoveredBookSlot hoveredGuideSlot = null;
     private boolean hoveredGuideInfo = false;
+    private boolean hoveredCreatingCornerItem = false;
     private EnchantmentEntry hoveredSelectionEntry = null;
     private final List<EnchantmentEntry> currentVisibleSelectionEnchants = new ArrayList<>();
+
+    private int getCreatingSetItemsPerPage() {
+        int navY = this.height - 22;
+        int startY = 88;
+        int availableH = navY - startY - 4;
+        int rows = Math.max(7, availableH / 20);
+        return rows * 2;
+    }
 
     private Solution currentSolution = null;
     private String statusMessage = "";
@@ -244,20 +253,20 @@ public class LitnessOptimizerScreen extends Screen {
         // Notifica aggiornamento disponibile in alto a sinistra
         if (UpdateChecker.isUpdateAvailable() && (this.width / 2 - tabWidth) >= 70) {
             int upBtnW = Math.min(105, this.width / 2 - tabWidth - 12);
-            String upTxt = "§6⚡ " + UpdateChecker.getLatestVersion();
+            String upTxt = "§6v" + UpdateChecker.getLatestVersion();
             this.addRenderableWidget(Button.builder(Component.literal(upTxt), b -> {
                 com.mojang.blaze3d.Blaze3D.openUri(java.net.URI.create(UpdateChecker.getReleasePageUrl()));
             }).bounds(8, topY, upBtnW, 19).build());
         }
 
         // 1. Tab Navigazione Superiore (Catalogo vs Simulatore/Calcolatore)
-        this.addRenderableWidget(Button.builder(Component.literal("📖 Catalogo Incantesimi"), button -> {
+        this.addRenderableWidget(Button.builder(Component.literal("Catalogo Incantesimi"), button -> {
             this.currentTab = Tab.CATALOG;
             this.clearWidgets();
             this.init();
         }).bounds(this.width / 2 - tabWidth - 5, topY, tabWidth, 19).build());
 
-        this.addRenderableWidget(Button.builder(Component.literal("🔨 Calcolatore & Simulatore"), button -> {
+        this.addRenderableWidget(Button.builder(Component.literal("Calcolatore & Simulatore"), button -> {
             this.currentTab = Tab.CALCULATOR;
             this.clearWidgets();
             this.init();
@@ -322,7 +331,7 @@ public class LitnessOptimizerScreen extends Screen {
 
         // Tasto Rapido Azzera Ricerche
         int ahCount = ActiveSessionManager.getSearchEnchants().size();
-        String ahBtnLabel = ahCount > 0 ? "§c✕ Azzera Cerca (" + ahCount + ")" : "§8Cerca: Nessuno";
+        String ahBtnLabel = ahCount > 0 ? "§cAzzera Cerca (" + ahCount + ")" : "§8Cerca: Nessuno";
 
         this.btnClearAhSearch = Button.builder(Component.literal(ahBtnLabel), b -> {
             ActiveSessionManager.clearSearchEnchants();
@@ -331,7 +340,7 @@ public class LitnessOptimizerScreen extends Screen {
             statusMessage = "§aRicerche e filtri azzerati (/ah e casse)!";
         }).bounds(catStartX + 402, filterY, 138, 18).tooltip(net.minecraft.client.gui.components.Tooltip.create(
             Component.literal(ahCount > 0
-                ? "§c✕ Clicca per azzerare i " + ahCount + " incantesimi in ricerca\n§7Rimuove l'evidenziazione attiva in /ah e nelle casse/shulker."
+                ? "§cClicca per azzerare i " + ahCount + " incantesimi in ricerca\n§7Rimuove l'evidenziazione attiva in /ah e nelle casse/shulker."
                 : "§7Nessun incantesimo attualmente in ricerca.\n§8Usa [+ Cerca] nel catalogo per evidenziare libri in /ah e nelle casse.")
         )).build();
         this.btnClearAhSearch.active = (ahCount > 0);
@@ -471,7 +480,7 @@ public class LitnessOptimizerScreen extends Screen {
             int btnY = y + 1;
 
             boolean isSearching = ActiveSessionManager.isSearchEnchant(ee.id);
-            String label = isSearching ? "§a✔ In Cerca" : "§7+ Cerca";
+            String label = isSearching ? "§aIn Cerca" : "§7+ Cerca";
 
             Button searchBtn = Button.builder(Component.literal(label), b -> {
                 ActiveSessionManager.toggleSearchEnchant(ee.id);
@@ -485,8 +494,8 @@ public class LitnessOptimizerScreen extends Screen {
                 updateClearButtonState();
             }).bounds(btnX, btnY, btnW, btnH).tooltip(net.minecraft.client.gui.components.Tooltip.create(
                 Component.literal(isSearching
-                    ? "§a✔ Ricerca attiva!\n§7Questo incantesimo è evidenziato in:\n§6• /ah: §7prezzi live, offerte migliori e tasse\n§b• Casse: §7casse, barili, shulker ed ender chest\n\n§c➡ Clicca per disattivare la ricerca."
-                    : "§e🔍 Clicca per cercare ed evidenziare!\n§7Evidenzia automaticamente questo libro in:\n§6• /ah: §7prezzi live, offerte migliori e tasse\n§b• Casse: §7casse normali/doppie, barili, shulker ed ender chest\n\n§a➡ Clicca per attivare la ricerca.")
+                    ? "§aRicerca attiva!\n§7Questo incantesimo e' evidenziato in:\n§6• /ah: §7prezzi live, offerte migliori e tasse\n§b• Casse: §7casse, barili, shulker ed ender chest\n\n§cClicca per disattivare la ricerca."
+                    : "§eClicca per cercare ed evidenziare!\n§7Evidenzia automaticamente questo libro in:\n§6• /ah: §7prezzi live, offerte migliori e tasse\n§b• Casse: §7casse normali/doppie, barili, shulker ed ender chest\n\n§aClicca per attivare la ricerca.")
             )).build();
 
             catalogRowButtons.add(searchBtn);
@@ -497,12 +506,12 @@ public class LitnessOptimizerScreen extends Screen {
     private void updateClearButtonState() {
         if (btnClearAhSearch == null) return;
         int count = ActiveSessionManager.getSearchEnchants().size();
-        String lbl = count > 0 ? "§c✕ Azzera Cerca (" + count + ")" : "§8Cerca: Nessuno";
+        String lbl = count > 0 ? "§cAzzera Cerca (" + count + ")" : "§8Cerca: Nessuno";
         btnClearAhSearch.setMessage(Component.literal(lbl));
         btnClearAhSearch.active = (count > 0);
         btnClearAhSearch.setTooltip(net.minecraft.client.gui.components.Tooltip.create(
             Component.literal(count > 0
-                ? "§c✕ Clicca per azzerare i " + count + " incantesimi in ricerca\n§7Rimuove l'evidenziazione attiva in /ah e nelle casse/shulker."
+                ? "§cClicca per azzerare i " + count + " incantesimi in ricerca\n§7Rimuove l'evidenziazione attiva in /ah e nelle casse/shulker."
                 : "§7Nessun incantesimo attualmente in ricerca.\n§8Usa [+ Cerca] nel catalogo per evidenziare libri in /ah e nelle casse.")
         ));
     }
@@ -636,7 +645,7 @@ public class LitnessOptimizerScreen extends Screen {
 
     private void initGuideViewWidgets(int startX, int panelWidth, int contentY) {
         // Pulsante Copia Guida negli Appunti posizionato saldamente a destra del banner
-        this.btnCopyGuide = Button.builder(Component.literal("📋 Copia Passi"), b -> copyGuideToClipboard())
+        this.btnCopyGuide = Button.builder(Component.literal("Copia Passi"), b -> copyGuideToClipboard())
                 .bounds(startX + panelWidth - 88, contentY + 1, 86, 18).build();
         this.addRenderableWidget(this.btnCopyGuide);
 
@@ -670,7 +679,7 @@ public class LitnessOptimizerScreen extends Screen {
             } else {
                 sb.append("[").append(step.leftLabel).append("] + [Libro: ").append(step.rightLabel).append("]");
             }
-            sb.append(" ➔ ").append(step.resultLabel).append(" (Costo: ").append(step.cost).append(" liv.)\n");
+            sb.append(" -> ").append(step.resultLabel).append(" (Costo: ").append(step.cost).append(" liv.)\n");
         }
         if (this.minecraft != null && this.minecraft.keyboardHandler != null) {
             this.minecraft.keyboardHandler.setClipboard(sb.toString());
@@ -762,13 +771,13 @@ public class LitnessOptimizerScreen extends Screen {
             activeItemIcons.add(new ItemIconData(curX + 2, contentY + 1, getItemStackForType(ITEM_KEYS[creatingSetItemIndex])));
             curX += pezzoBtnW + 4;
 
-            // [🔍 Cerca incantesimo...]
+            // [Cerca incantesimo...]
             int searchFieldW = Math.min(135, panelWidth - (curX - startX) - 150);
             this.creatingSetSearchField = new EditBox(this.font, curX, contentY, searchFieldW, 18, Component.literal(""));
             if (currentCreatingSetSearch != null && !currentCreatingSetSearch.isEmpty()) {
                 this.creatingSetSearchField.setValue(currentCreatingSetSearch);
             }
-            this.creatingSetSearchField.setHint(Component.literal("🔍 Cerca..."));
+            this.creatingSetSearchField.setHint(Component.literal("Cerca..."));
             this.creatingSetSearchField.setResponder(text -> {
                 currentCreatingSetSearch = text;
                 creatingSetPage = 0;
@@ -776,8 +785,8 @@ public class LitnessOptimizerScreen extends Screen {
             });
             this.addRenderableWidget(this.creatingSetSearchField);
 
-            // [💾 Salva Set Futuro]
-            String saveLabel = "💾 Salva (" + creatingSetEnchants.size() + "/12)";
+            // [Salva Set Futuro]
+            String saveLabel = "Salva (" + creatingSetEnchants.size() + "/12)";
             this.addRenderableWidget(Button.builder(Component.literal(saveLabel), b -> {
                 if (!creatingSetEnchants.isEmpty()) {
                     String inputName = (creatingSetNameField != null) ? creatingSetNameField.getValue().trim() : currentCreatingSetName.trim();
@@ -819,8 +828,8 @@ public class LitnessOptimizerScreen extends Screen {
         }
 
         // VISTA STANDARD: LISTA DEI SET SALVATI & PRESET
-        // [➕ Crea Nuovo Set Futuro]
-        this.addRenderableWidget(Button.builder(Component.literal("➕ Crea Nuovo Set Futuro"), b -> {
+        // [+ Crea Nuovo Set Futuro]
+        this.addRenderableWidget(Button.builder(Component.literal("+ Crea Nuovo Set Futuro"), b -> {
             isCreatingSet = true;
             editingSetId = null;
             currentCreatingSetName = "";
@@ -890,12 +899,13 @@ public class LitnessOptimizerScreen extends Screen {
         currentVisibleSelectionEnchants.clear();
         currentVisibleSelectionEnchants.addAll(compList);
 
-        int totalPages = Math.max(1, (int) Math.ceil((double) compList.size() / 10));
+        int itemsPerPage = getCreatingSetItemsPerPage();
+        int totalPages = Math.max(1, (int) Math.ceil((double) compList.size() / itemsPerPage));
         if (creatingSetPage >= totalPages) creatingSetPage = totalPages - 1;
         if (creatingSetPage < 0) creatingSetPage = 0;
 
-        int startIdx = creatingSetPage * 10;
-        int endIdx = Math.min(startIdx + 10, compList.size());
+        int startIdx = creatingSetPage * itemsPerPage;
+        int endIdx = Math.min(startIdx + itemsPerPage, compList.size());
         int colWidth = (panelWidth - 10) / 2;
 
         for (int i = startIdx; i < endIdx; i++) {
@@ -918,13 +928,13 @@ public class LitnessOptimizerScreen extends Screen {
             String label;
             if (isSelected) {
                 if (hasConflict) {
-                    label = pad + "§e⚠️ §a✔ §c§m" + baseName + "§r §c(" + conflict + ")";
+                    label = pad + "§e[!] §a• §c§m" + baseName + "§r §c(" + conflict + ")";
                 } else {
-                    label = pad + "§a✔ §f" + baseName;
+                    label = pad + "§a• §f" + baseName;
                 }
             } else {
                 if (hasConflict) {
-                    label = pad + "§e⚠️ §8[  ] §c§m" + baseName + "§r §8(vs " + conflict + ")";
+                    label = pad + "§e[!] §8[  ] §c§m" + baseName + "§r §8(vs " + conflict + ")";
                 } else {
                     label = pad + "§8[  ] §7" + baseName;
                 }
@@ -973,7 +983,7 @@ public class LitnessOptimizerScreen extends Screen {
             creatingSetEnchantButtons.add(enchBtn);
         }
 
-        int navY = startY + 5 * 20 + 4;
+        int navY = this.height - 22;
         Button prev = Button.builder(Component.literal("◀ Precedenti"), b -> {
             if (this.creatingSetNameField != null) {
                 currentCreatingSetName = this.creatingSetNameField.getValue();
@@ -1030,16 +1040,16 @@ public class LitnessOptimizerScreen extends Screen {
             int row = i - startIdx;
             int y = startY + row * (cardH + gap);
 
-            // [⚡ Guida]
-            Button loadBtn = Button.builder(Component.literal("⚡ Guida"), b -> {
+            // [Guida]
+            Button loadBtn = Button.builder(Component.literal("Guida"), b -> {
                 loadSavedSetIntoSimulator(set);
             }).bounds(startX + panelWidth - 176, y + 13, 56, 18).build();
             this.addRenderableWidget(loadBtn);
             savedSetButtons.add(loadBtn);
 
-            // [📌 Pin HUD] / [★ Pinnato]
+            // [Pin HUD] / [Pinnato]
             boolean isPinned = ActiveSessionManager.isSetPinned(set.id);
-            Button pinBtn = Button.builder(Component.literal(isPinned ? "§6★ Pinnato" : "📌 Pin HUD"), b -> {
+            Button pinBtn = Button.builder(Component.literal(isPinned ? "§6Pinnato" : "Pin HUD"), b -> {
                 ActiveSessionManager.togglePinSet(set.id);
                 this.clearWidgets();
                 this.init();
@@ -1047,8 +1057,8 @@ public class LitnessOptimizerScreen extends Screen {
             this.addRenderableWidget(pinBtn);
             savedSetButtons.add(pinBtn);
 
-            // [✏ Modifica Set]
-            Button editBtn = Button.builder(Component.literal("✏"), b -> {
+            // [Modifica Set]
+            Button editBtn = Button.builder(Component.literal("Mod"), b -> {
                 isCreatingSet = true;
                 editingSetId = set.id;
                 currentCreatingSetName = set.name;
@@ -1069,8 +1079,8 @@ public class LitnessOptimizerScreen extends Screen {
             this.addRenderableWidget(editBtn);
             savedSetButtons.add(editBtn);
 
-            // [🗑 Elimina]
-            Button delBtn = Button.builder(Component.literal("🗑"), b -> {
+            // [Elimina]
+            Button delBtn = Button.builder(Component.literal("X"), b -> {
                 SavedSetsManager.deleteSet(set.id);
                 statusMessage = "§cSet '" + set.name + "' eliminato.";
                 this.clearWidgets();
@@ -1113,24 +1123,42 @@ public class LitnessOptimizerScreen extends Screen {
                 EnchantmentEntry ee = EnchantmentDatabase.getEnchantment(enchId);
                 String conf = getConflictWithCollection(ee, creatingSetEnchants);
                 if (conf != null) {
-                    conflictWarn = " • §e⚠️ Conflitto: " + (ee != null ? ee.name : enchId) + " vs " + conf;
+                    conflictWarn = " • §e[!] Conflitto: " + (ee != null ? ee.name : enchId) + " vs " + conf;
                     break;
                 }
             }
 
+            int cornerW = 150;
+            int cornerH = 18;
+            int cornerX = panelX + panelWidth - cornerW;
+            int cornerY = bannerY - 1;
+
+            int bannerW = panelWidth - cornerW - 4;
             int bannerBg = conflictWarn.isEmpty() ? 0xEE141422 : 0xEE2A1A14;
             int bannerStripe = conflictWarn.isEmpty() ? 0xFF10B981 : 0xFFF59E0B;
-            extractor.fill(panelX, bannerY, panelX + panelWidth, bannerY + 16, bannerBg);
+            extractor.fill(panelX, bannerY, panelX + bannerW, bannerY + 16, bannerBg);
             extractor.fill(panelX, bannerY, panelX + 3, bannerY + 16, bannerStripe);
-            extractor.outline(panelX, bannerY, panelWidth, 16, conflictWarn.isEmpty() ? 0xFF2A2A3E : 0xFF7C2D12);
+            extractor.outline(panelX, bannerY, bannerW, 16, conflictWarn.isEmpty() ? 0xFF2A2A3E : 0xFF7C2D12);
 
-            String titlePrefix = editingSetId != null ? "✏️ Modifica Set" : "➕ Crea Set Futuro";
-            String status = titlePrefix + " per " + ITEM_NAMES[creatingSetItemIndex] + " • Selezionati: " + creatingSetEnchants.size() + "/12" + conflictWarn;
+            String titlePrefix = editingSetId != null ? "Modifica" : "Crea";
+            String status = titlePrefix + " Set " + ITEM_NAMES[creatingSetItemIndex] + " (" + creatingSetEnchants.size() + "/12)" + conflictWarn;
             extractor.text(this.font, status, panelX + 8, bannerY + 4, conflictWarn.isEmpty() ? 0xFF34D399 : 0xFFFBBF24, false);
 
+            // Box Anteprima Oggetto in alto a destra nell'angolo (mostra gli incanti messi senza rubare spazio)
+            boolean isCornerHovered = mouseX >= cornerX && mouseX <= cornerX + cornerW && mouseY >= cornerY && mouseY <= cornerY + cornerH;
+            extractor.fill(cornerX, cornerY, cornerX + cornerW, cornerY + cornerH, isCornerHovered ? 0xEE272B3F : 0xEE161A28);
+            extractor.outline(cornerX, cornerY, cornerW, cornerH, isCornerHovered ? 0xFF818CF8 : 0xFF4F46E5);
+            extractor.fakeItem(getItemStackForType(ITEM_KEYS[creatingSetItemIndex]), cornerX + 2, cornerY + 1);
+            extractor.text(this.font, ITEM_NAMES[creatingSetItemIndex] + " (" + creatingSetEnchants.size() + "/12)", cornerX + 22, cornerY + 5, 0xFFFDE047, false);
+
+            if (isCornerHovered) {
+                this.hoveredCreatingCornerItem = true;
+            }
+
             this.hoveredSelectionEntry = null;
-            int startIdx = creatingSetPage * 10;
-            int endIdx = Math.min(startIdx + 10, currentVisibleSelectionEnchants.size());
+            int itemsPerPage = getCreatingSetItemsPerPage();
+            int startIdx = creatingSetPage * itemsPerPage;
+            int endIdx = Math.min(startIdx + itemsPerPage, currentVisibleSelectionEnchants.size());
 
             // Controlla il passaggio del mouse direttamente sui pulsanti reali (zero falsi positivi nel vuoto)
             for (int i = startIdx; i < endIdx; i++) {
@@ -1153,7 +1181,7 @@ public class LitnessOptimizerScreen extends Screen {
             extractor.fill(panelX, startY, panelX + panelWidth, startY + emptyH, 0xEE141422);
             extractor.outline(panelX, startY, panelWidth, emptyH, 0xFF2A2A3E);
             extractor.centeredText(this.font, "§7Nessun set salvato.", panelX + panelWidth / 2, startY + 12, 0xFFA1A1AA);
-            extractor.centeredText(this.font, "§aClicca su '➕ Crea Nuovo Set Futuro' in alto a sinistra per creare il tuo set!", panelX + panelWidth / 2, startY + 28, 0xFF34D399);
+            extractor.centeredText(this.font, "§aClicca su 'Crea Nuovo Set Futuro' in alto a sinistra per creare il tuo set!", panelX + panelWidth / 2, startY + 28, 0xFF34D399);
             return;
         }
 
@@ -1189,16 +1217,16 @@ public class LitnessOptimizerScreen extends Screen {
 
             extractor.fakeItem(getItemStackForType(set.itemKey), panelX + 8, y + 14);
 
-            String warnIcon = (conflictFound != null) ? " §e⚠️" : "";
-            String pinPrefix = isPinned ? "§6★ " : "";
+            String warnIcon = (conflictFound != null) ? " §e[!]" : "";
+            String pinPrefix = isPinned ? "§6* " : "";
             String title = pinPrefix + "§f" + set.name + " §8[" + capitalize(set.itemKey) + " • " + set.enchantments.size() + "/12]" + warnIcon;
             extractor.text(this.font, title, panelX + 32, y + 6, (conflictFound != null) ? 0xFFFBBF24 : 0xFFFFFFFF, false);
 
             String inInvTxt = (inInv == set.enchantments.size() && set.enchantments.size() > 0)
-                    ? "§a📦 " + inInv + "/" + set.enchantments.size() + " In Inventario ✔"
-                    : "§e📦 " + inInv + "/" + set.enchantments.size() + " In Inventario";
+                    ? "§a" + inInv + "/" + set.enchantments.size() + " In Inventario"
+                    : "§e" + inInv + "/" + set.enchantments.size() + " In Inventario";
             if (conflictFound != null) {
-                inInvTxt += "  §e⚠️ (Conflitto: " + conflictFound + ")";
+                inInvTxt += "  §e[!] (Conflitto: " + conflictFound + ")";
             }
             extractor.text(this.font, inInvTxt, panelX + 32, y + 18, (conflictFound != null) ? 0xFFFBBF24 : 0xFFA1A1AA, false);
 
@@ -1429,16 +1457,16 @@ public class LitnessOptimizerScreen extends Screen {
 
         if (currentSolution != null && currentSolution.peakCost > 39) {
             int penaltyVal = PENALTY_STEPS[selectedPenaltyIndex];
-            statusMessage = "§c⚠️ Troppo Costoso (" + currentSolution.peakCost + "/39 liv.)! Con penalità +" + penaltyVal + " riduci gli incanti selezionati.";
+            statusMessage = "§c[!] Troppo Costoso (" + currentSolution.peakCost + "/39 liv.)! Con penalità +" + penaltyVal + " riduci gli incanti selezionati.";
         } else if (this.anvilMenu != null) {
             ItemStack slot0 = this.anvilMenu.getSlot(0).getItem();
             if (!slot0.isEmpty()) {
                 com.litness.optimizer.calculator.MaxabilityAnalyzer.MaxabilityResult maxability =
                         com.litness.optimizer.calculator.MaxabilityAnalyzer.analyze(slot0, extractAllEnchantmentsFromItem(slot0));
                 if (maxability.status == com.litness.optimizer.calculator.MaxabilityAnalyzer.Status.PARTIALLY_MAXABLE) {
-                    statusMessage = "§e⚠️ Penalità attuale (+" + maxability.currentPenalty + "): puoi aggiungere ancora fino a " + maxability.maxAddable + " incanti prima del blocco!";
+                    statusMessage = "§e[!] Penalità attuale (+" + maxability.currentPenalty + "): puoi aggiungere ancora fino a " + maxability.maxAddable + " incanti prima del blocco!";
                 } else if (maxability.status == com.litness.optimizer.calculator.MaxabilityAnalyzer.Status.SATURATED) {
-                    statusMessage = "§c⛔ Oggetto saturo (+" + maxability.currentPenalty + "): qualsiasi ulteriore incanto risulterà 'Troppo Costoso!'";
+                    statusMessage = "§c[!] Oggetto saturo (+" + maxability.currentPenalty + "): qualsiasi ulteriore incanto risulterà 'Troppo Costoso!'";
                 }
             }
         }
@@ -1516,6 +1544,7 @@ public class LitnessOptimizerScreen extends Screen {
             this.hoveredGuideSlot = null;
             this.hoveredGuideInfo = false;
             this.hoveredSelectionEntry = null;
+            this.hoveredCreatingCornerItem = false;
 
             if (currentTab == Tab.CATALOG) {
                 renderCatalogTab(extractor, mouseX, mouseY);
@@ -1550,8 +1579,12 @@ public class LitnessOptimizerScreen extends Screen {
                         renderGuideSlotTooltip(extractor, hoveredGuideSlot, mouseX, mouseY);
                     }
                 } else if (simView == SimView.SETS) {
-                    if (isCreatingSet && hoveredSelectionEntry != null) {
-                        renderEnchantmentTooltip(extractor, hoveredSelectionEntry, mouseX, mouseY);
+                    if (isCreatingSet) {
+                        if (hoveredCreatingCornerItem) {
+                            renderCreatingCornerItemTooltip(extractor, mouseX, mouseY);
+                        } else if (hoveredSelectionEntry != null) {
+                            renderEnchantmentTooltip(extractor, hoveredSelectionEntry, mouseX, mouseY);
+                        }
                     }
                 }
             }
@@ -1649,16 +1682,16 @@ public class LitnessOptimizerScreen extends Screen {
         boolean isVanillaPlus = "vanilla_plus".equalsIgnoreCase(e.category);
         String catName = isVanillaPlus ? "Vanilla+ Speciale" : (isCustom ? "Custom Litness (" + (e.rarity != null ? e.rarity : "Speciale") + ")" : "Incantesimo Vanilla");
         String formattedTitle = AnvilOptimizer.formatEnchantName(e.name, e.maxLevel > 1 ? e.maxLevel : 0);
-        String title = (hasActiveConflict ? "§e⚠️ " : "") + formattedTitle;
+        String title = (hasActiveConflict ? "§e[!] " : "") + formattedTitle;
         String sub = catName + " • Costo: " + ((isCustom || isVanillaPlus) ? "+" + e.getAnvilCostNumeric() + " liv." : "Standard");
         String desc = (e.description != null && !e.description.isEmpty()) ? e.description : "Nessuna descrizione.";
 
         int descH = this.font.wordWrapHeight(Component.literal(desc), innerW);
 
-        String activeWarnText = hasActiveConflict ? "§e⚠️ ATTENZIONE: Incompatibile con '§c" + activeConflict + "§e' già nel set!" : null;
+        String activeWarnText = hasActiveConflict ? "§e[!] ATTENZIONE: Incompatibile con '§c" + activeConflict + "§e' già nel set!" : null;
         int activeWarnH = hasActiveConflict ? this.font.wordWrapHeight(Component.literal(activeWarnText), innerW) : 0;
 
-        String confText = hasConflicts ? "§c⚔ Conflitti: §f" + String.join("§7, §f", conflicts) : null;
+        String confText = hasConflicts ? "§cConflitti: §f" + String.join("§7, §f", conflicts) : null;
         int confH = hasConflicts ? this.font.wordWrapHeight(Component.literal(confText), innerW) : 0;
 
         int tipH = 34 + (hasActiveConflict ? activeWarnH + 6 : 0) + descH + (hasConflicts ? 8 + confH : 0) + (hasComp ? 26 : 0) + 8;
@@ -1755,12 +1788,12 @@ public class LitnessOptimizerScreen extends Screen {
             extractor.outline(panelX, bannerY, bannerW, 20, 0xFF2A2A3E);
 
             int curBannerX = panelX + 10;
-            String costTxt = "💰 " + currentSolution.totalCost + " liv.";
+            String costTxt = "Costo: " + currentSolution.totalCost + " liv.";
             extractor.text(this.font, costTxt, curBannerX, bannerY + 6, 0xFF34D399, false);
             curBannerX += this.font.width(costTxt) + 16;
 
             boolean safe = currentSolution.peakCost <= 39;
-            String peakTxt = "⚡ Picco: " + currentSolution.peakCost + "/39 liv. " + (safe ? "✔" : "✖");
+            String peakTxt = "Picco: " + currentSolution.peakCost + "/39 liv. " + (safe ? "[OK]" : "[!]");
             extractor.text(this.font, peakTxt, curBannerX, bannerY + 6, safe ? 0xFF818CF8 : 0xFFEF4444, false);
             curBannerX += this.font.width(peakTxt) + 10;
 
@@ -1820,10 +1853,10 @@ public class LitnessOptimizerScreen extends Screen {
                 extractor.text(this.font, "[" + badge + "]", panelX + 8, y + 4, badgeCol, false);
 
                 String actIcon = com.litness.optimizer.data.ItemTypeHelper.getActionIcon(ITEM_KEYS[selectedItemIndex]);
-                String opType = step.isBookToBook ? "🔨 Fusione Libri nell'Incudine" : actIcon + " Tempra Libro su " + step.leftLabel;
+                String opType = step.isBookToBook ? "Fusione Libri nell'Incudine" : (actIcon.isEmpty() ? "" : actIcon + " ") + "Tempra Libro su " + step.leftLabel;
                 extractor.text(this.font, opType, panelX + 80, y + 4, 0xFFFFFFFF, false);
 
-                String costText = "💰 Costo: " + step.cost + " liv. XP";
+                String costText = "Costo: " + step.cost + " liv. XP";
                 int costW = this.font.width(costText);
                 extractor.text(this.font, costText, panelX + panelWidth - costW - 8, y + 4, 0xFFFBBF24, false);
 
@@ -1842,7 +1875,7 @@ public class LitnessOptimizerScreen extends Screen {
                 String leftHeader = step.isBookToBook ? "Slot 1 (Libro):" : "Slot 1 (Oggetto):";
                 extractor.text(this.font, leftHeader, panelX + 32, slotY + 4, 0xFF93C5FD, false);
                 if (step.isBookToBook && InventoryTracker.hasInInventory(step.leftLabel)) {
-                    String invBadge = "§a✔ In Inventario";
+                    String invBadge = "§aIn Inventario";
                     int bW = this.font.width(invBadge);
                     extractor.text(this.font, invBadge, panelX + 8 + slotW - bW - 4, slotY + 4, 0xFF34D399, false);
                 }
@@ -1862,7 +1895,7 @@ public class LitnessOptimizerScreen extends Screen {
 
                 extractor.text(this.font, "Slot 2 (Libro):", slot2X + 24, slotY + 4, 0xFFF472B6, false);
                 if (InventoryTracker.hasInInventory(step.rightLabel)) {
-                    String invBadge = "§a✔ In Inventario";
+                    String invBadge = "§aIn Inventario";
                     int bW = this.font.width(invBadge);
                     extractor.text(this.font, invBadge, slot2X + slotW - bW - 4, slotY + 4, 0xFF34D399, false);
                 }
@@ -1870,7 +1903,7 @@ public class LitnessOptimizerScreen extends Screen {
                 extractor.text(this.font, rightName, slot2X + 24, slotY + 14, 0xFFFFFFFF, false);
 
                 // FRECCIA RISULTATO
-                extractor.centeredText(this.font, "➔", slot2X + slotW + 10, slotY + 9, 0xFF34D399);
+                extractor.centeredText(this.font, "->", slot2X + slotW + 10, slotY + 9, 0xFF34D399);
 
                 // RISULTATO (Output Slot)
                 int resX = slot2X + slotW + 20;
@@ -1935,13 +1968,58 @@ public class LitnessOptimizerScreen extends Screen {
         }
     }
 
+    private void renderCreatingCornerItemTooltip(GuiGraphicsExtractor extractor, int mouseX, int mouseY) {
+        List<Component> tipLines = new ArrayList<>();
+        tipLines.add(Component.literal("§b• " + ITEM_NAMES[creatingSetItemIndex] + " §8[Set in Creazione]"));
+        tipLines.add(Component.literal("§eIncantesimi inseriti (" + creatingSetEnchants.size() + "/12):"));
+        if (creatingSetEnchants.isEmpty()) {
+            tipLines.add(Component.literal("   §8(Nessun incanto selezionato)"));
+        } else {
+            for (String enchId : creatingSetEnchants) {
+                EnchantmentEntry ee = EnchantmentDatabase.getEnchantment(enchId);
+                String name = (ee != null) ? AnvilOptimizer.formatEnchantName(ee.name, ee.maxLevel) : enchId;
+                tipLines.add(Component.literal("   §a• " + name));
+            }
+        }
+        tipLines.add(Component.empty());
+        tipLines.add(Component.literal("§8• Clicca un incanto nella lista per aggiungerlo o rimuoverlo"));
+
+        int maxW = 160;
+        for (Component c : tipLines) {
+            maxW = Math.max(maxW, this.font.width(c));
+        }
+        int tipW = maxW + 16;
+        int tipH = tipLines.size() * 11 + 10;
+        int tipX = mouseX + 12;
+        int tipY = mouseY - 12;
+        if (tipX + tipW > this.width - 4) tipX = mouseX - tipW - 8;
+        if (tipY + tipH > this.height - 4) tipY = this.height - tipH - 4;
+        if (tipX < 4) tipX = 4;
+        if (tipY < 4) tipY = 4;
+
+        extractor.outline(tipX - 1, tipY - 1, tipW + 2, tipH + 2, 0xFF000000);
+        extractor.fill(tipX, tipY, tipX + tipW, tipY + tipH, 0xF80E111A);
+        extractor.fill(tipX, tipY, tipX + tipW, tipY + 2, 0xFF6366F1);
+        extractor.outline(tipX, tipY, tipW, tipH, 0xFF4F46E5);
+
+        int textY = tipY + 6;
+        for (Component line : tipLines) {
+            if (line.getString().isEmpty()) {
+                textY += 4;
+            } else {
+                extractor.text(this.font, line, tipX + 8, textY, 0xFFFFFFFF, true);
+                textY += 11;
+            }
+        }
+    }
+
     private void renderGuideInfoTooltip(GuiGraphicsExtractor extractor, int mouseX, int mouseY) {
         List<Component> tipLines = new ArrayList<>();
-        tipLines.add(Component.literal("§6⚡ GUIDA COMPLETA (TEORICA)"));
+        tipLines.add(Component.literal("§6GUIDA COMPLETA (TEORICA)"));
         tipLines.add(Component.literal("§7Mostra l'albero matematico perfetto calcolato a tavolino:"));
         tipLines.add(Component.literal("§8• Ipotizza tutti i libri con penalità 0 e set completo."));
         tipLines.add(Component.empty());
-        tipLines.add(Component.literal("§e❓ Perché i passi all'Incudine possono cambiare?"));
+        tipLines.add(Component.literal("§ePerché i passi all'Incudine possono cambiare?"));
         tipLines.add(Component.literal("§8• L'Assistente laterale all'Incudine agisce come un GPS dinamico:"));
         tipLines.add(Component.literal("§8  legge i libri che hai in mano e le penalità reali,"));
         tipLines.add(Component.literal("§8  ricalcolando la mossa migliore per evitare 'Troppo Costoso!'."));
@@ -2012,7 +2090,7 @@ public class LitnessOptimizerScreen extends Screen {
 
             List<String> conflicts = EnchantmentDatabase.getResolvedConflicts(ee.id);
             boolean hasConflicts = !conflicts.isEmpty();
-            String confText = hasConflicts ? "§c⚔ Conflitti: §f" + String.join("§7, §f", conflicts) : null;
+            String confText = hasConflicts ? "§cConflitti: §f" + String.join("§7, §f", conflicts) : null;
 
             int tipW = Math.min(320, this.width - 24);
             int innerW = tipW - 16;
@@ -2049,7 +2127,7 @@ public class LitnessOptimizerScreen extends Screen {
         // Più incantesimi uniti sul libro
         int tipW = Math.min(330, this.width - 24);
         int innerW = tipW - 16;
-        String headerTitle = "📖 Libro Incantato (" + slot.enchants.size() + " Incantesimi)";
+        String headerTitle = "Libro Incantato (" + slot.enchants.size() + " Incantesimi)";
         String penTxt = "Penalità lavoro: +" + slot.work + " liv.";
 
         int calcH = 34;
@@ -2195,7 +2273,7 @@ public class LitnessOptimizerScreen extends Screen {
                     if (this.creatingSetSearchField != null) {
                         currentCreatingSetSearch = this.creatingSetSearchField.getValue();
                     }
-                    int totalPages = Math.max(1, (int) Math.ceil((double) currentVisibleSelectionEnchants.size() / 10));
+                    int totalPages = Math.max(1, (int) Math.ceil((double) currentVisibleSelectionEnchants.size() / getCreatingSetItemsPerPage()));
                     if (verticalAmount > 0 && creatingSetPage > 0) {
                         creatingSetPage--;
                         this.clearWidgets();

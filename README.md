@@ -1,12 +1,12 @@
 # ⚡ Litness Enchant Helper
 
-[![DOWNLOAD MOD (.JAR)](https://img.shields.io/badge/⚡%20SCARICA%20SUBITO%20LA%20MOD%20(.JAR)-VERSIONE%201.2.8-22c55e?style=for-the-badge&logo=curseforge&logoColor=white)](https://github.com/Infezione/litness-enchant-helper/releases/download/v1.2.8/LitnessEnchantHelper-1.2.8.jar)
+[![DOWNLOAD MOD (.JAR)](https://img.shields.io/badge/⚡%20SCARICA%20SUBITO%20LA%20MOD%20(.JAR)-VERSIONE%201.2.9-22c55e?style=for-the-badge&logo=curseforge&logoColor=white)](https://github.com/Infezione/litness-enchant-helper/releases/download/v1.2.9/LitnessEnchantHelper-1.2.9.jar)
 [![ULTIMI AGGIORNAMENTI](https://img.shields.io/badge/🌟%20ULTIMI%20AGGIORNAMENTI-VEDI%20LE%20NOVITÀ-6366f1?style=for-the-badge&logo=sparkles&logoColor=white)](#ultimi-aggiornamenti)
 
 ![Minecraft](https://img.shields.io/badge/Minecraft-26.3-brightgreen.svg)
 ![Fabric](https://img.shields.io/badge/ModLoader-Fabric-blue.svg)
 ![Lunar Client](https://img.shields.io/badge/Lunar%20Client-Compatible-informational.svg)
-![Release](https://img.shields.io/badge/Release-v1.2.8-blueviolet.svg)
+![Release](https://img.shields.io/badge/Release-v1.2.9-blueviolet.svg)
 ![Author](https://img.shields.io/badge/Author-Waaxey-purple.svg)
 
 > [!TIP]
@@ -40,9 +40,12 @@ Sul server Litness, forgiare spade, archi, picconi o armature con 10–12 incant
   - Se il tetto dei 39 livelli impedirebbe il completamento totale, la mod calcola matematicamente a ritroso e avvisa subito:  
     `⚠️ ATTENZIONE PENALITÀ: Puoi aggiungere ancora fino a +N incanti con guida.` oppure `⛔ TROPPO COSTOSO!`.
   - Passando il mouse sopra l'item o sul riquadro informativo, appare un tooltip dettagliato con penalità attuale, storico delle lavorazioni e stima dei passaggi residui.
+- **Nuovo Glow Celeste & Targhette Fisse Slot 1 / Slot 2 (v1.2.9)**:
+  - Durante qualsiasi passaggio di fusione o tempra, l'assistente analizza il tuo inventario ed **illumina istantaneamente di celeste pulsante** gli slot esatti dei libri (o dell'oggetto) richiesti.
+  - **Targhette visibili senza mouse hover**: sopra ogni slot richiesto appare una targhetta luminosa fissa (`[SLOT 1]` e `[SLOT 2]`) che ti indica a colpo d'occhio senza dover toccare il mouse dove inserire ogni libro nell'incudine, con lore tooltip esplicito al passaggio del cursore (`Devi inserire questo nello Slot 1/2 dell'Incudine`).
 - **Istruzioni Chiare a Colori per Slot**:
-  - `🔨 UNISCI 2 LIBRI`: indica con chiarezza `Slot 1:` in celeste e `Slot 2:` in rosa, con il costo esatto in livelli XP in verde smeraldo e il promemoria `💡 Metti prima i 2 libri` per evitare combinazioni accidentali.
-  - `🗡 TEMPRA SU OGGETTO`: ti segnala il momento perfetto in cui fondere il libro combinato direttamente sul tuo equipaggiamento (`Metti nello Slot 2:` con relativo costo).
+  - `UNISCI 2 LIBRI`: indica con chiarezza `Slot 1:` in celeste e `Slot 2:` in rosa, con il costo esatto in livelli XP in verde smeraldo e il promemoria `Metti prima i 2 libri` per evitare combinazioni accidentali.
+  - `TEMPRA SU OGGETTO`: ti segnala il momento perfetto in cui fondere il libro combinato direttamente sul tuo equipaggiamento (`Metti nello Slot 2:` con relativo costo).
 - **Doppio Pulsante Rapido Integrato**:
   - `📋 Guida Completa [N]`: posizionato subito sotto la sidebar per aprire all'istante l'albero di fusione completo.
   - `📋 Guida Passi`: tasto compatto posizionato direttamente sopra la cornice dell'incudine senza sovrapporsi al titolo.
@@ -61,6 +64,11 @@ Sul server Litness, forgiare spade, archi, picconi o armature con 10–12 incant
 ---
 
 ### 3. ✨ Creatore & Gestore "Set Futuri"
+- **Nuova Schermata Creazione ad Alta Densità (v1.2.9)**: la lista degli incantesimi si espande dinamicamente a tutta altezza sfruttando l'intera risoluzione verticale dello schermo, mostrando da 14 fino a 24 incantesimi per pagina con supporto allo scorrimento rapido tramite rotella del mouse.
+- **Anteprima Compatta dell'Item nell'Angolo Superiore (v1.2.9)**:
+  - Posizionata discretamente nell'angolo in alto a destra del banner senza rubare spazio utile alla selezione degli incanti.
+  - Mostra il modello 3D dell'oggetto scelto (es. Spada, Piccone, Armatura) e il contatore in tempo reale degli incanti selezionati (es. `Spada (5/12)`).
+  - **Tooltip Istantaneo su Hover**: passando il cursore sopra la card compare un tooltip dettagliato ed elegante che elenca tutti gli incantesimi già aggiunti al set, visualizzabile a colpo d'occhio prima del salvataggio.
 - **Pianificazione Libera fino a 12 Incantesimi**: crea in anticipo la combinazione dei sogni per qualsiasi pezzo di equipaggiamento (Spade, Picconi, Archi, Balestre, Mazze, Elmi, Corazze, Gambali, Stivali).
 - **Supporto Vanilla, Vanilla+ (Efficienza VI) e Custom**: seleziona liberamente tra tutti gli incantesimi standard e quelli speciali ed esclusivi di Litness.
 - **Filtri Specifici per Categoria Strumento**: selezionando la tipologia di oggetto, la lista mostra esclusivamente gli incantesimi applicabili a quel pezzo.
@@ -134,15 +142,20 @@ Sul server Litness, forgiare spade, archi, picconi o armature con 10–12 incant
 <a id="ultimi-aggiornamenti" name="ultimi-aggiornamenti"></a>
 <a id="-ultimi-aggiornamenti" name="-ultimi-aggiornamenti"></a>
 
-## 🌟 Ultimi Aggiornamenti (v1.2.8)
+## 🌟 Ultimi Aggiornamenti (v1.2.9)
 
-- 📜 **Nuovo Scorrimento con Rotella del Mouse in `/ah` (Sidebar Prezzi)**:
-  - Aggiunto il supporto completo allo scrolling verticale con la rotellina del mouse nella barra laterale dell'Asta (*⚡ PREZZI AH*).
-  - Quando cerchi più incantesimi o un intero set di armatura/strumenti, ora puoi scorrere verso il basso senza limiti per visualizzare tutte le card dei migliori prezzi e la lista completa di tutti i libri lisci in vendita su `/ah`.
-  - **Scrollbar Fluida Dark Glass & Clipping Preciso**: barra di scorrimento laterale compatta con indicatore arancione Litness, supporto al trascinamento con il cursore e ritaglio ottico perfetto dei bordi (*scissoring*).
-  - **Tooltip Interattivi Dinamici**: le card e i singoli prezzi continuano a mostrare i dettagli completi del venditore e delle tasse all'hover del mouse anche dopo aver effettuato lo scroll.
-- ⚡ **Ottimizzazioni & Stabilità Generale**:
-  - Migliorata la fluidità di rendering durante la consultazione delle pagine dell'asta.
+- 🔷 **Nuovo Assistente Visivo Inventario Incudine (Glow Celeste & Targhette Fisse)**:
+  - **Illuminazione Celeste Animata**: quando apri l'incudine, la mod calcola la sequenza ideale e illumina con un alone pulsante color celeste chiaro tutti gli slot del tuo inventario che contengono i libri (o l'oggetto) necessari per il passaggio corrente.
+  - **Targhette Fisse `[SLOT 1]` e `[SLOT 2]`**: appaiono direttamente sopra gli slot indicati senza bisogno di passarci sopra con il mouse. Saprai immediatamente quale libro va inserito nello Slot 1 e quale nello Slot 2 dell'incudine.
+  - **Lore Esplicito**: passando il cursore sopra lo slot illuminato, viene mostrata una riga di istruzione chiara (`• Devi inserire questo nello Slot 1/2 dell'Incudine`).
+- 🗡 **Nuova Schermata Creazione Set Estesa & Card Angolo Superiore**:
+  - **Lista Incantesimi a Tutta Altezza**: la schermata sfrutta al meglio la risoluzione verticale, visualizzando fino a 24 incantesimi per schermata per una navigazione molto più comoda e veloce, supportando anche lo scrolling fluido con la rotella del mouse.
+  - **Anteprima Compatta dell'Item**: posizionata in alto a destra nel banner senza ingombrare; mostra l'icona 3D dell'oggetto (es. spada, armatura), il conteggio `(X/12)` e un tooltip completo all'hover del mouse con l'elenco di tutti gli incantesimi inclusi.
+- 📜 **Fix e Ottimizzazioni Sidebar Prezzi `/ah`**:
+  - **Risoluzione Overflow & Sovrapposizioni**: eliminato qualsiasi problema di testo o card sbordanti oltre il riquadro dell'asta. Il footer e le card scrollabili ora sono perfettamente mascherati e ritagliati.
+  - **Scorrimento con Rotella**: navigazione fluida tra tutti i prezzi trovati e i singoli incanti cercati.
+- ✨ **Risoluzione Glifi e Caratteri Buggati**:
+  - Eliminati tutti i caratteri emoji speciali/surrogati non supportati dal font di Minecraft vicino ai pallini elenco `•` in tutta la mod (HUD, Catalogo, AH, Incudine, Tooltip).
 
 ---
 
@@ -161,7 +174,7 @@ Sul server Litness, forgiare spade, archi, picconi o armature con 10–12 incant
 ## 📦 Installazione
 
 ### Metodo 1: Per Lunar Client (Consigliato)
-1. Scarica il file **`LitnessEnchantHelper-1.2.8.jar`** dall'area [Releases](../../releases).
+1. Scarica il file **`LitnessEnchantHelper-1.2.9.jar`** dall'area [Releases](../../releases).
 2. Premi sulla tastiera `Win + R`, incolla la seguente stringa e premi **Invio**:
    ```text
    %userprofile%\.lunarclient\profiles\26\mods\fabric-26.3\
@@ -171,7 +184,7 @@ Sul server Litness, forgiare spade, archi, picconi o armature con 10–12 incant
 
 ### Metodo 2: Per Fabric Launcher Standard
 1. Assicurati di avere installato **Fabric Loader** per Minecraft 26.3 e la **Fabric API**.
-2. Posiziona il file `LitnessEnchantHelper-1.2.8.jar` nella cartella `.minecraft/mods/`.
+2. Posiziona il file `LitnessEnchantHelper-1.2.9.jar` nella cartella `.minecraft/mods/`.
 3. Avvia il gioco.
 
 ---

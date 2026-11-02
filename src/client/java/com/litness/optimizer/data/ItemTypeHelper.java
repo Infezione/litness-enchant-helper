@@ -81,21 +81,7 @@ public class ItemTypeHelper {
     }
 
     public static String getActionIcon(String itemKey) {
-        if ("bow".equals(itemKey)) return "🏹";
-        if ("xbow".equals(itemKey)) return "🎯";
-        if ("mace".equals(itemKey)) return "🔨";
-        if ("trident".equals(itemKey)) return "🔱";
-        if ("pick".equals(itemKey)) return "⛏";
-        if ("axe".equals(itemKey)) return "🪓";
-        if ("shovel".equals(itemKey)) return "🥄";
-        if ("hoe".equals(itemKey)) return "🌾";
-        if ("rod".equals(itemKey)) return "🎣";
-        if ("helmet".equals(itemKey)) return "🪖";
-        if ("chest".equals(itemKey)) return "🥋";
-        if ("legs".equals(itemKey)) return "👖";
-        if ("boots".equals(itemKey)) return "👢";
-        if ("elytra".equals(itemKey)) return "🪽";
-        return "⚔";
+        return "";
     }
 
     public static String getSuggestedName(ItemStack stack) {
