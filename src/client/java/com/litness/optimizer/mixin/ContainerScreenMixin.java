@@ -84,6 +84,27 @@ public abstract class ContainerScreenMixin extends Screen {
         }
     }
 
+    @Inject(method = "mouseScrolled", at = @At("HEAD"), cancellable = true)
+    private void litness_onContainerMouseScrolled(double mouseX, double mouseY, double horizontalAmount, double verticalAmount, CallbackInfoReturnable<Boolean> cir) {
+        if (com.litness.optimizer.gui.AhPriceManager.handleMouseScrolled(this, mouseX, mouseY, horizontalAmount, verticalAmount)) {
+            cir.setReturnValue(true);
+        }
+    }
+
+    @Inject(method = "mouseDragged", at = @At("HEAD"), cancellable = true)
+    private void litness_onContainerMouseDragged(MouseButtonEvent event, double dx, double dy, CallbackInfoReturnable<Boolean> cir) {
+        if (com.litness.optimizer.gui.AhPriceManager.handleMouseDragged(this, event, dx, dy)) {
+            cir.setReturnValue(true);
+        }
+    }
+
+    @Inject(method = "mouseReleased", at = @At("HEAD"), cancellable = true)
+    private void litness_onContainerMouseReleased(MouseButtonEvent event, CallbackInfoReturnable<Boolean> cir) {
+        if (com.litness.optimizer.gui.AhPriceManager.handleMouseReleased(this, event)) {
+            cir.setReturnValue(true);
+        }
+    }
+
     @Inject(method = "removed", at = @At("HEAD"))
     private void litness_onContainerRemoved(CallbackInfo ci) {
         com.litness.optimizer.gui.AnvilTooltipState.clearHover();
