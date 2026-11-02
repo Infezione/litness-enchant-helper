@@ -180,16 +180,12 @@ public class AhPriceManager {
     public static boolean isAuctionHouse(AbstractContainerScreen<?> screen) {
         if (screen == null || screen.getMenu() == null) return false;
 
-        String title = screen.getTitle().getString();
-        if (isKnownStorageContainerTitle(title)) {
-            return false;
-        }
-
         int menuId = screen.getMenu().containerId;
         if (menuId == cachedContainerId && cachedIsAh) {
             return true;
         }
 
+        String title = screen.getTitle().getString();
         if (isAuctionHouseTitle(title)) {
             cachedContainerId = menuId;
             cachedIsAh = true;
@@ -197,10 +193,7 @@ public class AhPriceManager {
         }
 
         // Verifica contenuto degli slot (firma inconfondibile di /ah di Litness)
-        // Richiede che ci siano ALMENO 3 inserzioni con "click to buy" o venditore+prezzo tipici di AH
-        // per evitare categoricamente falsi positivi su casse contenenti item comprati in asta
         Minecraft mc = Minecraft.getInstance();
-        int ahSignatures = 0;
         for (Slot slot : screen.getMenu().slots) {
             if (mc.player != null && slot.container == mc.player.getInventory()) continue;
             ItemStack stack = slot.getItem();
@@ -210,33 +203,18 @@ public class AhPriceManager {
             for (Component c : lore.lines()) {
                 String s = c.getString().toLowerCase();
                 if (s.contains("click to buy") || s.contains("clicca per acquistare") || s.contains("clicca per comprare")
-                        || (s.contains("seller:") && s.contains("price:")) || (s.contains("venditore:") && s.contains("prezzo:"))) {
-                    ahSignatures++;
-                    break;
+                        || s.contains("seller:") || s.contains("venditore:")
+                        || s.contains("expire:") || s.contains("scadenza:")
+                        || s.contains("price:") || s.contains("prezzo:")
+                        || s.contains("tax)")) {
+                    cachedContainerId = menuId;
+                    cachedIsAh = true;
+                    return true;
                 }
-            }
-            if (ahSignatures >= 3) {
-                cachedContainerId = menuId;
-                cachedIsAh = true;
-                return true;
             }
         }
 
-        cachedContainerId = menuId;
-        cachedIsAh = false;
         return false;
-    }
-
-    private static boolean isKnownStorageContainerTitle(String title) {
-        if (title == null) return false;
-        String clean = title.replaceAll("(?i)§[0-9a-fk-orx]", "").replace('\u00A0', ' ').trim().toLowerCase();
-        return clean.equals("chest") || clean.equals("large chest") 
-            || clean.equals("cassa") || clean.equals("cassa grande")
-            || clean.equals("barile") || clean.equals("barrel")
-            || clean.contains("shulker") || clean.contains("ender chest") || clean.contains("baule ender")
-            || clean.equals("dispenser") || clean.equals("dropper") || clean.equals("tramoggia") || clean.equals("hopper")
-            || clean.equals("fornace") || clean.equals("furnace") || clean.equals("affumicatore") || clean.equals("smoker")
-            || clean.equals("altoforno") || clean.equals("blast furnace");
     }
 
     private static boolean isAuctionHouseTitle(String title) {
