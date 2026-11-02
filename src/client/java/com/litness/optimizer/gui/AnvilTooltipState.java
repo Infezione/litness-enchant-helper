@@ -17,6 +17,11 @@ import net.minecraft.network.chat.Component;
 import net.minecraft.world.inventory.Slot;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.Items;
+import net.minecraft.world.item.Item;
+import net.minecraft.world.item.TooltipFlag;
+import net.minecraft.world.item.component.ItemLore;
+import net.minecraft.world.item.enchantment.ItemEnchantments;
+import com.litness.optimizer.tooltip.LitnessTooltipHandler;
 
 import java.util.*;
 
@@ -156,9 +161,101 @@ public class AnvilTooltipState {
         return targets;
     }
 
+    public static List<EnchantApplied> extractAllEnchantments(ItemStack stack) {
+        List<EnchantApplied> list = new ArrayList<>();
+        if (stack == null || stack.isEmpty()) return list;
+
+        Set<String> seen = new HashSet<>();
+
+        // 1. STORED_ENCHANTMENTS (libri incantati vanilla)
+        ItemEnchantments stored = stack.getOrDefault(DataComponents.STORED_ENCHANTMENTS, ItemEnchantments.EMPTY);
+        for (var entry : stored.entrySet()) {
+            String rawId = entry.getKey().unwrapKey().map(k -> k.identifier().getPath()).orElse("");
+            int lvl = entry.getIntValue();
+            String vPlusId = EnchantmentDatabase.resolveVanillaPlusId(rawId, lvl);
+            String id;
+            if (vPlusId != null) {
+                id = vPlusId;
+            } else {
+                EnchantmentEntry ee = EnchantmentDatabase.getEnchantment(rawId);
+                id = ee != null ? ee.id : rawId;
+            }
+            if (!id.isEmpty() && seen.add(id)) {
+                list.add(new EnchantApplied(id, lvl));
+            }
+        }
+
+        // 2. ENCHANTMENTS (armi, armature e attrezzi)
+        ItemEnchantments enchants = stack.getOrDefault(DataComponents.ENCHANTMENTS, ItemEnchantments.EMPTY);
+        for (var entry : enchants.entrySet()) {
+            String rawId = entry.getKey().unwrapKey().map(k -> k.identifier().getPath()).orElse("");
+            int lvl = entry.getIntValue();
+            String vPlusId = EnchantmentDatabase.resolveVanillaPlusId(rawId, lvl);
+            String id;
+            if (vPlusId != null) {
+                id = vPlusId;
+            } else {
+                EnchantmentEntry ee = EnchantmentDatabase.getEnchantment(rawId);
+                id = ee != null ? ee.id : rawId;
+            }
+            if (!id.isEmpty() && seen.add(id)) {
+                list.add(new EnchantApplied(id, lvl));
+            }
+        }
+
+        // 3. Da LORE (per incantesimi custom o inviati come testo dal server)
+        ItemLore lore = stack.getOrDefault(DataComponents.LORE, ItemLore.EMPTY);
+        for (Component c : lore.lines()) {
+            LitnessTooltipHandler.MatchedEnchantment match = LitnessTooltipHandler.matchEnchantment(c.getString());
+            if (match != null && match.entry != null) {
+                int lvl = match.level > 0 ? match.level : match.entry.maxLevel;
+                String vPlusId = EnchantmentDatabase.resolveVanillaPlusId(match.entry.id, lvl);
+                String id = vPlusId != null ? vPlusId : match.entry.id;
+                if (!id.isEmpty() && seen.add(id)) {
+                    list.add(new EnchantApplied(id, lvl));
+                }
+            }
+        }
+
+        // 4. Da CUSTOM_NAME (se il nome stesso del libro/item riporta l'incantesimo)
+        Component customName = stack.get(DataComponents.CUSTOM_NAME);
+        if (customName != null) {
+            LitnessTooltipHandler.MatchedEnchantment match = LitnessTooltipHandler.matchEnchantment(customName.getString());
+            if (match != null && match.entry != null) {
+                int lvl = match.level > 0 ? match.level : match.entry.maxLevel;
+                String vPlusId = EnchantmentDatabase.resolveVanillaPlusId(match.entry.id, lvl);
+                String id = vPlusId != null ? vPlusId : match.entry.id;
+                if (!id.isEmpty() && seen.add(id)) {
+                    list.add(new EnchantApplied(id, lvl));
+                }
+            }
+        }
+
+        // 5. Fallback con getTooltipLines per eventuali tooltip sintetici
+        try {
+            Minecraft mc = Minecraft.getInstance();
+            if (mc != null && mc.player != null) {
+                var lines = stack.getTooltipLines(Item.TooltipContext.EMPTY, mc.player, TooltipFlag.NORMAL);
+                for (Component comp : lines) {
+                    LitnessTooltipHandler.MatchedEnchantment match = LitnessTooltipHandler.matchEnchantment(comp.getString());
+                    if (match != null && match.entry != null) {
+                        int lvl = match.level > 0 ? match.level : match.entry.maxLevel;
+                        String vPlusId = EnchantmentDatabase.resolveVanillaPlusId(match.entry.id, lvl);
+                        String id = vPlusId != null ? vPlusId : match.entry.id;
+                        if (!id.isEmpty() && seen.add(id)) {
+                            list.add(new EnchantApplied(id, lvl));
+                        }
+                    }
+                }
+            }
+        } catch (Throwable ignored) {}
+
+        return list;
+    }
+
     private static boolean matchesEnchantList(ItemStack stack, List<EnchantApplied> targetEnchants) {
         if (targetEnchants == null || targetEnchants.isEmpty()) return false;
-        List<EnchantApplied> stackEnchants = AnvilScreenMixin.extractAllEnchantments(stack);
+        List<EnchantApplied> stackEnchants = extractAllEnchantments(stack);
         if (stackEnchants.isEmpty()) return false;
         for (EnchantApplied target : targetEnchants) {
             boolean match = false;
