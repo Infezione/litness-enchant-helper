@@ -1301,7 +1301,7 @@ public class AhPriceManager {
 
         // Calcolo area di scorrimento (Scroll Area)
         scrollAreaY = curY + 2;
-        int footerH = 14;
+        int footerH = 15;
         scrollAreaH = Math.max(30, (sideY + sideH - footerH) - scrollAreaY);
 
         int rowH = 15;
@@ -1469,10 +1469,10 @@ public class AhPriceManager {
             extractor.fill(scrollBarX, scrollThumbY, scrollBarX + scrollBarW, scrollThumbY + scrollThumbH, thumbColor);
         }
 
-        // Footer informativo con background scuro per mascherare elementi scrollati
+        // Footer informativo con background solido opaco per mascherare elementi scrollati
         int footerBoxH = 15;
         int footerY = sideY + sideH - footerBoxH;
-        extractor.fill(sideX + 1, footerY, sideX + sideW - 1, sideY + sideH - 1, 0xF80F111A);
+        extractor.fill(sideX + 1, footerY, sideX + sideW - 1, sideY + sideH - 1, 0xFF0F111A);
         extractor.horizontalLine(sideX + 2, sideX + sideW - 2, footerY, 0xFF1E293B);
         extractor.centeredText(font, "Sfoglia /ah per aggiornare", sideX + (sideW / 2), footerY + 3, 0xFF64748B);
 
