@@ -64,6 +64,7 @@ Sul server Litness, forgiare spade, archi, picconi o armature con 10–12 incant
 ---
 
 ### 3. ✨ Creatore & Gestore "Set Futuri"
+![Creatore Set Futuri con Anteprima Item](docs/images/preview_set_builder.png)
 - **Nuova Schermata Creazione ad Alta Densità (v1.2.9)**: la lista degli incantesimi si espande dinamicamente a tutta altezza sfruttando l'intera risoluzione verticale dello schermo, mostrando da 14 fino a 24 incantesimi per pagina con supporto allo scorrimento rapido tramite rotella del mouse.
 - **Anteprima Compatta dell'Item nell'Angolo Superiore (v1.2.9)**:
   - Posizionata discretamente nell'angolo in alto a destra del banner senza rubare spazio utile alla selezione degli incanti.
