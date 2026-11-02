@@ -1,12 +1,12 @@
 # ⚡ Litness Enchant Helper
 
-[![DOWNLOAD MOD (.JAR)](https://img.shields.io/badge/⚡%20SCARICA%20SUBITO%20LA%20MOD%20(.JAR)-VERSIONE%201.2.7-22c55e?style=for-the-badge&logo=curseforge&logoColor=white)](https://github.com/Infezione/litness-enchant-helper/releases/download/v1.2.7/LitnessEnchantHelper-1.2.7.jar)
+[![DOWNLOAD MOD (.JAR)](https://img.shields.io/badge/⚡%20SCARICA%20SUBITO%20LA%20MOD%20(.JAR)-VERSIONE%201.2.8-22c55e?style=for-the-badge&logo=curseforge&logoColor=white)](https://github.com/Infezione/litness-enchant-helper/releases/download/v1.2.8/LitnessEnchantHelper-1.2.8.jar)
 [![ULTIMI AGGIORNAMENTI](https://img.shields.io/badge/🌟%20ULTIMI%20AGGIORNAMENTI-VEDI%20LE%20NOVITÀ-6366f1?style=for-the-badge&logo=sparkles&logoColor=white)](#ultimi-aggiornamenti)
 
 ![Minecraft](https://img.shields.io/badge/Minecraft-26.3-brightgreen.svg)
 ![Fabric](https://img.shields.io/badge/ModLoader-Fabric-blue.svg)
 ![Lunar Client](https://img.shields.io/badge/Lunar%20Client-Compatible-informational.svg)
-![Release](https://img.shields.io/badge/Release-v1.2.7-blueviolet.svg)
+![Release](https://img.shields.io/badge/Release-v1.2.8-blueviolet.svg)
 ![Author](https://img.shields.io/badge/Author-Waaxey-purple.svg)
 
 > [!TIP]
@@ -134,18 +134,15 @@ Sul server Litness, forgiare spade, archi, picconi o armature con 10–12 incant
 <a id="ultimi-aggiornamenti" name="ultimi-aggiornamenti"></a>
 <a id="-ultimi-aggiornamenti" name="-ultimi-aggiornamenti"></a>
 
-## 🌟 Ultimi Aggiornamenti (v1.2.7)
+## 🌟 Ultimi Aggiornamenti (v1.2.8)
 
-- 🔄 **Ripristino Completo Sidebar `/ah` & Ricerca Live Prezzi**:
-  - Ripristinato al 100% il rilevamento istantaneo della schermata dell'Asta: la sidebar laterale *⚡ PREZZI AH*, il campo di ricerca rapida con autocompletamento e il calcolo automatico del prezzo minimo compaiono all'istante non appena apri `/ah`.
-- 🔍 **Rilevamento & Evidenziazione Item (Miglior Prezzo & Libri Cercati)**:
-  - Riattivata l'evidenziazione visiva degli slot in tempo reale: colore **Arancione Oro** per l'offerta più economica in assoluto e colore **Verde Smeraldo** per tutti i libri corrispondenti alla ricerca o al set pinnato.
-- 🖱️ **Zero Conflitti nelle Casse (Fix Definitivo Spostamento Oggetti)**:
-  - Garantita la completa fluidità con tutte le Casse singole, Casse doppie, Barili, Scatole di Shulker ed Ender Chest: nessuno shift-click o spostamento viene intercettato o annullato, ed eliminati tutti i falsi allarmi di azzeramento ricerca.
-- ⚡ **Calcolo Automatico Incudine & Upgrade di Livello**:
-  - Confermato il calcolo automatico Pareto-ottimale per tutti i libri presenti nell'inventario senza set preventivi e il supporto per gli upgrade di livello (*Efficienza IV + IV = Efficienza V*).
-- 📚 **Scansione Profonda Libri Custom Litness (NBT, Lore e Nomi Custom)**:
-  - Supporto completo e affidabile per tutti gli incantesimi speciali ed esclusivi di Litness.
+- 📜 **Nuovo Scorrimento con Rotella del Mouse in `/ah` (Sidebar Prezzi)**:
+  - Aggiunto il supporto completo allo scrolling verticale con la rotellina del mouse nella barra laterale dell'Asta (*⚡ PREZZI AH*).
+  - Quando cerchi più incantesimi o un intero set di armatura/strumenti, ora puoi scorrere verso il basso senza limiti per visualizzare tutte le card dei migliori prezzi e la lista completa di tutti i libri lisci in vendita su `/ah`.
+  - **Scrollbar Fluida Dark Glass & Clipping Preciso**: barra di scorrimento laterale compatta con indicatore arancione Litness, supporto al trascinamento con il cursore e ritaglio ottico perfetto dei bordi (*scissoring*).
+  - **Tooltip Interattivi Dinamici**: le card e i singoli prezzi continuano a mostrare i dettagli completi del venditore e delle tasse all'hover del mouse anche dopo aver effettuato lo scroll.
+- ⚡ **Ottimizzazioni & Stabilità Generale**:
+  - Migliorata la fluidità di rendering durante la consultazione delle pagine dell'asta.
 
 ---
 
@@ -164,7 +161,7 @@ Sul server Litness, forgiare spade, archi, picconi o armature con 10–12 incant
 ## 📦 Installazione
 
 ### Metodo 1: Per Lunar Client (Consigliato)
-1. Scarica il file **`LitnessEnchantHelper-1.2.7.jar`** dall'area [Releases](../../releases).
+1. Scarica il file **`LitnessEnchantHelper-1.2.8.jar`** dall'area [Releases](../../releases).
 2. Premi sulla tastiera `Win + R`, incolla la seguente stringa e premi **Invio**:
    ```text
    %userprofile%\.lunarclient\profiles\26\mods\fabric-26.3\
@@ -174,7 +171,7 @@ Sul server Litness, forgiare spade, archi, picconi o armature con 10–12 incant
 
 ### Metodo 2: Per Fabric Launcher Standard
 1. Assicurati di avere installato **Fabric Loader** per Minecraft 26.3 e la **Fabric API**.
-2. Posiziona il file `LitnessEnchantHelper-1.2.7.jar` nella cartella `.minecraft/mods/`.
+2. Posiziona il file `LitnessEnchantHelper-1.2.8.jar` nella cartella `.minecraft/mods/`.
 3. Avvia il gioco.
 
 ---
