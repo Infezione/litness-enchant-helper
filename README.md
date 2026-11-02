@@ -1,12 +1,12 @@
 # ⚡ Litness Enchant Helper
 
-[![DOWNLOAD MOD (.JAR)](https://img.shields.io/badge/⚡%20SCARICA%20SUBITO%20LA%20MOD%20(.JAR)-VERSIONE%201.2.6-22c55e?style=for-the-badge&logo=curseforge&logoColor=white)](https://github.com/Infezione/litness-enchant-helper/releases/download/v1.2.6/LitnessEnchantHelper-1.2.6.jar)
+[![DOWNLOAD MOD (.JAR)](https://img.shields.io/badge/⚡%20SCARICA%20SUBITO%20LA%20MOD%20(.JAR)-VERSIONE%201.2.7-22c55e?style=for-the-badge&logo=curseforge&logoColor=white)](https://github.com/Infezione/litness-enchant-helper/releases/download/v1.2.7/LitnessEnchantHelper-1.2.7.jar)
 [![ULTIMI AGGIORNAMENTI](https://img.shields.io/badge/🌟%20ULTIMI%20AGGIORNAMENTI-VEDI%20LE%20NOVITÀ-6366f1?style=for-the-badge&logo=sparkles&logoColor=white)](#ultimi-aggiornamenti)
 
 ![Minecraft](https://img.shields.io/badge/Minecraft-26.3-brightgreen.svg)
 ![Fabric](https://img.shields.io/badge/ModLoader-Fabric-blue.svg)
 ![Lunar Client](https://img.shields.io/badge/Lunar%20Client-Compatible-informational.svg)
-![Release](https://img.shields.io/badge/Release-v1.2.6-blueviolet.svg)
+![Release](https://img.shields.io/badge/Release-v1.2.7-blueviolet.svg)
 ![Author](https://img.shields.io/badge/Author-Waaxey-purple.svg)
 
 > [!TIP]
@@ -134,21 +134,18 @@ Sul server Litness, forgiare spade, archi, picconi o armature con 10–12 incant
 <a id="ultimi-aggiornamenti" name="ultimi-aggiornamenti"></a>
 <a id="-ultimi-aggiornamenti" name="-ultimi-aggiornamenti"></a>
 
-## 🌟 Ultimi Aggiornamenti (v1.2.6)
+## 🌟 Ultimi Aggiornamenti (v1.2.7)
 
-- 🖱️ **Risolto Blocco Spostamento Oggetti & Shift-Click nelle Casse (Fix Bug "Ricerca Azzerata")**:
-  - Risolta alla radice l'intercettazione dei click del mouse che si verificava dopo aver scritto o cercato in `/ah`. Ora spostare oggetti, fare shift-click e riordinare l'inventario all'interno di **Casse singole, Casse doppie, Barili, Scatole di Shulker ed Ender Chest** funziona in modo impeccabile, immediato e al 100% nativo.
-  - Eliminato il messaggio fantasma *"Ricerca azzerata"* che appariva a schermo cliccando nell'inventario dopo essere stati all'Asta.
-  - Reset immediato e totale di coordinate, focus della casella di testo e stati di hover non appena si chiude un contenitore.
-- ⚡ **Calcolo Automatico Incudine 100% Universale Senza Creare un Set**:
-  - Non è più obbligatorio creare o salvare un set in anticipo dal menù `[N]`: appena inserisci un piccone, una spada, un'ascia o un pezzo d'armatura nello Slot 1 dell'incudine, la mod rileva e calcola in automatico la sequenza di fusione a costo XP minimo per **tutti i libri compatibili che hai realmente con te nell'inventario**.
-  - **Sistema di Fallback Intelligente**: se avevi pinnato un set ma nell'inventario hai libri diversi per quell'oggetto, la mod non si blocca più e genera la guida per i libri presenti.
-- 📈 **Riconoscimento Upgrade di Livello (es. Efficienza IV + IV -> V)**:
-  - Corretto il controllo di compatibilità: prima la mod scartava i libri con lo stesso livello dell'oggetto considerandoli duplicati inutili. Ora riconosce correttamente che unire due libri di pari livello genera il livello successivo (es. *Efficienza IV + IV = Efficienza V*), inserendoli regolarmente nei passaggi della guida.
+- 🔄 **Ripristino Completo Sidebar `/ah` & Ricerca Live Prezzi**:
+  - Ripristinato al 100% il rilevamento istantaneo della schermata dell'Asta: la sidebar laterale *⚡ PREZZI AH*, il campo di ricerca rapida con autocompletamento e il calcolo automatico del prezzo minimo compaiono all'istante non appena apri `/ah`.
+- 🔍 **Rilevamento & Evidenziazione Item (Miglior Prezzo & Libri Cercati)**:
+  - Riattivata l'evidenziazione visiva degli slot in tempo reale: colore **Arancione Oro** per l'offerta più economica in assoluto e colore **Verde Smeraldo** per tutti i libri corrispondenti alla ricerca o al set pinnato.
+- 🖱️ **Zero Conflitti nelle Casse (Fix Definitivo Spostamento Oggetti)**:
+  - Garantita la completa fluidità con tutte le Casse singole, Casse doppie, Barili, Scatole di Shulker ed Ender Chest: nessuno shift-click o spostamento viene intercettato o annullato, ed eliminati tutti i falsi allarmi di azzeramento ricerca.
+- ⚡ **Calcolo Automatico Incudine & Upgrade di Livello**:
+  - Confermato il calcolo automatico Pareto-ottimale per tutti i libri presenti nell'inventario senza set preventivi e il supporto per gli upgrade di livello (*Efficienza IV + IV = Efficienza V*).
 - 📚 **Scansione Profonda Libri Custom Litness (NBT, Lore e Nomi Custom)**:
-  - Riconoscimento al 100% di tutti gli incantesimi personalizzati ed esclusivi di Litness, rilevati sia tramite i data component vanilla, sia dalle righe di Lore testuali inviate dal server, sia dai nomi personalizzati dei libri.
-- 🛡️ **Prestazioni & Zero Lag**:
-  - Nessun calcolo residuo in background e zero perdite di FPS durante l'apertura delle casse e l'interazione con l'incudine.
+  - Supporto completo e affidabile per tutti gli incantesimi speciali ed esclusivi di Litness.
 
 ---
 
@@ -167,7 +164,7 @@ Sul server Litness, forgiare spade, archi, picconi o armature con 10–12 incant
 ## 📦 Installazione
 
 ### Metodo 1: Per Lunar Client (Consigliato)
-1. Scarica il file **`LitnessEnchantHelper-1.2.6.jar`** dall'area [Releases](../../releases).
+1. Scarica il file **`LitnessEnchantHelper-1.2.7.jar`** dall'area [Releases](../../releases).
 2. Premi sulla tastiera `Win + R`, incolla la seguente stringa e premi **Invio**:
    ```text
    %userprofile%\.lunarclient\profiles\26\mods\fabric-26.3\
@@ -177,7 +174,7 @@ Sul server Litness, forgiare spade, archi, picconi o armature con 10–12 incant
 
 ### Metodo 2: Per Fabric Launcher Standard
 1. Assicurati di avere installato **Fabric Loader** per Minecraft 26.3 e la **Fabric API**.
-2. Posiziona il file `LitnessEnchantHelper-1.2.6.jar` nella cartella `.minecraft/mods/`.
+2. Posiziona il file `LitnessEnchantHelper-1.2.7.jar` nella cartella `.minecraft/mods/`.
 3. Avvia il gioco.
 
 ---
