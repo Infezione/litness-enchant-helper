@@ -1,168 +1,127 @@
-# ⚡ Litness Enchant Helper
+# ⚡ Litness Enchant v1.3 | By Waaxey
 
-[![DOWNLOAD MOD (.JAR)](https://img.shields.io/badge/⚡%20SCARICA%20SUBITO%20LA%20MOD%20(.JAR)-VERSIONE%201.2.9-22c55e?style=for-the-badge&logo=curseforge&logoColor=white)](https://github.com/Infezione/litness-enchant-helper/releases/download/v1.2.9/LitnessEnchantHelper-1.2.9.jar)
+[![DOWNLOAD MOD (.JAR)](https://img.shields.io/badge/⚡%20SCARICA%20SUBITO%20LA%20MOD%20(.JAR)-VERSIONE%201.3.0-22c55e?style=for-the-badge&logo=curseforge&logoColor=white)](https://github.com/Infezione/litness-enchant-helper/releases/download/v1.3.0/LitnessEnchantHelper-1.3.0.jar)
 [![ULTIMI AGGIORNAMENTI](https://img.shields.io/badge/🌟%20ULTIMI%20AGGIORNAMENTI-VEDI%20LE%20NOVITÀ-6366f1?style=for-the-badge&logo=sparkles&logoColor=white)](#ultimi-aggiornamenti)
 
 ![Minecraft](https://img.shields.io/badge/Minecraft-26.3-brightgreen.svg)
 ![Fabric](https://img.shields.io/badge/ModLoader-Fabric-blue.svg)
 ![Lunar Client](https://img.shields.io/badge/Lunar%20Client-Compatible-informational.svg)
-![Release](https://img.shields.io/badge/Release-v1.2.9-blueviolet.svg)
+![Release](https://img.shields.io/badge/Release-v1.3.0-blueviolet.svg)
 ![Author](https://img.shields.io/badge/Author-Waaxey-purple.svg)
 
 > [!TIP]
 > ### 💡 Come aprire il menu in gioco:
-> Premi semplicemente il tasto **`N`** sulla tastiera in qualsiasi momento per aprire la schermata principale (Catalogo Incantesimi, Calcolatore, Guida Fusione e I Miei Set).  
-> *(Puoi anche personalizzare il tasto in `Opzioni -> Comandi -> Controlli` di Minecraft sotto la voce "Litness Optimizer").*  
-> 👉 *Per consultare tutte le nuove funzioni appena introdotte, clicca sul pulsante in alto o vai a [🌟 Ultimi Aggiornamenti](#ultimi-aggiornamenti).*
+> Premi semplicemente il tasto **`N`** sulla tastiera in qualsiasi momento per aprire la nuova interfaccia software **Litness Enchant v1.3 Studio** (Catalogo Incantesimi, I Miei Set, Calcolatore & Guida Incudine).  
+> *(Puoi personalizzare il tasto in `Opzioni -> Comandi -> Controlli` di Minecraft sotto la voce "Litness Optimizer").*
 
-**Litness Enchant Helper** è la mod Fabric client-side definitiva progettata per i giocatori del server Minecraft **Litness**.  
-Il suo obiettivo principale è eliminare ogni spreco di livelli di esperienza, evitare il famigerato errore di Minecraft vanilla *"Troppo Costoso! (>39 livelli)"* e guidare il giocatore passo dopo passo nella creazione dell'equipaggiamento perfetto, supportando sia tutti gli incantesimi Vanilla sia tutti gli incantesimi Custom esclusivi del server.
-
----
-
-## 🌟 Perché è indispensabile su Litness?
-
-Sul server Litness, forgiare spade, archi, picconi o armature con 10–12 incantesimi (tra Vanilla e Custom) può diventare proibitivo a causa della meccanica di penalità cumulativa dell'incudine di Minecraft (*Prior Work Penalty*). Se i libri vengono fusi nell'ordine sbagliato, l'incudine raggiungerà rapidamente il limite di 39 livelli, rendendo l'oggetto impossibile da completare.
-
-**Litness Enchant Helper** risolve questo problema alla radice calcolando matematicamente la sequenza ideale ad albero binario (*Pareto-Optimal*), garantendo il costo totale di XP più basso possibile e rimanendo sempre ampiamente sotto la soglia massima consentita.
+**Litness Enchant** è la mod Fabric client-side definitiva, creata appositamente per i giocatori del server Minecraft **Litness**.  
+Il suo obiettivo è eliminare per sempre qualsiasi spreco di livelli di esperienza, aggirare con precisione matematica l'errore di Minecraft vanilla *"Troppo Costoso! (>39 livelli)"* e guidare il giocatore passo dopo passo nella creazione dell'equipaggiamento perfetto, supportando tutti i 170 incantesimi Vanilla, Vanilla+ e Custom esclusivi del server.
 
 ---
 
-## 🚀 Funzionalità Dettagliate
+## 🌟 Perché è fondamentale su Litness?
 
-### 1. ⚡ Assistente Incudine in Tempo Reale
-![Assistente Incudine](docs/images/preview_anvil_v125.png)
-- **Nuova GUI Ingrandita in Dark Glass (v1.2.5)**: interfaccia laterale ampliata (182px di larghezza per 176px di altezza) con design scuro premium, perfettamente allineata all'incudine, con spaziatura interna generosa che elimina qualsiasi testo tagliato o sovrapposizione.
-- **Ologramma Pulsante (Ghost Slot)**: quando lo slot 1 dell'incudine è vuoto, viene renderizzata una sagoma olografica semitrasparente e dorata che pulsa morbidamente, con il tooltip: *"Inserisci l'item desiderato per iniziare la guida."*. L'ologramma svanisce istantaneamente non appena posizioni l'arma o l'armatura!
-- **Analisi Intelligente Maxabilità & Limite 39 Livelli ("Troppo Costoso!")**:
-  - Rileva in automatico la penalità pregressa da lavorazione (*Prior Work Penalty*) di oggetti già usati o parzialmente incantati.
-  - Se l'oggetto ha margine per essere completato con tutti i 12 incantesimi, mostra il badge verde `✔ Maxabile (12/12)`.
-  - Se il tetto dei 39 livelli impedirebbe il completamento totale, la mod calcola matematicamente a ritroso e avvisa subito:  
-    `⚠️ ATTENZIONE PENALITÀ: Puoi aggiungere ancora fino a +N incanti con guida.` oppure `⛔ TROPPO COSTOSO!`.
-  - Passando il mouse sopra l'item o sul riquadro informativo, appare un tooltip dettagliato con penalità attuale, storico delle lavorazioni e stima dei passaggi residui.
-- **Nuovo Glow Celeste & Targhette Fisse Slot 1 / Slot 2 (v1.2.9)**:
-  - Durante qualsiasi passaggio di fusione o tempra, l'assistente analizza il tuo inventario ed **illumina istantaneamente di celeste pulsante** gli slot esatti dei libri (o dell'oggetto) richiesti.
-  - **Targhette visibili senza mouse hover**: sopra ogni slot richiesto appare una targhetta luminosa fissa (`[SLOT 1]` e `[SLOT 2]`) che ti indica a colpo d'occhio senza dover toccare il mouse dove inserire ogni libro nell'incudine, con lore tooltip esplicito al passaggio del cursore (`Devi inserire questo nello Slot 1/2 dell'Incudine`).
-- **Istruzioni Chiare a Colori per Slot**:
-  - `UNISCI 2 LIBRI`: indica con chiarezza `Slot 1:` in celeste e `Slot 2:` in rosa, con il costo esatto in livelli XP in verde smeraldo e il promemoria `Metti prima i 2 libri` per evitare combinazioni accidentali.
-  - `TEMPRA SU OGGETTO`: ti segnala il momento perfetto in cui fondere il libro combinato direttamente sul tuo equipaggiamento (`Metti nello Slot 2:` con relativo costo).
-- **Doppio Pulsante Rapido Integrato**:
-  - `📋 Guida Completa [N]`: posizionato subito sotto la sidebar per aprire all'istante l'albero di fusione completo.
-  - `📋 Guida Passi`: tasto compatto posizionato direttamente sopra la cornice dell'incudine senza sovrapporsi al titolo.
-- **Riconoscimento Automatico di Armi e Strumenti**: riconosce all'istante la tipologia dell'oggetto (Spade, Archi, Balestre, Mazze, Tridenti, Picconi, Asce e Armature), aggiornando istruzioni e badge su misura (es. `🏹 TEMPRA ARCO`, `🗡 TEMPRA SPADA`, `⛏ TEMPRA PICCONE`).
+Sul server Litness, maxare un'arma o un pezzo d'armatura con 10–12 incantesimi (tra Vanilla e Custom) è quasi impossibile se non si conosce l'esatta combinazione matematica dell'incudine (*Prior Work Penalty*). Se i libri vengono uniti in sequenza lineare o nell'ordine sbagliato, l'incudine supererà rapidamente il limite di 39 livelli, bloccando l'oggetto per sempre.
+
+**Litness Enchant v1.3** implementa un avanzatissimo motore matematico ad **albero binario Pareto-ottimale (Detrix DP)** che calcola in tempo reale la sequenza ideale di combinazione tra libri, mantenendo i costi di ogni singola forgiatura a un picco tipico di soli **20–28 livelli XP**, consentendo a chiunque di maxare oggetti al **100% (12/12 incantesimi)** senza mai rischiare il blocco!
 
 ---
 
-### 2. 📖 Guida alla Fusione Passo-Passo (Albero Ottimale)
-![Guida alla Fusione](docs/images/preview_guide.png)
-- **Albero Binario Pareto-Ottimale**: calcola la sequenza matematica perfetta che minimizza sia la penalità da incudine che la spesa totale di livelli XP, eliminando a monte il rischio di incappare nel blocco "Troppo Costoso!".
-- **Icone Grafiche Minecraft Native**: ogni step illustra visivamente gli slot dell'incudine (Slot 1, Slot 2 e Risultato) con gli sprite grafici ufficiali di Minecraft per armi, attrezzi e libri.
-- **Tracking Inventario in Tempo Reale**: su ogni passaggio della guida, un badge verde `✔ In Inventario` ti segnala se possiedi già quel libro nel tuo inventario personale.
-- **Selettore di Penalità Iniziale (`[Pen: +X]`)**: pulsanti rapidi in cima alla schermata per simulare o calcolare la guida partendo da oggetti che hanno già penalità pregressa (+0, +1, +3, +7, +15, +31).
-- **Copia Rapida Negli Appunti (`[📋 Copia Passi]`)**: copia con un solo clic l'intera sequenza ordinata con costi ed XP, pronta per essere condivisa su Discord o salvata nelle note.
+## 🚀 Panoramica delle Funzionalità
 
----
-
-### 3. ✨ Creatore & Gestore "Set Futuri"
-![Creatore Set Futuri con Anteprima Item](docs/images/preview_set_builder.png)
-- **Nuova Schermata Creazione ad Alta Densità (v1.2.9)**: la lista degli incantesimi si espande dinamicamente a tutta altezza sfruttando l'intera risoluzione verticale dello schermo, mostrando da 14 fino a 24 incantesimi per pagina con supporto allo scorrimento rapido tramite rotella del mouse.
-- **Anteprima Compatta dell'Item nell'Angolo Superiore (v1.2.9)**:
-  - Posizionata discretamente nell'angolo in alto a destra del banner senza rubare spazio utile alla selezione degli incanti.
-  - Mostra il modello 3D dell'oggetto scelto (es. Spada, Piccone, Armatura) e il contatore in tempo reale degli incanti selezionati (es. `Spada (5/12)`).
-  - **Tooltip Istantaneo su Hover**: passando il cursore sopra la card compare un tooltip dettagliato ed elegante che elenca tutti gli incantesimi già aggiunti al set, visualizzabile a colpo d'occhio prima del salvataggio.
-- **Pianificazione Libera fino a 12 Incantesimi**: crea in anticipo la combinazione dei sogni per qualsiasi pezzo di equipaggiamento (Spade, Picconi, Archi, Balestre, Mazze, Elmi, Corazze, Gambali, Stivali).
-- **Supporto Vanilla, Vanilla+ (Efficienza VI) e Custom**: seleziona liberamente tra tutti gli incantesimi standard e quelli speciali ed esclusivi di Litness.
-- **Filtri Specifici per Categoria Strumento**: selezionando la tipologia di oggetto, la lista mostra esclusivamente gli incantesimi applicabili a quel pezzo.
-- **Anti-Conflitto Bidirezionale**: evidenzia istantaneamente incompatibilità dirette (es. *Affilatezza* vs *Anatema*, *Efficienza VI* vs *Efficienza I-V*).
-- **Salvataggio Persistente**: assegna un nome al set (es. *Spada Boss Dungeon*, *Armatura PvP*, *Piccone Farm*) e salvalo in locale.
-- **Guida Teorica Istantanea**: genera con un clic tutti i passaggi di fusione ottimali anche se non possiedi ancora tutti i libri nell'inventario.
-
----
-
-### 4. 📌 Pin HUD Checklist in Gioco (Real-Time Tracking)
-![Pin HUD In Gioco](docs/images/preview_hud_v125.png)
-- **Checklist Sempre Attiva a Schermo**: segui l'avanzamento del tuo set direttamente in partita in alto a sinistra senza dover riaprire i menù.
-- **Header con Conteggio Dinamico**: mostra il tipo di oggetto e il numero di incantesimi applicati in tempo reale (es. `⚡ Gambali (0/10)`, `⚡ Spada (3/12)`).
-- **Tre Stati Visivi Intelligenti**:
-  - 🟢 `✔ In Inventario`: se il libro incantato è presente nel tuo inventario.
-  - 🟣 `✔ Applicato`: se l'incantesimo è già presente sull'oggetto impugnato o indossato nello slot corretto.
-  - ⚪ `  Mancante`: incantesimo ancora da acquistare o trovare.
-- **Pinnabile con un Clic**: attiva o rimuovi il pin HUD in qualsiasi momento tramite il pulsante `[📌 Pin HUD]` / `[✔ Pinnato]` nella scheda del set.
-
----
-
-### 5. 🛡️ Sistema Anti-Errore e Rilevamento Conflitti
-![Creatore Set Futuri e Anti-Conflitti](docs/images/preview_set_builder.png)
-- **Matrice Completa di Compatibilità**: controlla le incompatibilità del gioco originale (es. *Protezione* vs *Protezione dal fuoco / Proiettili / Esplosioni*) e quelle custom del server Litness (es. *Spine* vs *Static Barrier*).
-- **Indicatore Visivo di Pericolo `⚠️`**: quando provi a selezionare o combinare due incantesimi incompatibili, appare un avviso chiaro che specifica contro quale incantesimo si verifica il conflitto.
-- **Prevenzione Sprechi**: protegge i tuoi libri rari da combinazioni errate che verrebbero rifiutate dall'incudine o dal server.
-
----
-
-### 6. 📚 Catalogo Completo degli Incantesimi (Vanilla & Custom)
+### 1. 🖥️ Nuova Interfaccia "Obsidian Studio" v1.3
 ![Catalogo Incantesimi](docs/images/preview_catalog.png)
-- **Database Aggiornato al 100%**: comprende tutti gli incantesimi Vanilla, Vanilla+ (*Efficienza VI*) e tutti i Custom esclusivi di Litness.
-- **Ricerca Intelligente Bilingue**: cerca rapidamente digitando il nome in italiano o l'identificatore/alias in inglese.
-- **Filtri Rapidi con Icone per Strumento**: passa istantaneamente da una categoria all'altra con un clic (*🗡 Spada, ⛏ Piccone, 🛡 Armature, 🏹 Arco, 🪓 Ascia, 🌾 Zappa, 📦 Altri*).
-- **Schede Dettagliate**: visualizza il grado di rarità ufficiale, la spiegazione accurata degli effetti in-game, il cap di livello massimo e il costo base dell'incudine.
-- **Pulsante di Ricerca Asta Diretto (`[+ Cerca AH]`)**: invia l'incantesimo direttamente alla barra di ricerca rapida dell'Asta e dei contenitori.
+- **Design Desktop Software**: stile dark-glass moderno e pulito (ispirato ad app professionali come Marloww Client e Obsidian), con angoli arrotondati, pulsanti interattivi e accenti al neon.
+- **Header con Branding Ufficiale**: `Litness Enchant v1.3 | By Waaxey`.
+- **Tasto Rapido Lingua Bilingue `[IT]` / `[EN]`**: situato in alto a destra nell'header con bandierine pixel art per cambiare al volo la lingua di tutti i testi, lore e nomi degli incantesimi.
+- **Struttura a Schede**:
+  - 📖 **Catalogo**: 170 incantesimi indicizzati con filtri veloci per categoria (Spade, Archi, Mazze, Picconi, Armature, ecc.).
+  - 🛡️ **I Miei Set**: Creazione e gestione set salvati con anteprima 3D dell'item, lore completa e socket incantesimi.
+  - ⚡ **Guida Incudine**: Calcolatore teorico (Simulatore) e tracker dei libri reali presenti nel tuo Inventario.
 
 ---
 
-### 7. 🔍 Tooltip Arricchiti nell'Inventario (Lore & Info Live)
-![Tooltip Lore e Conflitti](docs/images/preview_lore_tooltip.png)
-- **Auto-Learning Dinamico dal Server**: legge direttamente dal lore del server la riga `Costo incantesimi: +X livelli` sincronizzando i calcoli al 100% con il server di gioco, senza mai duplicare le righe del tooltip.
-- **Grado di Rarità Ufficiale**: badge colorato con la classificazione ufficiale di Litness (*[COMUNE]*, *[NON COMUNE]*, *[RARO]*, *[EPICO]*, *[LEGGENDARIO]*, *[SPECIALE]*, *[MOLTO SPECIALE]*).
-- **Indicatore Livello Massimo & Icone Compatibilità**: evidenzia se l'incantesimo ha raggiunto il livello massimo (`[V Max II]`) e mostra le icone grafiche di tutti i pezzi compatibili.
-- **Rilevamento Conflitti Istantaneo**: ti avverte direttamente nel tooltip se il libro che stai osservando è incompatibile con gli incantesimi già presenti sui tuoi oggetti.
-- **Funziona Ovunque**: attivo su libri lisci, libri combinati, armi e armature sia nell'inventario che dentro bauli e shulker box.
+### 2. ⚡ Assistente Incudine Live con Analisi Maxabilità Reale
+![Assistente Incudine Live](docs/images/preview_anvil_v125.png)
+- **Analisi Istantanea Maxabilità**:
+  - Rileva in automatico la penalità pregressa da lavorazione (*Prior Work Penalty*).
+  - Algoritmo matematico avanzato: gli oggetti con lavoro pregresso $\le 2$ (penalità +0, +1 e +3) vengono riconosciuti come **100% Maxabili fino a 12/12 incantesimi**.
+  - Badge verde luminoso `✔ Maxabile al 100% (12/12)` con tooltip dettagliato che spiega come unire i libri ad albero binario.
+  - Se un oggetto ha penalità troppo elevata (+7, +15, +31), calcola a ritroso l'esatto numero massimo di incantesimi ancora applicabili prima del blocco (es. `Puoi ancora aggiungere fino a 8 incantesimi`).
+- **Ologramma Pulsante (Ghost Slot)**: quando lo slot 1 dell'incudine è vuoto, una sagoma dorata pulsante ti ricorda quale pezzo inserire per iniziare.
+- **Glow Celeste & Targhette Fisse `[SLOT 1]` e `[SLOT 2]` nell'Inventario**:
+  - Analizza il tuo inventario in tempo reale e illumina con un alone celeste pulsante i libri esatti necessari per il passaggio corrente.
+  - Targhette fisse sopra ogni slot per mostrarti a colpo d'occhio dove inserire ogni libro nell'incudine senza dover toccare il mouse.
 
 ---
 
-### 8. 🟢 Assistente Prezzi /ah & Ricerca in Casse, Shulker ed Ender Chest!
-![Assistente Prezzi AH ed Evidenziazione](docs/images/preview_ah_v125.png)
-- **Sidebar Laterale Intelligente `/ah` con Ricerca Live**: aprendo la Casa d'Aste (`/ah`), compare a sinistra una sidebar interattiva (*⚡ PREZZI AH*) con campo di ricerca in tempo reale per digitare il nome dell'incantesimo senza dover sfogliare decine di pagine a vuoto.
-- **Completamento Automatico con Icone Native & Selezione 1-Click**:
-  - Mentre digiti nella barra (es. `mend`), la tendina suggerisce all'istante l'incantesimo con l'icona grafica nativa dello strumento, il nome italiano e i tag categoria (`[V]` Vanilla, `[V+]` Vanilla+, `[C]` Custom esclusivi di Litness).
-  - Cliccando sul suggerimento con il mouse o premendo Invio, il filtro si attiva immediatamente su tutta l'asta e sui contenitori con notifica a schermo (`✔ Filtro attivato: Ripristino I`).
-- **Pulsante Rapido `[Azzera]`**: posto in alto a destra nella sidebar per cancellare il filtro e resettare la ricerca con un solo clic.
-- **Confronto Prezzi Intelligente & Calcolo Tasse Server (`MIGLIOR PREZZO`)**:
-  - Scansiona tutti i libri in vendita nell'asta e individua automaticamente l'offerta più economica.
-  - Calcola in automatico il prezzo netto e le tasse di compravendita del server (es. `Netto: 9.500$ + 1.140$ tax`).
-  - Mostra la classifica ordinata dei venditori più convenienti (`1. 10.640$ da SeniorFex`, `2. 11.199$ da jhon_p...`).
-- **Doppia Evidenziazione Visiva in Asta**:
-  - 🟠 **Arancione Oro Brillante**: mette in risalto lo slot del libro con il **Miglior Prezzo** assoluto.
-  - 🟢 **Verde Smeraldo**: evidenzia tutti gli altri libri lisci corrispondenti alla ricerca per distinguerli a colpo d'occhio dai libri con incantesimi spazzatura misti.
-- **Rimozione Automatica Istantanea Inserzioni Acquistate (v1.2.9)**:
-  - Non appena acquisti un libro in asta (o viene comprato/scade da un altro giocatore), la mod rileva all'istante la rimozione sia tramite gli slot del container sia intercettando la notifica in chat del server (`Asta » Hai appena comprato...`), cancellandolo immediatamente dalla sidebar e ricalcolando all'istante il nuovo miglior prezzo.
-  - Alla chiusura dell'interfaccia dell'asta, la memoria temporanea viene ripulita automaticamente evitando offerte fantasma nelle sessioni future.
-- **Rilevamento Profondo in Bauli, Casse, Barili e Shulker**:
-  - Puoi attivare la ricerca anche dal **Catalogo Incantesimi** (tasto `N`) con il pulsante `[+ Cerca AH]`.
-  - Aprendo qualsiasi Baule, Cassa doppia, Barile o Ender Chest, tutti i libri cercati si illuminano di verde.
-  - Se il libro si trova **all'interno di una Shulker Box**, l'intera scatola di Shulker si illumina in verde dall'esterno, indicandoti subito dove si trova senza dover aprire decine di shulker a vuoto.
+### 3. 🌳 Simulatore Fusione Pareto-Ottimale Detrix DP
+![Guida Forgiatura Incudine](docs/images/preview_guide.png)
+- **Albero Binario Perfetto**: algoritmi di programmazione dinamica che combinano i libri tra loro prima di applicarli all'oggetto, riducendo drasticamente il costo cumulativo di XP.
+- **Zero Lag / Calcolo Istantaneo**: esecuzione asincrona in thread pool dedicato; la guida compare all'istante senza causare alcun calo di FPS nel gioco.
+- **Pulsante `[📋 Copia Passi]`**: esporta negli appunti l'intera sequenza di forgiatura ordinata con numeri di slot, nomi dei libri e costi di livelli XP, pronta per essere incollata su Discord.
+- **Supporto Modalità "In Inventario"**: legge direttamente i libri magici presenti nel tuo inventario e genera la sequenza di forgiatura in base a ciò che possiedi realmente!
+
+---
+
+### 4. 🛒 Marketplace `/ah` Smart Multi-Page Crawler
+![Assistente Prezzi AH](docs/images/preview_ah_v125.png)
+- **Pulsante `[⚡ Sfoglia Tutto]`**: scansiona in pochi secondi l'intero catalogo della Casa d'Aste (`/ah`) sfogliando automaticamente tutte le pagine e memorizzando ogni singolo libro in vendita.
+- **Navigazione Automatica su Click Offerta**: cliccando su una qualsiasi offerta nella sidebar laterale, la mod sfoglia le pagine dell'asta in automatico fino a raggiungere l'oggetto e apre direttamente il menu di conferma acquisto del server!
+- **Confronto Prezzi Netto + Tasse**:
+  - Calcola istantaneamente il prezzo netto e le relative tasse di compravendita del server (es. `Netto: 12.500$ + 1.500$ tax`).
+  - Classifica ordinata dei venditori più convenienti dal più economico al più costoso.
+- **Rimozione Automatica delle Inserzioni Vendute**: rileva in tempo reale quando un libro viene acquistato o rimosso e lo cancella istantaneamente dalla barra laterale.
+- **Highlight Colorato degli Slot**:
+  - 🟠 **Arancione Oro**: evidenzia il libro con il **Miglior Prezzo** assoluto.
+  - 🟢 **Verde Smeraldo**: evidenzia tutti gli altri libri lisci corrispondenti alla ricerca.
+
+---
+
+### 5. 🛠️ Creatore & Gestore "I Miei Set" (Set Studio)
+![I Miei Set Studio](docs/images/preview_set_builder.png)
+- **Studio Card con Lore Completa**: visualizza l'anteprima 3D dell'oggetto finale, la lista dei socket incantesimi, la rarità e il conteggio dinamico `(X/12)`.
+- **Pianificazione Libera fino a 12 Incantesimi**: crea set personalizzati per qualsiasi pezzo (Spade, Picconi, Archi, Balestre, Mazze, Elmi, Corazze, Gambali, Stivali).
+- **Controllo Conflitti Intelligente**: previene l'aggiunta di incantesimi incompatibili tra loro (*Affilatezza* vs *Anatema*, *Efficienza VI* vs *Efficienza I-V*, ecc.).
+- **Tasto `[Guida]` Rapido**: carica con un solo clic il set salvato direttamente nel simulatore di forgiatura per visualizzare l'albero di fusione ottimale.
+- **Tasto `[Pin]` / `[Sblocca]`**: fissa il set a schermo nell'HUD di gioco.
+
+---
+
+### 6. 📌 Pin HUD Checklist Live in Partita
+![Pin HUD Checklist](docs/images/preview_hud_v125.png)
+- Overlay sempre visibile in alto a sinistra mentre esplori il mondo o combatti nei dungeon.
+- **3 Stati Visivi Intelligenti**:
+  - 🟢 **Verde (`✔`)**: libro incantato presente nel tuo inventario.
+  - 🔴 **Rosso (`•`)**: incantesimo già forgiato sull'oggetto che stai impugnando.
+  - ⚪ **Grigio**: incantesimo ancora da ottenere o comprare all'asta.
+
+---
+
+### 7. 📚 Catalogo 170 Incantesimi Litness
+- **Database Completo al 100%**: comprende tutti gli incantesimi Vanilla, Vanilla+ (Efficienza VI) e Custom di Litness.
+- **Ricerca Bilingue**: cerca digitando il nome in italiano o in inglese.
+- **Filtri per Oggetto**: visualizza solo gli incantesimi applicabili all'oggetto desiderato.
+- **Pulsante `[+ Cerca]` / `[+ Cerca AH]`**: evidenzia l'incantesimo in tutte le casse, shulker box e nell'asta `/ah`.
 
 ---
 
 <a id="ultimi-aggiornamenti" name="ultimi-aggiornamenti"></a>
 <a id="-ultimi-aggiornamenti" name="-ultimi-aggiornamenti"></a>
 
-## 🌟 Ultimi Aggiornamenti (v1.2.9)
+## 🌟 Novità Versione 1.3.0
 
-- 🔷 **Nuovo Assistente Visivo Inventario Incudine (Glow Celeste & Targhette Fisse)**:
-  - **Illuminazione Celeste Animata**: quando apri l'incudine, la mod calcola la sequenza ideale e illumina con un alone pulsante color celeste chiaro tutti gli slot del tuo inventario che contengono i libri (o l'oggetto) necessari per il passaggio corrente.
-  - **Targhette Fisse `[SLOT 1]` e `[SLOT 2]`**: appaiono direttamente sopra gli slot indicati senza bisogno di passarci sopra con il mouse. Saprai immediatamente quale libro va inserito nello Slot 1 e quale nello Slot 2 dell'incudine.
-  - **Lore Esplicito**: passando il cursore sopra lo slot illuminato, viene mostrata una riga di istruzione chiara (`• Devi inserire questo nello Slot 1/2 dell'Incudine`).
-- 🗡 **Nuova Schermata Creazione Set Estesa & Card Angolo Superiore**:
-  - **Lista Incantesimi a Tutta Altezza**: la schermata sfrutta al meglio la risoluzione verticale, visualizzando fino a 24 incantesimi per schermata per una navigazione molto più comoda e veloce, supportando anche lo scrolling fluido con la rotella del mouse.
-  - **Anteprima Compatta dell'Item**: posizionata in alto a destra nel banner senza ingombrare; mostra l'icona 3D dell'oggetto (es. spada, armatura), il conteggio `(X/12)` e un tooltip completo all'hover del mouse con l'elenco di tutti gli incantesimi inclusi.
-- 📜 **Fix e Ottimizzazioni Sidebar Prezzi `/ah`**:
-  - **Rimozione Automatica Inserzioni Comprate**: non appena acquisti un libro (o viene comprato da altri), la barra laterale lo rimuove all'istante aggiornando la classifica dei prezzi in tempo reale senza dover riaprire l'asta.
-  - **Risoluzione Overflow & Sovrapposizioni**: eliminato qualsiasi problema di testo o card sbordanti oltre il riquadro dell'asta. Il footer e le card scrollabili ora sono perfettamente mascherati e ritagliati.
-  - **Scorrimento con Rotella**: navigazione fluida tra tutti i prezzi trovati e i singoli incanti cercati.
-- 🛡️ **Fix Stabilità Lunar Client (`RenderStateCache`)**:
-  - Risolto il crash all'avvio/in gioco causato dalla pipeline di sicurezza di Lunar Client su classi interne dei mixin.
-- ✨ **Risoluzione Glifi e Caratteri Buggati**:
-  - Eliminati tutti i caratteri emoji speciali/surrogati non supportati dal font di Minecraft vicino ai pallini elenco `•` in tutta la mod (HUD, Catalogo, AH, Incudine, Tooltip).
+- 🚀 **Rilascio Ufficiale "Litness Enchant v1.3 | By Waaxey"**:
+  - Nuova interfaccia grafica Studio con branding ufficiale e stabilità completa.
+- 🌳 **Integrazione Motore Pareto-Ottimale Detrix DP**:
+  - Sostituito il vecchio sistema di calcolo con il potente algoritmo DP ad albero binario: combina fino a 12 incanti con picchi di soli 20-28 livelli XP.
+- ⚡ **Fix Matematico Maxabilità su Incudine**:
+  - Eliminato il falso allarme "Troppo Costoso" per gli oggetti a lavoro 2 (penalità +3); ora tutti gli oggetti con penalità +0, +1 e +3 vengono correttamente riconosciuti come **100% Maxabili (12/12)**.
+- 🛒 **Auto-Crawler Multi-Pagina `/ah` (`[⚡ Sfoglia Tutto]`)**:
+  - Scansiona e memorizza tutti i libri di tutte le pagine dell'asta, con auto-navigazione e apertura automatica della schermata di acquisto al clic sull'offerta più conveniente.
+- 🛡️ **Fix Loop Infinito & Null-Safety**:
+  - Risolto il blocco su *"Calcolo in corso..."* quando nessun libro era selezionato.
+  - Aggiunta protezione completa contro i crash su unpin/pin dei set.
 
 ---
 
@@ -170,28 +129,29 @@ Sul server Litness, forgiare spade, archi, picconi o armature con 10–12 incant
 
 | Tasto / Controllo | Azione |
 | :--- | :--- |
-| **`N`** | Apri la schermata principale (Catalogo / Guida Fusione / I Miei Set) |
-| **`[📖 Guida Passi]`** | Tasto rapido in cima all'interfaccia dell'incudine per aprire la guida |
+| **`N`** | Apri il menu principale (Catalogo / I Miei Set / Guida Incudine) |
+| **`[⚡ Sfoglia]`** | Scansiona tutte le pagine della Casa d'Aste (`/ah`) |
+| **`[📋 Guida Passi]`** | Apri la guida ottimale direttamente dalla schermata dell'incudine |
 | **`[📋 Copia Passi]`** | Copia l'intera sequenza di fusione negli appunti |
-| **`[Pen: +X]`** | Seleziona manualmente la penalità di lavoro precedente dell'oggetto (+0, +1, +3, +7, +15, +31) |
+| **`[Pen: +X]`** | Seleziona manualmente la penalità pregressa (+0, +1, +3, +7, +15, +31) |
 | **`[ESC]`** | Chiudi la schermata e torna al gioco |
 
 ---
 
 ## 📦 Installazione
 
-### Metodo 1: Per Lunar Client (Consigliato)
-1. Scarica il file **`LitnessEnchantHelper-1.2.9.jar`** dall'area [Releases](../../releases).
+### Per Lunar Client (Consigliato)
+1. Scarica il file **`LitnessEnchantHelper-1.3.0.jar`** dall'area [Releases](../../releases).
 2. Premi sulla tastiera `Win + R`, incolla la seguente stringa e premi **Invio**:
    ```text
    %userprofile%\.lunarclient\profiles\26\mods\fabric-26.3\
    ```
-3. Incolla il file `.jar` scaricato all'interno di questa cartella.
-4. Avvia Minecraft selezionando la versione **Lunar Client 26.3 (Fabric)**.
+3. Incolla il file `LitnessEnchantHelper-1.3.0.jar` all'interno della cartella (rimuovendo eventuali versioni precedenti).
+4. Avvia Minecraft da Lunar Client con la versione **26.3 (Fabric)**.
 
-### Metodo 2: Per Fabric Launcher Standard
+### Per Fabric Launcher Standard
 1. Assicurati di avere installato **Fabric Loader** per Minecraft 26.3 e la **Fabric API**.
-2. Posiziona il file `LitnessEnchantHelper-1.2.9.jar` nella cartella `.minecraft/mods/`.
+2. Posiziona il file `LitnessEnchantHelper-1.3.0.jar` nella cartella `.minecraft/mods/`.
 3. Avvia il gioco.
 
 ---

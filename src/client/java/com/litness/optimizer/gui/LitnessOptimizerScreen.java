@@ -10,32 +10,30 @@ import com.litness.optimizer.data.EnchantmentDatabase;
 import com.litness.optimizer.data.EnchantmentDatabase.EnchantmentEntry;
 import com.litness.optimizer.data.EnchantmentDatabase.ItemEntry;
 import com.litness.optimizer.data.InventoryTracker;
+import com.litness.optimizer.data.ItemTypeHelper;
+import com.litness.optimizer.data.LitnessI18n;
 import com.litness.optimizer.data.SavedSetsManager;
 import com.litness.optimizer.data.SavedSetsManager.CustomSet;
-import com.litness.optimizer.data.UpdateChecker;
 import com.litness.optimizer.tooltip.LitnessTooltipHandler;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.GuiGraphicsExtractor;
 import net.minecraft.client.gui.components.Button;
 import net.minecraft.client.gui.components.EditBox;
 import net.minecraft.client.gui.screens.Screen;
-import net.minecraft.client.input.MouseButtonEvent;
 import net.minecraft.core.component.DataComponents;
 import net.minecraft.network.chat.Component;
 import net.minecraft.world.inventory.AnvilMenu;
-import net.minecraft.world.item.Item;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.Items;
-import net.minecraft.world.item.TooltipFlag;
-import net.minecraft.world.item.component.ItemLore;
 import net.minecraft.world.item.enchantment.ItemEnchantments;
-import com.mojang.blaze3d.platform.InputConstants;
 
 import java.util.*;
 
 public class LitnessOptimizerScreen extends Screen {
+
     public enum Tab {
         CATALOG,
+        SETS,
         CALCULATOR
     }
 
@@ -44,50 +42,51 @@ public class LitnessOptimizerScreen extends Screen {
         INVENTORY
     }
 
-    public enum SimView {
-        GUIDE,
-        SETS
-    }
-
     private Tab currentTab = Tab.CATALOG;
     private CalcMode calcMode = CalcMode.SIMULATOR;
-    private SimView simView = SimView.SETS;
     private final Screen parentScreen;
     private final AnvilMenu anvilMenu;
+    private EnchantmentEntry selectedCatalogEnchant = null;
+    private SoftwareButton btnToggleInspectorSet = null;
+
+    // Dimensioni finestra stile Software Desktop (Marloww client style)
+    private int getWinW() {
+        return Math.min(740, this.width - 20);
+    }
+
+    private int getWinH() {
+        return Math.min(450, this.height - 16);
+    }
+
+    private int getWinX() {
+        return (this.width - getWinW()) / 2;
+    }
+
+    private int getWinY() {
+        return (this.height - getWinH()) / 2;
+    }
+
+    private static final int HEADER_H = 32;
+    private static final int SIDEBAR_W = 125;
+
+    public static final int CATALOG_PAGE_SIZE = 6;
+    public static final int CREATING_SET_PAGE_SIZE = 6;
+    public static final int CALCULATOR_PAGE_SIZE = 5;
 
     // Catalogo
     private EditBox searchField;
     private String categoryFilter = "ALL";
     private String itemFilter = "ALL";
     private final List<EnchantmentEntry> filteredEnchantments = new ArrayList<>();
-    private int getItemsPerPage() {
-        int avail = this.height - 116;
-        return Math.max(5, Math.min(12, avail / 19));
-    }
     private int catalogPage = 0;
     private final List<Button> catalogRowButtons = new ArrayList<>();
-    private Button btnClearAhSearch = null;
+    private SoftwareButton btnClearAhSearch = null;
 
-    // Stato calcolatore & simulatore: Spada, Piccone, Armature, Archi e Attrezzi
+    // Oggetti supportati
     private static final String[] ITEM_KEYS = {
         "sword", "axe", "mace", "trident", "bow", "xbow", "pick", "shovel", "hoe", "rod", "helmet", "chest", "legs", "boots", "elytra"
     };
-    private static final String[] ITEM_NAMES = {
-        "Spada", "Ascia", "Mazza", "Tridente", "Arco", "Balestra", "Piccone", "Pala", "Zappa", "Canna da pesca", "Elmo", "Corazza", "Gambali", "Stivali", "Elitre"
-    };
-    private static final String[] ITEM_BUTTON_LABELS = {
-        "   Spada", "   Ascia", "   Mazza", "   Tridente", "   Arco", "   Balestra", "   Piccone", "   Pala", "   Zappa", "   Canna", "   Elmo", "   Corazza", "   Gambali", "   Stivali", "   Elitre"
-    };
-    private static final int[] ITEM_BUTTON_WIDTHS = {
-        54, 52, 54, 66, 54, 68, 64, 50, 52, 56, 52, 66, 66, 58, 54
-    };
 
-    private static final String[] CATEGORY_NAMES = {
-        "   Armi", "   Archi", "   Armature", "   Attrezzi"
-    };
-    private static final int[] CATEGORY_BUTTON_WIDTHS = {
-        54, 54, 70, 66
-    };
     private static final int[][] CATEGORY_ITEM_INDICES = {
         {0, 1, 2, 3},          // Armi: Spada, Ascia, Mazza, Tridente
         {4, 5},                // Archi: Arco, Balestra
@@ -105,11 +104,10 @@ public class LitnessOptimizerScreen extends Screen {
     }
 
     private static final int[] PENALTY_STEPS = {0, 1, 3, 7, 15, 31};
-
     private int selectedItemIndex = 0;
     private int selectedPenaltyIndex = 0;
 
-    // Creazione / Modifica Set Futuri
+    // Creazione / Modifica Set
     private boolean isCreatingSet = false;
     private String editingSetId = null;
     private String currentCreatingSetName = "";
@@ -120,72 +118,35 @@ public class LitnessOptimizerScreen extends Screen {
     private EditBox creatingSetSearchField;
     private int creatingSetPage = 0;
     private final List<Button> creatingSetEnchantButtons = new ArrayList<>();
-    private static record CreatingSetButtonData(int x, int y, EnchantmentEntry entry) {}
+    private final List<Button> creatingSetLibraryButtons = new ArrayList<>();
+    private static record CreatingSetButtonData(int x, int y, int w, int h, EnchantmentEntry entry) {}
     private final List<CreatingSetButtonData> creatingSetButtonDataList = new ArrayList<>();
 
-    private static record ItemIconData(int x, int y, ItemStack item) {}
-    private final List<ItemIconData> activeItemIcons = new ArrayList<>();
+    // Tasti set salvati
+    private final List<Button> savedSetButtons = new ArrayList<>();
+    private String savedSetsFilterCategory = "ALL";
 
-    private ItemStack getItemStackForCategory(int catIndex) {
-        switch (catIndex) {
-            case 0: return new ItemStack(Items.DIAMOND_SWORD);
-            case 1: return new ItemStack(Items.BOW);
-            case 2: return new ItemStack(Items.DIAMOND_CHESTPLATE);
-            case 3: return new ItemStack(Items.DIAMOND_PICKAXE);
-            default: return new ItemStack(Items.ENCHANTED_BOOK);
-        }
-    }
-
-    // Selezione simulatore (ID incantesimi attivi)
+    // Calcolatore / Simulatore
+    private static final java.util.concurrent.ExecutorService CALC_POOL = java.util.concurrent.Executors.newSingleThreadExecutor(r -> {
+        Thread t = new Thread(r, "LitnessCalcScreen");
+        t.setDaemon(true);
+        return t;
+    });
+    private volatile boolean isCalculating = false;
+    private volatile boolean needsWidgetRebuild = false;
+    private int calculatorPage = 0;
+    private int calculatorScrollOffset = 0;
+    private SoftwareButton btnCalcPrev = null;
+    private SoftwareButton btnCalcNext = null;
+    private Solution currentSolution = null;
+    private String statusMessage = null;
+    private String lastCalculatedKey = "";
     private final Set<String> simulatorSelectedEnchants = new LinkedHashSet<>();
-
-    public static class HoveredBookSlot {
-        public final boolean isBook;
-        public final String slotTitle;
-        public final String label;
-        public final int work;
-        public final List<EnchantApplied> enchants;
-
-        public HoveredBookSlot(boolean isBook, String slotTitle, String label, int work, List<EnchantApplied> enchants) {
-            this.isBook = isBook;
-            this.slotTitle = slotTitle;
-            this.label = label;
-            this.work = work;
-            List<EnchantApplied> list = (enchants != null && !enchants.isEmpty()) 
-                    ? new ArrayList<>(enchants) 
-                    : parseEnchantmentsFromLabel(label);
-            this.enchants = list;
-        }
-    }
-
-    // Guida incudine e paginazione passi
-    private int guideStepPage = 0;
-    private Button btnPrevStep;
-    private Button btnNextStep;
-    private Button btnCopyGuide;
-    private EnchantmentEntry hoveredCatalogEntry = null;
-    private HoveredBookSlot hoveredGuideSlot = null;
-    private boolean hoveredGuideInfo = false;
-    private boolean hoveredCreatingCornerItem = false;
-    private EnchantmentEntry hoveredSelectionEntry = null;
     private final List<EnchantmentEntry> currentVisibleSelectionEnchants = new ArrayList<>();
 
-    private int getCreatingSetItemsPerPage() {
-        int navY = this.height - 22;
-        int startY = 88;
-        int availableH = navY - startY - 4;
-        int rows = Math.max(7, availableH / 20);
-        return rows * 2;
-    }
-
-    private Solution currentSolution = null;
-    private String statusMessage = "";
-    private final List<BookInput> currentScannedBooks = new ArrayList<>();
-
-    // Set salvati
-    private int savedSetsPage = 0;
-    private EditBox newSetNameField;
-    private final List<Button> savedSetButtons = new ArrayList<>();
+    // Tasto rapido lingua
+    private SoftwareButton btnLangToggle = null;
+    private SoftwareButton btnClose = null;
 
     public LitnessOptimizerScreen(Component title) {
         this(title, null, null, null);
@@ -196,764 +157,1023 @@ public class LitnessOptimizerScreen extends Screen {
     }
 
     public LitnessOptimizerScreen(Component title, Screen parentScreen, AnvilMenu anvilMenu, Solution initialSolution) {
-        super(title);
+        super(title != null ? title : Component.literal("Litness Helper"));
         this.parentScreen = parentScreen;
         this.anvilMenu = anvilMenu;
         if (initialSolution != null && !initialSolution.steps.isEmpty()) {
             this.currentSolution = initialSolution;
             this.currentTab = Tab.CALCULATOR;
             this.calcMode = CalcMode.INVENTORY;
-            this.simView = SimView.GUIDE;
         } else if (anvilMenu != null) {
             this.currentTab = Tab.CALCULATOR;
             this.calcMode = CalcMode.INVENTORY;
-            this.simView = SimView.GUIDE;
         } else {
             this.selectedItemIndex = ActiveSessionManager.getActiveItemIndex();
             this.creatingSetItemIndex = this.selectedItemIndex;
-            this.simView = SimView.SETS;
         }
+    }
 
-        if (anvilMenu != null) {
-            ItemStack slot0 = anvilMenu.getSlot(0).getItem();
-            if (!slot0.isEmpty()) {
-                String detectedKey = com.litness.optimizer.data.ItemTypeHelper.detectItemKey(slot0);
-                this.selectedItemIndex = com.litness.optimizer.data.ItemTypeHelper.getItemIndexForKey(detectedKey);
+    public LitnessOptimizerScreen() {
+        this(Component.literal("Litness Helper"), null, null, null);
+    }
 
-                int penalty = slot0.getOrDefault(DataComponents.REPAIR_COST, 0);
-                for (int p = 0; p < PENALTY_STEPS.length; p++) {
-                    if (PENALTY_STEPS[p] == penalty) {
-                        this.selectedPenaltyIndex = p;
-                        break;
-                    }
+    public void openSetEditor(SavedSetsManager.CustomSet set) {
+        this.currentTab = Tab.SETS;
+        this.isCreatingSet = true;
+        this.editingSetId = (set != null) ? set.id : null;
+        this.creatingSetEnchants.clear();
+        if (set != null) {
+            this.creatingSetEnchants.addAll(set.enchantments);
+            this.currentCreatingSetName = set.name;
+            int foundIdx = 0;
+            for (int i = 0; i < ITEM_KEYS.length; i++) {
+                if (ITEM_KEYS[i].equalsIgnoreCase(set.itemKey)) {
+                    foundIdx = i;
+                    break;
                 }
             }
+            this.creatingSetItemIndex = foundIdx;
+        } else {
+            this.currentCreatingSetName = "";
+            this.creatingSetItemIndex = 0;
+        }
+        this.currentCreatingSetSearch = "";
+        this.creatingSetPage = 0;
+    }
+
+    // -------------------------------------------------------------
+    // ROUNDED RECTANGLE DRAWING UTILITIES (Obsidian Minimal Style)
+    // -------------------------------------------------------------
+    public static void drawRoundedRect(GuiGraphicsExtractor extractor, int x, int y, int w, int h, int radius, int color) {
+        if (radius <= 0) {
+            extractor.fill(x, y, x + w, y + h, color);
+            return;
+        }
+        int r = Math.min(radius, Math.min(w / 2, h / 2));
+        extractor.fill(x + r, y, x + w - r, y + h, color);
+        extractor.fill(x, y + r, x + r, y + h - r, color);
+        extractor.fill(x + w - r, y + r, x + w, y + h - r, color);
+        if (r >= 2) {
+            int cornerColor = ((color >>> 24) * 3 / 4 << 24) | (color & 0x00FFFFFF);
+            extractor.fill(x + 1, y + 1, x + r, y + r, cornerColor);
+            extractor.fill(x + w - r, y + 1, x + w - 1, y + r, cornerColor);
+            extractor.fill(x + 1, y + h - r, x + r, y + h - 1, cornerColor);
+            extractor.fill(x + w - r, y + h - r, x + w - 1, y + h - 1, cornerColor);
+        }
+    }
+
+    public static void drawRoundedOutline(GuiGraphicsExtractor extractor, int x, int y, int w, int h, int radius, int color) {
+        if (radius <= 0) {
+            extractor.outline(x, y, w, h, color);
+            return;
+        }
+        int r = Math.min(radius, Math.min(w / 2, h / 2));
+        extractor.fill(x + r, y, x + w - r, y + 1, color);
+        extractor.fill(x + r, y + h - 1, x + w - r, y + h, color);
+        extractor.fill(x, y + r, x + 1, y + h - r, color);
+        extractor.fill(x + w - 1, y + r, x + w, y + h - r, color);
+        extractor.fill(x + 1, y + 1, x + r, y + 2, color);
+        extractor.fill(x + 1, y + 2, x + 2, y + r, color);
+        extractor.fill(x + w - r, y + 1, x + w - 1, y + 2, color);
+        extractor.fill(x + w - 2, y + 2, x + w - 1, y + r, color);
+        extractor.fill(x + 1, y + h - 2, x + r, y + h - 1, color);
+        extractor.fill(x + 1, y + h - r, x + 2, y + h - 2, color);
+        extractor.fill(x + w - r, y + h - 2, x + w - 1, y + h - 1, color);
+        extractor.fill(x + w - 2, y + h - r, x + w - 1, y + h - 2, color);
+    }
+
+    // -------------------------------------------------------------
+    // SOFTWARE BUTTON WIDGET (Obsidian Minimal Soft Rounded Style)
+    // -------------------------------------------------------------
+    public static class SoftwareButton extends Button {
+        private boolean isPrimary = false;
+        private boolean isDanger = false;
+        private boolean isTabActive = false;
+        private boolean isSidebar = false;
+        private boolean isSuccess = false;
+        private boolean isSocket = false;
+        private long lastPressTime = 0;
+
+        public SoftwareButton(int x, int y, int width, int height, Component message, OnPress onPress) {
+            super(x, y, width, height, message, onPress, DEFAULT_NARRATION);
         }
 
-        String itemKey = ITEM_KEYS[selectedItemIndex];
-        Set<String> activeEnchants = ActiveSessionManager.getSelectedEnchants(itemKey);
-        if (activeEnchants != null && !activeEnchants.isEmpty()) {
-            this.simulatorSelectedEnchants.addAll(activeEnchants);
+        public SoftwareButton setPrimary(boolean primary) {
+            this.isPrimary = primary;
+            return this;
+        }
+
+        public SoftwareButton setDanger(boolean danger) {
+            this.isDanger = danger;
+            return this;
+        }
+
+        public SoftwareButton setSuccess(boolean success) {
+            this.isSuccess = success;
+            return this;
+        }
+
+        public SoftwareButton setSocket(boolean socket) {
+            this.isSocket = socket;
+            return this;
+        }
+
+        public SoftwareButton setTabActive(boolean active) {
+            this.isTabActive = active;
+            return this;
+        }
+
+        public SoftwareButton setSidebar(boolean sidebar) {
+            this.isSidebar = sidebar;
+            return this;
+        }
+
+        @Override
+        public void onPress(net.minecraft.client.input.InputWithModifiers input) {
+            this.lastPressTime = System.currentTimeMillis();
+            super.onPress(input);
+        }
+
+        @Override
+        public void extractContents(GuiGraphicsExtractor extractor, int mouseX, int mouseY, float delta) {
+            boolean hovered = isHovered();
+            int x = getX();
+            int y = getY();
+            int w = getWidth();
+            int h = getHeight();
+
+            long elapsed = System.currentTimeMillis() - lastPressTime;
+            int pressOffset = (elapsed < 110) ? 1 : 0;
+            y += pressOffset;
+
+            if (isSidebar) {
+                int bg = isTabActive ? 0xFF181D2C : (hovered ? 0xFF131724 : 0x00000000);
+                int border = isTabActive ? 0xFF3B82F6 : (hovered ? 0xFF1E2334 : 0x00000000);
+                if (bg != 0) {
+                    drawRoundedRect(extractor, x, y, w, h, 6, bg);
+                    if (border != 0) drawRoundedOutline(extractor, x, y, w, h, 6, border);
+                }
+                if (isTabActive) {
+                    // Pillola accento azzurro Obsidian a sinistra e indicatore luminoso pulsante
+                    extractor.fill(x + 3, y + 4, x + 5, y + h - 4, 0xFF3B82F6);
+                    long time = System.currentTimeMillis();
+                    double pulse = (Math.sin(time / 240.0) + 1.0) / 2.0;
+                    int pulseAlpha = (int)(0x80 + pulse * 0x7F);
+                    extractor.fill(x + w - 10, y + (h - 4) / 2, x + w - 6, y + (h + 4) / 2, (pulseAlpha << 24) | 0x60A5FA);
+                }
+                int textColor = isTabActive ? 0xFFFFFFFF : (hovered ? 0xFFE2E8F0 : 0xFF94A3B8);
+                extractor.text(Minecraft.getInstance().font, getMessage().getString(), x + 10, y + (h - 8) / 2, textColor, false);
+
+                if (elapsed < 220) {
+                    float progress = elapsed / 220f;
+                    int rippleAlpha = (int)((1.0f - progress) * 75);
+                    drawRoundedRect(extractor, x + 2, y + 2, w - 4, h - 4, 5, (rippleAlpha << 24) | 0x3B82F6);
+                }
+                return;
+            }
+
+            if (isSocket) {
+                if (hovered) {
+                    drawRoundedRect(extractor, x, y, w, h, 3, 0xFF28141F);
+                    drawRoundedOutline(extractor, x, y, w, h, 3, 0xFFEF4444);
+                }
+
+                String text = getMessage().getString();
+                int maxNameW = hovered ? (w - 18) : (w - 4);
+                int textY = y + (h - 8) / 2;
+                extractor.text(Minecraft.getInstance().font, trimToWidth(Minecraft.getInstance().font, text, maxNameW), x + 4, textY, hovered ? 0xFFFCA5A5 : 0xFFCBD5E1, false);
+                if (hovered) {
+                    extractor.text(Minecraft.getInstance().font, "\u00A7c\u2715", x + w - 10, textY, 0xFFFF4444, false);
+                }
+
+                if (elapsed < 220) {
+                    float progress = elapsed / 220f;
+                    int rippleAlpha = (int)((1.0f - progress) * 85);
+                    drawRoundedRect(extractor, x + 1, y + 1, w - 2, h - 2, 3, (rippleAlpha << 24) | 0xEF4444);
+                }
+                return;
+            }
+
+            int bg;
+            int border;
+            int textColor;
+
+            if (!this.active) {
+                bg = 0xFF10121C;
+                border = 0xFF1A1D2C;
+                textColor = 0xFF4B5563;
+            } else if (isDanger) {
+                bg = hovered ? 0xFFDC2626 : 0xFF991B1B;
+                border = hovered ? 0xFFEF4444 : 0xFFB91C1C;
+                textColor = 0xFFFFFFFF;
+            } else if (isSuccess) {
+                bg = hovered ? 0xFF0D3322 : 0xFF0B291B;
+                border = hovered ? 0xFF34D399 : 0xFF10B981;
+                textColor = 0xFF86EFAC;
+            } else if (isPrimary) {
+                bg = hovered ? 0xFF2563EB : 0xFF1D4ED8;
+                border = hovered ? 0xFF60A5FA : 0xFF3B82F6;
+                textColor = 0xFFFFFFFF;
+            } else if (isTabActive) {
+                bg = 0xFF1E2638;
+                border = 0xFF3B82F6;
+                textColor = 0xFFFFFFFF;
+            } else {
+                bg = hovered ? 0xFF1C2234 : 0xFF141724;
+                border = hovered ? 0xFF3B82F6 : 0xFF1E2334;
+                textColor = hovered ? 0xFFFFFFFF : 0xFFCBD5E1;
+            }
+
+            drawRoundedRect(extractor, x, y, w, h, 5, bg);
+            drawRoundedOutline(extractor, x, y, w, h, 5, border);
+
+            if (isTabActive && !isPrimary && !isDanger) {
+                extractor.fill(x + 4, y + h - 2, x + w - 4, y + h, 0xFF3B82F6);
+            }
+
+            if (elapsed < 220) {
+                float progress = elapsed / 220f;
+                int rippleAlpha = (int)((1.0f - progress) * 85);
+                drawRoundedRect(extractor, x + 2, y + 2, w - 4, h - 4, 4, (rippleAlpha << 24) | 0x3B82F6);
+            }
+
+            String label = getMessage().getString();
+            extractor.centeredText(Minecraft.getInstance().font, label, x + w / 2, y + (h - 8) / 2, textColor);
+        }
+    }
+
+    public static String trimToWidth(net.minecraft.client.gui.Font font, String str, int maxW) {
+        if (str == null || font == null || font.width(str) <= maxW) return str;
+        String ell = "...";
+        int ellW = font.width(ell);
+        StringBuilder sb = new StringBuilder();
+        for (int i = 0; i < str.length(); i++) {
+            char ch = str.charAt(i);
+            if (font.width(sb.toString() + ch) + ellW > maxW) {
+                return sb.toString() + ell;
+            }
+            sb.append(ch);
+        }
+        return sb.toString();
+    }
+
+    // -------------------------------------------------------------
+    // ENCHANTMENT CARD WIDGET (Software 2-Line Card with Diamond ◆)
+    // -------------------------------------------------------------
+    public static class EnchantmentCardWidget extends Button {
+        public final EnchantmentEntry entry;
+        public final boolean isInspected;
+        public final boolean isSelected;
+        public final boolean hasConflict;
+        public final String conflictName;
+        public final String displayName;
+        public final ItemStack iconStack;
+        public boolean hasInlineSearchButton = false;
+        private long lastPressTime = 0;
+
+        public EnchantmentCardWidget(int x, int y, int width, int height, EnchantmentEntry entry,
+                                     boolean isInspected, boolean isSelected, boolean hasConflict, String conflictName,
+                                     String displayName, ItemStack iconStack, OnPress onPress) {
+            super(x, y, width, height, Component.empty(), onPress, DEFAULT_NARRATION);
+            this.entry = entry;
+            this.isInspected = isInspected;
+            this.isSelected = isSelected;
+            this.hasConflict = hasConflict;
+            this.conflictName = conflictName;
+            this.displayName = displayName;
+            this.iconStack = iconStack;
+        }
+
+        @Override
+        public boolean isMouseOver(double mouseX, double mouseY) {
+            if (hasInlineSearchButton && mouseX >= this.getX() + this.getWidth() - 76) {
+                return false;
+            }
+            return super.isMouseOver(mouseX, mouseY);
+        }
+
+        @Override
+        public void onPress(net.minecraft.client.input.InputWithModifiers input) {
+            this.lastPressTime = System.currentTimeMillis();
+            super.onPress(input);
+        }
+
+        @Override
+        public void extractContents(GuiGraphicsExtractor extractor, int mouseX, int mouseY, float delta) {
+            boolean hovered = isHovered();
+            int x = getX();
+            int y = getY();
+            int w = getWidth();
+            int h = getHeight();
+
+            long elapsed = System.currentTimeMillis() - lastPressTime;
+            int pressOffset = (elapsed < 110) ? 1 : 0;
+            y += pressOffset;
+
+            int bg;
+            int border;
+            if (isInspected) {
+                // Scheda visualizzata nell'ispettore: Blu Obsidian Stondato sempre attivo
+                bg = hovered ? 0xFF14243A : 0xFF0E1A2C;
+                border = 0xFF3B82F6; // Cornice blu Obsidian
+            } else if (hasInlineSearchButton) {
+                // In Catalogo: stile Obsidian uniforme senza conflitti cromatici
+                bg = hovered ? 0xFF1C2234 : 0xFF131724;
+                border = hovered ? 0xFF3B82F6 : 0xFF1E2334;
+            } else if (isSelected) {
+                // Attivo nel set (durante creazione set): Stile smeraldo pulito
+                bg = hovered ? 0xFF0E251A : 0xFF091C13;
+                border = hovered ? 0xFF34D399 : 0xFF10B981;
+            } else if (hasConflict) {
+                // Incompatibile con il set: Stile muted sobrio (non rosso sangue allarmante)
+                bg = hovered ? 0xFF19141D : 0xFF121017;
+                border = hovered ? 0xFF581C28 : 0xFF261922;
+            } else {
+                bg = hovered ? 0xFF1C2234 : 0xFF131724;
+                border = hovered ? 0xFF3B82F6 : 0xFF1E2334;
+            }
+
+            drawRoundedRect(extractor, x, y, w, h, 6, bg);
+            drawRoundedOutline(extractor, x, y, w, h, 6, border);
+
+            if (elapsed < 220) {
+                float progress = elapsed / 220f;
+                int rippleAlpha = (int)((1.0f - progress) * 85);
+                int rippleColor = (hasInlineSearchButton || !isSelected) ? 0x3B82F6 : 0x10B981;
+                drawRoundedRect(extractor, x + 2, y + 2, w - 4, h - 4, 5, (rippleAlpha << 24) | rippleColor);
+            }
+
+            // Icona item/libro
+            if (iconStack != null && !iconStack.isEmpty()) {
+                extractor.fakeItem(iconStack, x + 5, y + (h - 16) / 2);
+            }
+
+            int textX = (iconStack != null && !iconStack.isEmpty()) ? x + 25 : x + 7;
+            int badgeSpace = hasInlineSearchButton ? 78 : (isSelected ? 24 : 14);
+            int maxTextW = w - (textX - x) - badgeSpace - 4;
+
+            // RIGA 1: NOME DELL'INCANTESIMO
+            int nameColor;
+            if (isInspected) {
+                nameColor = 0xFFFFFFFF; // Bianco puro
+            } else if (hasInlineSearchButton) {
+                nameColor = hovered ? 0xFFFFFFFF : 0xFFCBD5E1;
+            } else if (isSelected) {
+                nameColor = 0xFFFFFFFF; // Bianco pulito e leggibile
+            } else if (hasConflict) {
+                nameColor = hovered ? 0xFFE2E8F0 : 0xFF94A3B8; // Muted sobrio
+            } else {
+                nameColor = hovered ? 0xFFFFFFFF : 0xFFCBD5E1;
+            }
+
+            String line1 = displayName;
+            extractor.text(Minecraft.getInstance().font, trimToWidth(Minecraft.getInstance().font, line1, maxTextW), textX, y + 4, nameColor, false);
+
+            // RIGA 2: SOTTOTESTO DEDICATO (CONFLITTO O INFO)
+            if (h >= 24) {
+                if (isSelected && !hasInlineSearchButton) {
+                    int cost = entry != null ? entry.getAnvilCostNumeric() : 0;
+                    String costUnit = LitnessI18n.isEnglish() ? " lv." : " liv.";
+                    String costStr = cost > 0 ? (" \u2022 +" + cost + costUnit) : "";
+                    String inSetLabel = LitnessI18n.isEnglish() ? "In Set" : "Nel Set";
+                    String info = "\u00A7a\u2713 " + inSetLabel + " \u2022 \u00A77" + ("custom".equalsIgnoreCase(entry.category) ? "Custom" : "Vanilla") + costStr;
+                    extractor.text(Minecraft.getInstance().font, trimToWidth(Minecraft.getInstance().font, info, maxTextW), textX, y + 16, 0xFF86EFAC, false);
+                } else if (hasConflict && conflictName != null && !conflictName.isEmpty()) {
+                    String prefix = LitnessI18n.isEnglish() ? "\u00A78\u21B3 Incompatible with: \u00A7c" : "\u00A78\u21B3 Incompatibile con: \u00A7c";
+                    String confText = prefix + conflictName;
+                    extractor.text(Minecraft.getInstance().font, trimToWidth(Minecraft.getInstance().font, confText, maxTextW), textX, y + 16, 0xFFFCA5A5, false);
+                } else if (entry != null) {
+                    int cost = entry.getAnvilCostNumeric();
+                    String costUnit = LitnessI18n.isEnglish() ? " lv." : " liv.";
+                    String costStr = cost > 0 ? (" \u2022 +" + cost + costUnit) : "";
+                    String inSearchLabel = LitnessI18n.isEnglish() ? "In Search" : "In Cerca";
+                    String prefix = hasInlineSearchButton ? (isSelected ? ("\u00A7a" + inSearchLabel + " \u2022 \u00A77") : "\u00A78") : "\u00A78";
+                    String info = prefix + ("custom".equalsIgnoreCase(entry.category) ? "Custom" : "Vanilla") + costStr;
+                    extractor.text(Minecraft.getInstance().font, trimToWidth(Minecraft.getInstance().font, info, maxTextW), textX, y + 16, isSelected ? 0xFF86EFAC : 0xFF6B7280, false);
+                }
+            }
+
+            // In Catalogo c'e' il pulsante dedicato a destra; nelle altre schermate disegniamo il badge
+            if (!hasInlineSearchButton) {
+                int badgeY = y + (h - 16) / 2;
+                if (isSelected) {
+                    int badgeX = x + w - 22;
+                    drawRoundedRect(extractor, badgeX, badgeY, 16, 16, 4, 0x4010B981);
+                    drawRoundedOutline(extractor, badgeX, badgeY, 16, 16, 4, 0xFF34D399);
+                    extractor.centeredText(Minecraft.getInstance().font, "\u00A7a\u2713", badgeX + 8, badgeY + 4, 0xFF34D399);
+                } else if (hasConflict) {
+                    extractor.text(Minecraft.getInstance().font, "\u00A78\u292B", x + w - 14, y + (h - 8) / 2, 0xFF64748B, false);
+                } else {
+                    extractor.text(Minecraft.getInstance().font, "\u00A77+", x + w - 14, y + (h - 8) / 2, 0xFF94A3B8, false);
+                }
+            }
         }
     }
 
     @Override
     protected void clearWidgets() {
         super.clearWidgets();
-        activeItemIcons.clear();
+        creatingSetEnchantButtons.clear();
+        creatingSetLibraryButtons.clear();
+        creatingSetButtonDataList.clear();
+        catalogRowButtons.clear();
+        savedSetButtons.clear();
     }
 
     @Override
     protected void init() {
         super.init();
 
-        int topY = 7;
-        int tabWidth = 145;
+        int winW = getWinW();
+        int winH = getWinH();
+        int winX = getWinX();
+        int winY = getWinY();
 
-        // Notifica aggiornamento disponibile in alto a sinistra
-        if (UpdateChecker.isUpdateAvailable() && (this.width / 2 - tabWidth) >= 70) {
-            int upBtnW = Math.min(105, this.width / 2 - tabWidth - 12);
-            String upTxt = "§6v" + UpdateChecker.getLatestVersion();
-            this.addRenderableWidget(Button.builder(Component.literal(upTxt), b -> {
-                com.mojang.blaze3d.Blaze3D.openUri(java.net.URI.create(UpdateChecker.getReleasePageUrl()));
-            }).bounds(8, topY, upBtnW, 19).build());
-        }
+        // 1. TASTO LINGUA NELL'HEADER (in alto a destra, accanto a Chiudi)
+        boolean isEng = LitnessI18n.isEnglish();
+        String langLabel = isEng ? "   [ EN ]" : "   [ IT ]";
+        this.btnLangToggle = new SoftwareButton(winX + winW - 98, winY + 6, 68, 20, Component.literal(langLabel), b -> {
+            LitnessI18n.toggleLanguage();
+            this.clearWidgets();
+            this.init();
+        });
+        this.addRenderableWidget(this.btnLangToggle);
 
-        // 1. Tab Navigazione Superiore (Catalogo vs Simulatore/Calcolatore)
-        this.addRenderableWidget(Button.builder(Component.literal("Catalogo Incantesimi"), button -> {
+        // 2. TASTO CHIUDI (✕ in alto a destra, stile finestra software)
+        this.btnClose = new SoftwareButton(winX + winW - 26, winY + 6, 20, 20, Component.literal("\u2715"), b -> this.onClose())
+                .setDanger(true);
+        this.addRenderableWidget(this.btnClose);
+
+        // 3. BARRA LATERALE SINISTRA (1: Catalogo -> 2: I Miei Set -> 3: Guida Incudine)
+        int tabY = winY + HEADER_H + 6;
+        int tabH = 26;
+
+        SoftwareButton tabCatalog = new SoftwareButton(winX + 6, tabY, SIDEBAR_W - 12, tabH,
+                Component.literal("📖 " + LitnessI18n.t("tab_catalog")), b -> {
             this.currentTab = Tab.CATALOG;
+            this.isCreatingSet = false;
             this.clearWidgets();
             this.init();
-        }).bounds(this.width / 2 - tabWidth - 5, topY, tabWidth, 19).build());
+        }).setSidebar(true).setTabActive(this.currentTab == Tab.CATALOG);
+        this.addRenderableWidget(tabCatalog);
 
-        this.addRenderableWidget(Button.builder(Component.literal("Calcolatore & Simulatore"), button -> {
+        SoftwareButton tabSets = new SoftwareButton(winX + 6, tabY + tabH + 4, SIDEBAR_W - 12, tabH,
+                Component.literal("🛡 " + LitnessI18n.t("tab_sets")), b -> {
+            this.currentTab = Tab.SETS;
+            this.isCreatingSet = false;
+            this.clearWidgets();
+            this.init();
+        }).setSidebar(true).setTabActive(this.currentTab == Tab.SETS);
+        this.addRenderableWidget(tabSets);
+
+        SoftwareButton tabCalc = new SoftwareButton(winX + 6, tabY + (tabH * 2) + 8, SIDEBAR_W - 12, tabH,
+                Component.literal("⚡ " + LitnessI18n.t("tab_calculator")), b -> {
             this.currentTab = Tab.CALCULATOR;
+            this.isCreatingSet = false;
             this.clearWidgets();
             this.init();
-        }).bounds(this.width / 2 + 5, topY, tabWidth, 19).build());
+        }).setSidebar(true).setTabActive(this.currentTab == Tab.CALCULATOR);
+        this.addRenderableWidget(tabCalc);
 
-        String backLabel = this.parentScreen != null ? "Torna [ESC]" : "Chiudi [ESC]";
-        this.addRenderableWidget(Button.builder(Component.literal(backLabel), button -> this.onClose())
-                .bounds(this.width - 78, topY, 70, 19).build());
+        // 4. AREA CONTENUTO PRINCIPALE
+        int contentX = winX + SIDEBAR_W + 8;
+        int contentY = winY + HEADER_H + 6;
+        int contentW = winW - SIDEBAR_W - 16;
+        int contentH = winH - HEADER_H - 12;
 
         if (this.currentTab == Tab.CATALOG) {
-            initCatalogWidgets(topY);
+            initCatalogWidgets(contentX, contentY, contentW, contentH);
+        } else if (this.currentTab == Tab.SETS) {
+            initSavedSetsViewWidgets(contentX, contentY, contentW, contentH);
         } else {
-            initCalculatorWidgets(topY);
+            initGuideViewWidgets(contentX, contentY, contentW, contentH);
         }
     }
 
-    private void initCatalogWidgets(int topY) {
-        activeItemIcons.clear();
-        int filterY = topY + 23;
+    // -------------------------------------------------------------
+    // CATALOGO WIDGETS
+    // -------------------------------------------------------------
+    private void initCatalogWidgets(int startX, int startY, int panelWidth, int panelHeight) {
+        int filterY = startY;
 
-        // RIGA 1: Filtri Categoria + Campo Ricerca
-        int catStartX = this.width / 2 - 270;
-        this.addRenderableWidget(Button.builder(Component.literal("ALL".equals(categoryFilter) ? "§aTutti" : "Tutti"), b -> {
-            categoryFilter = "ALL";
-            catalogPage = 0;
-            updateSearch();
-            rebuildWidgets();
-        }).bounds(catStartX, filterY, 42, 18).build());
+        // FILTRI CATEGORIA
+        int catX = startX;
+        String[] cats = {"ALL", "VANILLA", "CUSTOM"};
+        String[] catLabels = {
+            LitnessI18n.t("all_filter"),
+            LitnessI18n.t("vanilla_filter"),
+            LitnessI18n.t("custom_filter")
+        };
+        int[] catWidths = {44, 60, 56};
 
-        this.addRenderableWidget(Button.builder(Component.literal("VANILLA".equals(categoryFilter) ? "§aVanilla" : "Vanilla"), b -> {
-            categoryFilter = "VANILLA";
-            catalogPage = 0;
-            updateSearch();
-            rebuildWidgets();
-        }).bounds(catStartX + 45, filterY, 50, 18).build());
+        for (int i = 0; i < cats.length; i++) {
+            final String c = cats[i];
+            SoftwareButton btn = new SoftwareButton(catX, filterY, catWidths[i], 20, Component.literal(catLabels[i]), b -> {
+                categoryFilter = c;
+                catalogPage = 0;
+                updateSearch();
+                refreshCatalogButtons(startX, filterY + 50, panelWidth);
+                rebuildWidgets();
+            }).setTabActive(c.equalsIgnoreCase(categoryFilter));
+            this.addRenderableWidget(btn);
+            catX += catWidths[i] + 4;
+        }
 
-        this.addRenderableWidget(Button.builder(Component.literal("VANILLA_PLUS".equals(categoryFilter) ? "§aVanilla+" : "Vanilla+"), b -> {
-            categoryFilter = "VANILLA_PLUS";
-            catalogPage = 0;
-            updateSearch();
-            rebuildWidgets();
-        }).bounds(catStartX + 98, filterY, 60, 18).build());
-
-        this.addRenderableWidget(Button.builder(Component.literal("CUSTOM".equals(categoryFilter) ? "§aCustom" : "Custom"), b -> {
-            categoryFilter = "CUSTOM";
-            catalogPage = 0;
-            updateSearch();
-            rebuildWidgets();
-        }).bounds(catStartX + 161, filterY, 50, 18).build());
-
-        // Campo ricerca
+        // CAMPO RICERCA
         String oldText = this.searchField != null ? this.searchField.getValue() : "";
-        this.searchField = new EditBox(this.font, catStartX + 214, filterY, 185, 18, Component.literal(""));
+        int searchW = Math.max(140, panelWidth - (catX - startX) - 105);
+        this.searchField = new EditBox(this.font, catX + 4, filterY, searchW, 20, Component.literal(""));
         this.searchField.setValue(oldText);
-        this.searchField.setHint(Component.literal("Cerca per nome o effetto..."));
+        this.searchField.setHint(Component.literal(LitnessI18n.t("search_hint")));
         this.searchField.setResponder(text -> {
             catalogPage = 0;
             updateSearch();
-            refreshCatalogButtons();
+            refreshCatalogButtons(startX, filterY + 50, panelWidth);
         });
         this.addRenderableWidget(this.searchField);
 
-        // Tasto Rapido Azzera Ricerche
+        // TASTO AZZERA RICERCA /AH
         int ahCount = ActiveSessionManager.getSearchEnchants().size();
-        String ahBtnLabel = ahCount > 0 ? "§cAzzera Cerca (" + ahCount + ")" : "§8Cerca: Nessuno";
-
-        this.btnClearAhSearch = Button.builder(Component.literal(ahBtnLabel), b -> {
+        String ahBtnLabel = ahCount > 0 ? "\u00A7c" + LitnessI18n.t("btn_clear") + " (" + ahCount + ")" : "\u00A78" + LitnessI18n.t("btn_clear");
+        this.btnClearAhSearch = new SoftwareButton(startX + panelWidth - 95, filterY, 95, 20, Component.literal(ahBtnLabel), b -> {
             ActiveSessionManager.clearSearchEnchants();
-            refreshCatalogButtons();
+            refreshCatalogButtons(startX, filterY + 50, panelWidth);
             updateClearButtonState();
-            statusMessage = "§aRicerche e filtri azzerati (/ah e casse)!";
-        }).bounds(catStartX + 402, filterY, 138, 18).tooltip(net.minecraft.client.gui.components.Tooltip.create(
-            Component.literal(ahCount > 0
-                ? "§cClicca per azzerare i " + ahCount + " incantesimi in ricerca\n§7Rimuove l'evidenziazione attiva in /ah e nelle casse/shulker."
-                : "§7Nessun incantesimo attualmente in ricerca.\n§8Usa [+ Cerca] nel catalogo per evidenziare libri in /ah e nelle casse.")
-        )).build();
+            statusMessage = "\u00A7a" + LitnessI18n.t("searches_cleared");
+        });
         this.btnClearAhSearch.active = (ahCount > 0);
         this.addRenderableWidget(this.btnClearAhSearch);
 
-        // RIGA 2: Filtri per Tipo di Oggetto
-        int itemFilterY = filterY + 21;
-        int curItemX = this.width / 2 - 232;
+        // RIGA 2: FILTRI PEZZO / OGGETTO
+        int itemFilterY = filterY + 24;
+        int curItemX = startX;
 
-        // [Tutti]
-        this.addRenderableWidget(Button.builder(Component.literal("ALL".equals(itemFilter) ? "§aTutti" : "Tutti"), b -> {
+        SoftwareButton btnAllItems = new SoftwareButton(curItemX, itemFilterY, 44, 20, Component.literal(LitnessI18n.t("all_filter")), b -> {
             itemFilter = "ALL";
             catalogPage = 0;
             updateSearch();
             rebuildWidgets();
-        }).bounds(curItemX, itemFilterY, 42, 18).build());
-        curItemX += 45;
+        }).setTabActive("ALL".equalsIgnoreCase(itemFilter));
+        this.addRenderableWidget(btnAllItems);
+        curItemX += 48;
 
-        // [Spada]
-        this.addRenderableWidget(Button.builder(Component.literal("sword".equals(itemFilter) ? "§a   Spada" : "   Spada"), b -> {
-            itemFilter = "sword";
-            catalogPage = 0;
-            updateSearch();
-            rebuildWidgets();
-        }).bounds(curItemX, itemFilterY, 54, 18).build());
-        activeItemIcons.add(new ItemIconData(curItemX + 2, itemFilterY + 1, new ItemStack(Items.DIAMOND_SWORD)));
-        curItemX += 56;
-
-        // [Piccone]
-        this.addRenderableWidget(Button.builder(Component.literal("pick".equals(itemFilter) ? "§a   Piccone" : "   Piccone"), b -> {
-            itemFilter = "pick";
-            catalogPage = 0;
-            updateSearch();
-            rebuildWidgets();
-        }).bounds(curItemX, itemFilterY, 64, 18).build());
-        activeItemIcons.add(new ItemIconData(curItemX + 2, itemFilterY + 1, new ItemStack(Items.DIAMOND_PICKAXE)));
-        curItemX += 66;
-
-        // [Armature]
-        this.addRenderableWidget(Button.builder(Component.literal("armor".equals(itemFilter) ? "§a   Armature" : "   Armature"), b -> {
-            itemFilter = "armor";
-            catalogPage = 0;
-            updateSearch();
-            rebuildWidgets();
-        }).bounds(curItemX, itemFilterY, 70, 18).build());
-        activeItemIcons.add(new ItemIconData(curItemX + 2, itemFilterY + 1, new ItemStack(Items.DIAMOND_CHESTPLATE)));
-        curItemX += 72;
-
-        // [Arco]
-        this.addRenderableWidget(Button.builder(Component.literal("bow".equals(itemFilter) ? "§a   Arco" : "   Arco"), b -> {
-            itemFilter = "bow";
-            catalogPage = 0;
-            updateSearch();
-            rebuildWidgets();
-        }).bounds(curItemX, itemFilterY, 54, 18).build());
-        activeItemIcons.add(new ItemIconData(curItemX + 2, itemFilterY + 1, new ItemStack(Items.BOW)));
-        curItemX += 56;
-
-        // [Ascia]
-        this.addRenderableWidget(Button.builder(Component.literal("axe".equals(itemFilter) ? "§a   Ascia" : "   Ascia"), b -> {
-            itemFilter = "axe";
-            catalogPage = 0;
-            updateSearch();
-            rebuildWidgets();
-        }).bounds(curItemX, itemFilterY, 54, 18).build());
-        activeItemIcons.add(new ItemIconData(curItemX + 2, itemFilterY + 1, new ItemStack(Items.DIAMOND_AXE)));
-        curItemX += 56;
-
-        // [Zappa]
-        this.addRenderableWidget(Button.builder(Component.literal("hoe".equals(itemFilter) ? "§a   Zappa" : "   Zappa"), b -> {
-            itemFilter = "hoe";
-            catalogPage = 0;
-            updateSearch();
-            rebuildWidgets();
-        }).bounds(curItemX, itemFilterY, 54, 18).build());
-        activeItemIcons.add(new ItemIconData(curItemX + 2, itemFilterY + 1, new ItemStack(Items.DIAMOND_HOE)));
-        curItemX += 56;
-
-        // [Altri]
-        this.addRenderableWidget(Button.builder(Component.literal("other".equals(itemFilter) ? "§a   Altri" : "   Altri"), b -> {
-            itemFilter = "other";
-            catalogPage = 0;
-            updateSearch();
-            rebuildWidgets();
-        }).bounds(curItemX, itemFilterY, 54, 18).build());
-        activeItemIcons.add(new ItemIconData(curItemX + 2, itemFilterY + 1, new ItemStack(Items.ENCHANTED_BOOK)));
-
-        // RIGA 3: Barra paginazione
-        int navY = itemFilterY + 21;
-        this.addRenderableWidget(Button.builder(Component.literal("◀ Precedente"), b -> {
-            if (catalogPage > 0) {
-                catalogPage--;
-                refreshCatalogButtons();
-            }
-        }).bounds(this.width / 2 - 270, navY, 85, 18).build());
-
-        this.addRenderableWidget(Button.builder(Component.literal("Successiva ▶"), b -> {
-            int totalP = Math.max(1, (int) Math.ceil((double) filteredEnchantments.size() / getItemsPerPage()));
-            if (catalogPage < totalP - 1) {
-                catalogPage++;
-                refreshCatalogButtons();
-            }
-        }).bounds(this.width / 2 + 185, navY, 85, 18).build());
+        for (int i = 0; i < 4; i++) {
+            final int catIdx = i;
+            String catName = LitnessI18n.getItemCategoryName(catIdx);
+            int catBtnW = Math.max(50, this.font.width(catName) + 16);
+            SoftwareButton bCat = new SoftwareButton(curItemX, itemFilterY, catBtnW, 20, Component.literal(catName), b -> {
+                itemFilter = "cat_" + catIdx;
+                catalogPage = 0;
+                updateSearch();
+                rebuildWidgets();
+            }).setTabActive(("cat_" + catIdx).equalsIgnoreCase(itemFilter));
+            this.addRenderableWidget(bCat);
+            curItemX += catBtnW + 4;
+        }
 
         updateSearch();
-        refreshCatalogButtons();
+        refreshCatalogButtons(startX, itemFilterY + 26, panelWidth);
     }
 
-    private void refreshCatalogButtons() {
+    private void refreshCatalogButtons(int cardX, int startY, int cardWidth) {
         for (Button b : catalogRowButtons) {
             this.removeWidget(b);
         }
         catalogRowButtons.clear();
 
-        if (this.currentTab != Tab.CATALOG) return;
+        int listW = (int)(cardWidth * 0.58) - 4;
+        int inspX = cardX + listW + 8;
+        int inspW = cardWidth - listW - 8;
 
-        int itemsPerPage = getItemsPerPage();
-        int maxPages = Math.max(1, (int) Math.ceil((double) filteredEnchantments.size() / itemsPerPage));
-        if (catalogPage >= maxPages) catalogPage = maxPages - 1;
-        if (catalogPage < 0) catalogPage = 0;
+        int pageSize = CATALOG_PAGE_SIZE;
+        int totalPages = Math.max(1, (int) Math.ceil((double) filteredEnchantments.size() / pageSize));
+        if (catalogPage >= totalPages) catalogPage = Math.max(0, totalPages - 1);
 
-        int startY = 94;
-        int cardWidth = Math.min(640, this.width - 24);
-        int cardX = (this.width - cardWidth) / 2;
+        int startIdx = catalogPage * pageSize;
+        int endIdx = Math.min(filteredEnchantments.size(), startIdx + pageSize);
 
-        int startIdx = catalogPage * itemsPerPage;
-        int endIdx = Math.min(startIdx + itemsPerPage, filteredEnchantments.size());
+        int rowH = 30;
 
         for (int i = startIdx; i < endIdx; i++) {
             EnchantmentEntry ee = filteredEnchantments.get(i);
-            int row = i - startIdx;
-            int y = startY + row * 19;
+            int slot = i - startIdx;
+            int bx = cardX;
+            int by = startY + (slot * (rowH + 3));
 
-            int btnW = 76;
-            int btnH = 16;
-            int btnX = cardX + cardWidth - btnW - 3;
-            int btnY = y + 1;
+            boolean inSearch = ActiveSessionManager.isSearchEnchant(ee.id);
+            boolean isInspected = (selectedCatalogEnchant != null && selectedCatalogEnchant.id.equalsIgnoreCase(ee.id));
+            String displayName = AnvilOptimizer.formatEnchantName(ee, ee.maxLevel);
+            ItemStack icon = EnchantmentThematicIconHelper.getIcon(ee);
 
-            boolean isSearching = ActiveSessionManager.isSearchEnchant(ee.id);
-            String label = isSearching ? "§aIn Cerca" : "§7+ Cerca";
+            // 1. Scheda Incantesimo (seleziona per visualizzare info a destra)
+            EnchantmentCardWidget card = new EnchantmentCardWidget(bx, by, listW, rowH, ee, isInspected, inSearch, false, null, displayName, icon, b -> {
+                selectedCatalogEnchant = ee;
+                refreshCatalogButtons(cardX, startY, cardWidth);
+            });
+            card.hasInlineSearchButton = true;
+            this.addRenderableWidget(card);
+            catalogRowButtons.add(card);
 
-            Button searchBtn = Button.builder(Component.literal(label), b -> {
+            // 2. Pulsante Cerca inline sul lato destro della riga (come nella versione 1.2.8)
+            int btnW = 68;
+            int btnH = 20;
+            int btnX = bx + listW - btnW - 5;
+            int btnY = by + (rowH - btnH) / 2;
+
+            String btnLabel = inSearch ? "\u2713 In Cerca" : "+ Cerca";
+            SoftwareButton searchBtn = new SoftwareButton(btnX, btnY, btnW, btnH, Component.literal(btnLabel), b -> {
                 ActiveSessionManager.toggleSearchEnchant(ee.id);
-                boolean nowSearching = ActiveSessionManager.isSearchEnchant(ee.id);
-                if (nowSearching) {
-                    statusMessage = "§aRicerca attivata per: " + ee.name + " (in /ah e casse)";
-                } else {
-                    statusMessage = "§eRicerca rimossa per: " + ee.name;
-                }
-                refreshCatalogButtons();
+                selectedCatalogEnchant = ee;
                 updateClearButtonState();
-            }).bounds(btnX, btnY, btnW, btnH).tooltip(net.minecraft.client.gui.components.Tooltip.create(
-                Component.literal(isSearching
-                    ? "§aRicerca attiva!\n§7Questo incantesimo e' evidenziato in:\n§6• /ah: §7prezzi live, offerte migliori e tasse\n§b• Casse: §7casse, barili, shulker ed ender chest\n\n§cClicca per disattivare la ricerca."
-                    : "§eClicca per cercare ed evidenziare!\n§7Evidenzia automaticamente questo libro in:\n§6• /ah: §7prezzi live, offerte migliori e tasse\n§b• Casse: §7casse normali/doppie, barili, shulker ed ender chest\n\n§aClicca per attivare la ricerca.")
-            )).build();
-
-            catalogRowButtons.add(searchBtn);
+                refreshCatalogButtons(cardX, startY, cardWidth);
+            });
+            if (inSearch) {
+                searchBtn.setSuccess(true);
+                searchBtn.setTooltip(net.minecraft.client.gui.components.Tooltip.create(
+                    Component.literal("\u00A7cRimuovi dalla ricerca in /ah e casse")
+                ));
+            } else {
+                searchBtn.setTooltip(net.minecraft.client.gui.components.Tooltip.create(
+                    Component.literal("\u00A7aCerca ed evidenzia in /ah e casse")
+                ));
+            }
             this.addRenderableWidget(searchBtn);
+            catalogRowButtons.add(searchBtn);
         }
+
+        if (selectedCatalogEnchant == null && !filteredEnchantments.isEmpty()) {
+            selectedCatalogEnchant = filteredEnchantments.get(0);
+        }
+
+        // Tasti Navigazione Pagina in basso per la lista sinistra
+        int navY = getWinY() + getWinH() - 24;
+        int btnW = 50;
+        SoftwareButton prev = new SoftwareButton(cardX, navY, btnW, 20, Component.literal("\u25C0 Prec"), b -> {
+            if (catalogPage > 0) {
+                catalogPage--;
+                refreshCatalogButtons(cardX, startY, cardWidth);
+            }
+        });
+        prev.active = (catalogPage > 0);
+        this.addRenderableWidget(prev);
+        catalogRowButtons.add(prev);
+
+        SoftwareButton next = new SoftwareButton(cardX + listW - btnW, navY, btnW, 20, Component.literal("Succ \u25B6"), b -> {
+            if (catalogPage < totalPages - 1) {
+                catalogPage++;
+                refreshCatalogButtons(cardX, startY, cardWidth);
+            }
+        });
+        next.active = (catalogPage < totalPages - 1);
+        this.addRenderableWidget(next);
+        catalogRowButtons.add(next);
     }
 
     private void updateClearButtonState() {
-        if (btnClearAhSearch == null) return;
+        if (this.btnClearAhSearch == null) return;
         int count = ActiveSessionManager.getSearchEnchants().size();
-        String lbl = count > 0 ? "§cAzzera Cerca (" + count + ")" : "§8Cerca: Nessuno";
-        btnClearAhSearch.setMessage(Component.literal(lbl));
-        btnClearAhSearch.active = (count > 0);
-        btnClearAhSearch.setTooltip(net.minecraft.client.gui.components.Tooltip.create(
-            Component.literal(count > 0
-                ? "§cClicca per azzerare i " + count + " incantesimi in ricerca\n§7Rimuove l'evidenziazione attiva in /ah e nelle casse/shulker."
-                : "§7Nessun incantesimo attualmente in ricerca.\n§8Usa [+ Cerca] nel catalogo per evidenziare libri in /ah e nelle casse.")
-        ));
+        this.btnClearAhSearch.active = (count > 0);
+        this.btnClearAhSearch.setMessage(Component.literal(count > 0 ? "\u00A7c" + LitnessI18n.t("btn_clear") + " (" + count + ")" : "\u00A78" + LitnessI18n.t("btn_clear")));
     }
 
-    private void initCalculatorWidgets(int topY) {
-        for (Button b : catalogRowButtons) {
-            this.removeWidget(b);
-        }
-        catalogRowButtons.clear();
-        activeItemIcons.clear();
-
-        int panelWidth = Math.min(560, this.width - 20);
-        int startX = (this.width - panelWidth) / 2;
-
-        int row1Y = topY + 22; // Y = 29
-        int curX = startX;
-
-        // RIGA 1: SELEZIONE RAPIDA CATEGORIA & OGGETTO (Armi, Archi, Armature, Attrezzi)
-        int activeItem = isCreatingSet ? creatingSetItemIndex : selectedItemIndex;
-        int activeCategory = getCategoryForItem(activeItem);
-
-        // 1. Tasti Categoria (a sinistra)
-        for (int c = 0; c < CATEGORY_NAMES.length; c++) {
-            final int catIdx = c;
-            int catBtnW = CATEGORY_BUTTON_WIDTHS[c];
-            boolean isCatActive = (activeCategory == catIdx);
-            String catLabel = isCatActive ? "§a" + CATEGORY_NAMES[c] : CATEGORY_NAMES[c];
-            this.addRenderableWidget(Button.builder(Component.literal(catLabel), b -> {
-                int firstItemInCat = CATEGORY_ITEM_INDICES[catIdx][0];
-                handleItemSelection(firstItemInCat);
-            }).bounds(curX, row1Y, catBtnW, 18).build());
-            activeItemIcons.add(new ItemIconData(curX + 2, row1Y + 1, getItemStackForCategory(catIdx)));
-            curX += catBtnW + 2;
-        }
-
-        curX += 4; // Separatore visivo
-
-        // 2. Tasti Oggetti della categoria attiva (a destra)
-        for (int itemIdx : CATEGORY_ITEM_INDICES[activeCategory]) {
-            boolean isItemActive = (activeItem == itemIdx);
-            String lbl = isItemActive ? "§a" + ITEM_BUTTON_LABELS[itemIdx] : ITEM_BUTTON_LABELS[itemIdx];
-            int btnW = ITEM_BUTTON_WIDTHS[itemIdx];
-            this.addRenderableWidget(Button.builder(Component.literal(lbl), b -> handleItemSelection(itemIdx))
-                    .bounds(curX, row1Y, btnW, 18).build());
-            activeItemIcons.add(new ItemIconData(curX + 2, row1Y + 1, getItemStackForType(ITEM_KEYS[itemIdx])));
-            curX += btnW + 2;
-        }
-
-        int row2Y = row1Y + 21; // Y = 50
-
-        if (simView == SimView.GUIDE) {
-            // [◀ Torna a I Miei Set]
-            this.addRenderableWidget(Button.builder(Component.literal("◀ Torna a I Miei Set"), b -> {
-                simView = SimView.SETS;
-                this.clearWidgets();
-                this.init();
-            }).bounds(startX, row2Y, 130, 18).build());
-
-            // Penalità di lavoro
-            int penaltyW = 66;
-            this.addRenderableWidget(Button.builder(
-                Component.literal("Pen: +" + PENALTY_STEPS[selectedPenaltyIndex]),
-                button -> {
-                    selectedPenaltyIndex = (selectedPenaltyIndex + 1) % PENALTY_STEPS.length;
-                    guideStepPage = 0;
-                    runCalculation();
-                    this.clearWidgets();
-                    this.init();
-                }
-            ).bounds(startX + panelWidth - penaltyW, row2Y, penaltyW, 18).build());
-
-            initGuideViewWidgets(startX, panelWidth, row2Y + 22);
-        } else {
-            initSavedSetsViewWidgets(startX, panelWidth, row2Y);
-        }
-
-        if (currentSolution == null) {
-            if (this.anvilMenu != null) {
-                scanFromGameEnvironment();
-                if (!this.currentScannedBooks.isEmpty()) {
-                    this.calcMode = CalcMode.INVENTORY;
-                    runCalculation();
-                }
-            }
-            if (currentSolution == null) {
-                this.calcMode = CalcMode.SIMULATOR;
-                if (simulatorSelectedEnchants.isEmpty()) {
-                    String itemKey = ITEM_KEYS[selectedItemIndex];
-                    Set<String> saved = ActiveSessionManager.getSelectedEnchants(itemKey);
-                    if (saved != null && !saved.isEmpty()) {
-                        simulatorSelectedEnchants.addAll(saved);
-                    }
-                }
-                runCalculation();
-            }
-        }
-    }
-
-    private void handleItemSelection(int index) {
+    // -------------------------------------------------------------
+    // SET SALVATI & CREAZIONE SET WIDGETS
+    // -------------------------------------------------------------
+    private void initSavedSetsViewWidgets(int startX, int startY, int panelWidth, int panelHeight) {
         if (isCreatingSet) {
-            if (this.creatingSetNameField != null) {
-                currentCreatingSetName = this.creatingSetNameField.getValue();
-            }
-            creatingSetItemIndex = index;
-            selectedItemIndex = index;
-            creatingSetEnchants.clear();
-            creatingSetPage = 0;
-            statusMessage = "Creazione set per " + ITEM_NAMES[index] + "...";
+            initSetCreatorWidgets(startX, startY, panelWidth, panelHeight);
+        } else {
+            initSavedSetsListWidgets(startX, startY, panelWidth, panelHeight);
+        }
+    }
+
+    private void initSavedSetsListWidgets(int startX, int startY, int panelWidth, int panelHeight) {
+        // Tasto + Nuovo Set (Primario Viola)
+        SoftwareButton btnNew = new SoftwareButton(startX, startY, 110, 22, Component.literal(LitnessI18n.t("btn_new_set")), b -> {
+            openSetEditor(null);
             this.clearWidgets();
             this.init();
-        } else {
-            selectItem(index);
+        }).setPrimary(true);
+        this.addRenderableWidget(btnNew);
+
+        // Filtri categorie set
+        int fx = startX + 118;
+        String[] cats = {"ALL", "0", "1", "2", "3"};
+        String[] catLabels = {
+            LitnessI18n.t("all_filter"),
+            LitnessI18n.getItemCategoryName(0),
+            LitnessI18n.getItemCategoryName(1),
+            LitnessI18n.getItemCategoryName(2),
+            LitnessI18n.getItemCategoryName(3)
+        };
+        for (int i = 0; i < cats.length; i++) {
+            final String c = cats[i];
+            int bw = Math.max(46, this.font.width(catLabels[i]) + 14);
+            SoftwareButton bCat = new SoftwareButton(fx, startY + 1, bw, 20, Component.literal(catLabels[i]), b -> {
+                savedSetsFilterCategory = c;
+                this.clearWidgets();
+                this.init();
+            }).setTabActive(c.equalsIgnoreCase(savedSetsFilterCategory));
+            this.addRenderableWidget(bCat);
+            fx += bw + 4;
         }
+
+        refreshSavedSetButtons(startY + 28, startX, panelWidth);
     }
 
-    private void selectItem(int index) {
-        selectedItemIndex = index;
-        creatingSetItemIndex = index;
-        ActiveSessionManager.setActiveItemIndex(index);
-        guideStepPage = 0;
-        simulatorSelectedEnchants.clear();
-        String itemKey = ITEM_KEYS[selectedItemIndex];
-        Set<String> saved = ActiveSessionManager.getSelectedEnchants(itemKey);
-        if (saved != null && !saved.isEmpty()) {
-            simulatorSelectedEnchants.addAll(saved);
+    private void refreshSavedSetButtons(int startY, int startX, int panelWidth) {
+        for (Button b : savedSetButtons) {
+            this.removeWidget(b);
         }
-        runCalculation();
-        this.clearWidgets();
-        this.init();
-    }
+        savedSetButtons.clear();
 
-    private void initGuideViewWidgets(int startX, int panelWidth, int contentY) {
-        // Pulsante Copia Guida negli Appunti posizionato saldamente a destra del banner
-        this.btnCopyGuide = Button.builder(Component.literal("Copia Passi"), b -> copyGuideToClipboard())
-                .bounds(startX + panelWidth - 88, contentY + 1, 86, 18).build();
-        this.addRenderableWidget(this.btnCopyGuide);
+        List<CustomSet> sets = SavedSetsManager.getSavedSets();
+        if (sets.isEmpty()) return;
 
-        // Paginazione Passi Incudine posizionata saldamente in fondo allo schermo
-        int navY = this.height - 21;
-        this.btnPrevStep = Button.builder(Component.literal("◀ Passi Precedenti"), b -> {
-            if (guideStepPage > 0) guideStepPage--;
-        }).bounds(startX, navY, 125, 18).build();
-        this.addRenderableWidget(this.btnPrevStep);
+        int rowH = 26;
+        int curY = startY;
 
-        this.btnNextStep = Button.builder(Component.literal("Passi Successivi ▶"), b -> {
-            if (currentSolution != null && !currentSolution.steps.isEmpty()) {
-                int totalSteps = currentSolution.steps.size();
-                int maxPages = Math.max(1, (int) Math.ceil((double) totalSteps / 4));
-                if (guideStepPage < maxPages - 1) guideStepPage++;
+        for (CustomSet set : sets) {
+            if (!"ALL".equalsIgnoreCase(savedSetsFilterCategory)) {
+                try {
+                    int targetCat = Integer.parseInt(savedSetsFilterCategory);
+                    int itemIdx = 0;
+                    for (int k = 0; k < ITEM_KEYS.length; k++) {
+                        if (ITEM_KEYS[k].equalsIgnoreCase(set.itemKey)) {
+                            itemIdx = k;
+                            break;
+                        }
+                    }
+                    if (getCategoryForItem(itemIdx) != targetCat) continue;
+                } catch (Exception ignored) {}
             }
-        }).bounds(startX + panelWidth - 125, navY, 125, 18).build();
-        this.addRenderableWidget(this.btnNextStep);
+
+            int by = curY;
+            // Tasto Carica / Guida
+            SoftwareButton btnGuide = new SoftwareButton(startX + panelWidth - 210, by + 2, 52, 20,
+                    Component.literal(LitnessI18n.t("guide_btn")), b -> loadSavedSetIntoSimulator(set)).setPrimary(true);
+            this.addRenderableWidget(btnGuide);
+            savedSetButtons.add(btnGuide);
+
+            // Tasto Modifica
+            SoftwareButton btnEdit = new SoftwareButton(startX + panelWidth - 154, by + 2, 52, 20,
+                    Component.literal(LitnessI18n.t("edit_btn")), b -> {
+                openSetEditor(set);
+                this.clearWidgets();
+                this.init();
+            });
+            this.addRenderableWidget(btnEdit);
+            savedSetButtons.add(btnEdit);
+
+            // Tasto Pin
+            boolean isPinned = ActiveSessionManager.isSetPinned(set.id);
+            SoftwareButton btnPin = new SoftwareButton(startX + panelWidth - 98, by + 2, 46, 20,
+                    Component.literal(isPinned ? LitnessI18n.t("unpin_btn") : LitnessI18n.t("pin_btn")), b -> {
+                ActiveSessionManager.togglePinSet(set.id);
+                this.clearWidgets();
+                this.init();
+            }).setTabActive(isPinned);
+            this.addRenderableWidget(btnPin);
+            savedSetButtons.add(btnPin);
+
+            // Tasto Elimina (Rosso)
+            SoftwareButton btnDel = new SoftwareButton(startX + panelWidth - 48, by + 2, 44, 20,
+                    Component.literal(LitnessI18n.t("delete_btn")), b -> {
+                SavedSetsManager.deleteSet(set.id);
+                this.clearWidgets();
+                this.init();
+            }).setDanger(true);
+            this.addRenderableWidget(btnDel);
+            savedSetButtons.add(btnDel);
+
+            curY += rowH + 4;
+            if (curY > getWinY() + getWinH() - 30) break;
+        }
     }
 
-    private void copyGuideToClipboard() {
-        if (currentSolution == null || currentSolution.steps.isEmpty()) return;
-        StringBuilder sb = new StringBuilder();
-        sb.append("=== GUIDA LITNESS ENCHANT HELPER: ").append(ITEM_NAMES[selectedItemIndex].toUpperCase()).append(" ===\n");
-        sb.append("Costo Totale: ").append(currentSolution.totalCost).append(" liv. XP | Picco Massimo: ").append(currentSolution.peakCost).append("/39 liv.\n\n");
-        for (int i = 0; i < currentSolution.steps.size(); i++) {
-            MergeStep step = currentSolution.steps.get(i);
-            sb.append("Passo ").append(i + 1).append("/").append(currentSolution.steps.size()).append(": ");
-            if (step.isBookToBook) {
-                sb.append("[Slot 1: ").append(step.leftLabel).append("] + [Slot 2: ").append(step.rightLabel).append("]");
+    private void initSetCreatorWidgets(int startX, int startY, int panelWidth, int panelHeight) {
+        int studioW = Math.max(132, (int)(panelWidth * 0.32));
+        int libX = startX + studioW + 8;
+        int libW = panelWidth - studioW - 8;
+
+        int botY = getWinY() + getWinH() - 24;
+        int selCount = creatingSetEnchants.size();
+
+        // --- STUDIO SINISTRO: TOOLTIP CARD DELL'ITEM ENCHANTATO ---
+        // 1. Campo Nome Set
+        int iconBoxX = startX + 4;
+        int nameFieldX = iconBoxX + 26;
+        int nameFieldW = studioW - 32;
+        this.creatingSetNameField = new EditBox(this.font, nameFieldX, startY + 2, nameFieldW, 15, Component.literal(""));
+        this.creatingSetNameField.setValue(currentCreatingSetName);
+        this.creatingSetNameField.setHint(Component.literal(LitnessI18n.t("set_name_hint")));
+        this.creatingSetNameField.setResponder(text -> currentCreatingSetName = text);
+        this.addRenderableWidget(this.creatingSetNameField);
+
+        // 2. 12 Righe Lore Incantesimi (Stile tooltip Minecraft in colonna singola)
+        int availLoreH = (botY - (startY + 34)) - 24;
+        int loreRowH = Math.min(11, Math.max(9, availLoreH / 12));
+        int loreStartY = startY + 42;
+
+        List<String> list = new ArrayList<>(creatingSetEnchants);
+        for (int i = 0; i < creatingSetEnchants.size(); i++) {
+            final int slot = i;
+            String enchId = list.get(slot);
+            EnchantmentEntry ee = EnchantmentDatabase.getEnchantment(enchId);
+            String rawName = (ee != null) ? LitnessI18n.getEnchantName(ee) : enchId;
+            String name = AnvilOptimizer.formatEnchantName(rawName, (ee != null) ? ee.maxLevel : 1);
+            boolean isCustom = (ee != null && "custom".equalsIgnoreCase(ee.category));
+            String bullet = isCustom ? "\u00A7b\u2022 " : "\u00A77\u2022 ";
+            String tag = bullet + name;
+            int sy = loreStartY + (slot * loreRowH);
+
+            SoftwareButton sockBtn = new SoftwareButton(startX + 4, sy, studioW - 8, loreRowH, Component.literal(tag), b -> {
+                creatingSetEnchants.remove(enchId);
+                this.clearWidgets();
+                this.init();
+            }).setSocket(true);
+            boolean isEn = LitnessI18n.isEnglish();
+            String removeTooltip = isEn ? ("\u00A7cRemove " + name + " from set") : ("\u00A7cRimuovi " + name + " dal set");
+            sockBtn.setTooltip(net.minecraft.client.gui.components.Tooltip.create(
+                Component.literal(removeTooltip)
+            ));
+            this.addRenderableWidget(sockBtn);
+            creatingSetEnchantButtons.add(sockBtn);
+        }
+
+        // 3. Bottone Simulatore / Status Incudine
+        int btnSimY = loreStartY + (12 * loreRowH) + 3;
+        btnSimY = Math.min(btnSimY, botY - 21);
+        int btnSimH = Math.min(18, botY - btnSimY - 3);
+
+        boolean isEn = LitnessI18n.isEnglish();
+        String simLabel = (selCount > 0) ? (isEn ? "\u00A7a\u2713 Maxable \u00A78\u2022 \u00A7bSimulate \u2794" : "\u00A7a\u2713 Maxabile \u00A78\u2022 \u00A7bSimula \u2794") : (isEn ? "\u00A78No enchantments" : "\u00A78Nessun incanto");
+        SoftwareButton btnSim = new SoftwareButton(startX + 4, btnSimY, studioW - 8, btnSimH, Component.literal(simLabel), b -> {
+            simulatorSelectedEnchants.clear();
+            simulatorSelectedEnchants.addAll(creatingSetEnchants);
+            selectedItemIndex = creatingSetItemIndex;
+            calcMode = CalcMode.SIMULATOR;
+            runCalculation();
+            this.currentTab = Tab.CALCULATOR;
+            this.clearWidgets();
+            this.init();
+        }).setPrimary(selCount > 0);
+        btnSim.active = (selCount > 0);
+        btnSim.setTooltip(net.minecraft.client.gui.components.Tooltip.create(
+            Component.literal(isEn ? "Calculate optimal combination tree on anvil" : "Calcola i passi ottimali all'incudine")
+        ));
+        this.addRenderableWidget(btnSim);
+        creatingSetEnchantButtons.add(btnSim);
+
+        // 4. Tasti Azione Bottom Studio: Salva e Annulla
+        int btnCancelW = 46;
+        int btnSaveW = (studioW - 8) - btnCancelW - 4;
+
+        String saveText = LitnessI18n.t("btn_save") + " (" + selCount + "/12)";
+        SoftwareButton btnSave = new SoftwareButton(startX + 4, botY, btnSaveW, 20, Component.literal(saveText), b -> {
+            String name = (creatingSetNameField != null) ? creatingSetNameField.getValue().trim() : currentCreatingSetName.trim();
+            if (name.isEmpty()) name = LitnessI18n.getItemPieceName(ITEM_KEYS[creatingSetItemIndex]) + " Custom";
+            if (editingSetId != null) {
+                SavedSetsManager.updateSet(editingSetId, name, ITEM_KEYS[creatingSetItemIndex], new ArrayList<>(creatingSetEnchants));
             } else {
-                sb.append("[").append(step.leftLabel).append("] + [Libro: ").append(step.rightLabel).append("]");
+                SavedSetsManager.addSet(name, ITEM_KEYS[creatingSetItemIndex], new ArrayList<>(creatingSetEnchants));
             }
-            sb.append(" -> ").append(step.resultLabel).append(" (Costo: ").append(step.cost).append(" liv.)\n");
-        }
-        if (this.minecraft != null && this.minecraft.keyboardHandler != null) {
-            this.minecraft.keyboardHandler.setClipboard(sb.toString());
-            statusMessage = "§aGuida copiata negli appunti con successo!";
-        }
-    }
+            isCreatingSet = false;
+            editingSetId = null;
+            this.clearWidgets();
+            this.init();
+        }).setSuccess(true);
+        btnSave.active = !creatingSetEnchants.isEmpty();
+        this.addRenderableWidget(btnSave);
+        creatingSetEnchantButtons.add(btnSave);
 
-    private String getPresetButtonLabel() {
-        String key = ITEM_KEYS[selectedItemIndex];
-        switch (key) {
-            case "sword": return "Spada";
-            case "pick":
-            case "pickaxe": return "Piccone";
-            case "helmet": return "Elmo";
-            case "chest": return "Corazza";
-            case "legs": return "Gambali";
-            case "boots": return "Stivali";
-            default: return ITEM_NAMES[selectedItemIndex];
-        }
-    }
+        SoftwareButton btnCancel = new SoftwareButton(startX + 4 + btnSaveW + 4, botY, btnCancelW, 20, Component.literal(LitnessI18n.t("btn_cancel")), b -> {
+            isCreatingSet = false;
+            editingSetId = null;
+            this.clearWidgets();
+            this.init();
+        });
+        this.addRenderableWidget(btnCancel);
+        creatingSetEnchantButtons.add(btnCancel);
 
-    private int getSelectedUniqueCount() {
-        int count = 0;
-        for (String id : simulatorSelectedEnchants) {
-            EnchantmentEntry ee = EnchantmentDatabase.getEnchantment(id);
-            if (ee != null && ee.unique) count++;
-        }
-        return count;
-    }
-
-    private String getConflictWithCollection(EnchantmentEntry ee, Collection<String> selectedIds) {
-        if (ee == null || selectedIds == null || selectedIds.isEmpty()) return null;
-        List<String> conflicts = EnchantmentDatabase.getResolvedConflicts(ee.id);
-        for (String selId : selectedIds) {
-            if (selId.equalsIgnoreCase(ee.id)) continue;
-            EnchantmentEntry selEe = EnchantmentDatabase.getEnchantment(selId);
-            if (selEe == null) continue;
-            if (conflicts.contains(selEe.name) || conflicts.contains(selEe.id)) {
-                return selEe.name;
-            }
-            List<String> selConflicts = EnchantmentDatabase.getResolvedConflicts(selId);
-            if (selConflicts.contains(ee.name) || selConflicts.contains(ee.id)) {
-                return selEe.name;
-            }
-        }
-        return null;
-    }
-
-    private String getConflictWithSelected(EnchantmentEntry ee) {
-        return getConflictWithCollection(ee, isCreatingSet ? creatingSetEnchants : simulatorSelectedEnchants);
-    }
-
-
-    private void initSavedSetsViewWidgets(int startX, int panelWidth, int contentY) {
-        if (isCreatingSet) {
-            int nameFieldW = 120;
-            this.creatingSetNameField = new EditBox(this.font, startX, contentY, nameFieldW, 18, Component.literal(""));
-            if (currentCreatingSetName != null && !currentCreatingSetName.isEmpty()) {
-                this.creatingSetNameField.setValue(currentCreatingSetName);
-            } else if (editingSetId != null) {
-                SavedSetsManager.CustomSet editSet = SavedSetsManager.getSetById(editingSetId);
-                if (editSet != null) {
-                    this.creatingSetNameField.setValue(editSet.name);
-                    currentCreatingSetName = editSet.name;
-                }
-            }
-            this.creatingSetNameField.setResponder(text -> currentCreatingSetName = text);
-            this.creatingSetNameField.setHint(Component.literal("Nome Set..."));
-            this.addRenderableWidget(this.creatingSetNameField);
-
-            int curX = startX + nameFieldW + 4;
-
-            // [Pezzo: Spada / Piccone / Elmo / Corazza / Gambali / Stivali]
-            int pezzoBtnW = 96;
-            this.addRenderableWidget(Button.builder(Component.literal("   Pezzo: " + ITEM_NAMES[creatingSetItemIndex]), b -> {
-                if (this.creatingSetNameField != null) {
-                    currentCreatingSetName = this.creatingSetNameField.getValue();
-                }
-                if (this.creatingSetSearchField != null) {
-                    currentCreatingSetSearch = this.creatingSetSearchField.getValue();
-                }
-                creatingSetItemIndex = (creatingSetItemIndex + 1) % ITEM_NAMES.length;
-                selectedItemIndex = creatingSetItemIndex;
+        // --- LIBRERIA DESTRA: FILTRI CATEGORIE, RICERCA E CARDS ---
+        int row1Y = startY;
+        int activeCategory = getCategoryForItem(creatingSetItemIndex);
+        int curCatX = libX;
+        for (int c = 0; c < 4; c++) {
+            final int catIdx = c;
+            String catName = LitnessI18n.getItemCategoryName(catIdx);
+            int bw = this.font.width(catName) + 10;
+            SoftwareButton bCat = new SoftwareButton(curCatX, row1Y, bw, 18, Component.literal(catName), b -> {
+                creatingSetItemIndex = CATEGORY_ITEM_INDICES[catIdx][0];
                 creatingSetEnchants.clear();
                 creatingSetPage = 0;
                 this.clearWidgets();
                 this.init();
-            }).bounds(curX, contentY, pezzoBtnW, 18).build());
-            activeItemIcons.add(new ItemIconData(curX + 2, contentY + 1, getItemStackForType(ITEM_KEYS[creatingSetItemIndex])));
-            curX += pezzoBtnW + 4;
-
-            // [Cerca incantesimo...]
-            int searchFieldW = Math.min(135, panelWidth - (curX - startX) - 150);
-            this.creatingSetSearchField = new EditBox(this.font, curX, contentY, searchFieldW, 18, Component.literal(""));
-            if (currentCreatingSetSearch != null && !currentCreatingSetSearch.isEmpty()) {
-                this.creatingSetSearchField.setValue(currentCreatingSetSearch);
-            }
-            this.creatingSetSearchField.setHint(Component.literal("Cerca..."));
-            this.creatingSetSearchField.setResponder(text -> {
-                currentCreatingSetSearch = text;
-                creatingSetPage = 0;
-                refreshCreatingSetEnchantButtons(contentY + 40, startX, panelWidth);
-            });
-            this.addRenderableWidget(this.creatingSetSearchField);
-
-            // [Salva Set Futuro]
-            String saveLabel = "Salva (" + creatingSetEnchants.size() + "/12)";
-            this.addRenderableWidget(Button.builder(Component.literal(saveLabel), b -> {
-                if (!creatingSetEnchants.isEmpty()) {
-                    String inputName = (creatingSetNameField != null) ? creatingSetNameField.getValue().trim() : currentCreatingSetName.trim();
-                    if (inputName.isEmpty()) {
-                        inputName = "Set " + ITEM_NAMES[creatingSetItemIndex] + " #" + (SavedSetsManager.getSavedSets().size() + 1);
-                    }
-                    if (editingSetId != null) {
-                        SavedSetsManager.updateSet(editingSetId, inputName, ITEM_KEYS[creatingSetItemIndex], creatingSetEnchants);
-                        statusMessage = "§aSet '" + inputName + "' modificato con successo!";
-                        editingSetId = null;
-                    } else {
-                        SavedSetsManager.addSet(inputName, ITEM_KEYS[creatingSetItemIndex], creatingSetEnchants);
-                        statusMessage = "§aSet '" + inputName + "' salvato con successo!";
-                    }
-                    isCreatingSet = false;
-                    currentCreatingSetName = "";
-                    currentCreatingSetSearch = "";
-                    savedSetsPage = 0;
-                    this.clearWidgets();
-                    this.init();
-                } else {
-                    statusMessage = "§eSeleziona almeno un incantesimo per salvare il set!";
-                }
-            }).bounds(startX + panelWidth - 145, contentY, 86, 18).build());
-
-            // [◀ Annulla]
-            this.addRenderableWidget(Button.builder(Component.literal("◀ Annulla"), b -> {
-                isCreatingSet = false;
-                editingSetId = null;
-                currentCreatingSetName = "";
-                currentCreatingSetSearch = "";
-                this.clearWidgets();
-                this.init();
-            }).bounds(startX + panelWidth - 55, contentY, 55, 18).build());
-
-            // Status Banner a Y=71 (contentY + 21), Pulsanti incantesimi partono a Y=90 (contentY + 40)
-            refreshCreatingSetEnchantButtons(contentY + 40, startX, panelWidth);
-            return;
+            }).setTabActive(activeCategory == catIdx);
+            this.addRenderableWidget(bCat);
+            creatingSetEnchantButtons.add(bCat);
+            curCatX += bw + 3;
         }
 
-        // VISTA STANDARD: LISTA DEI SET SALVATI & PRESET
-        // [+ Crea Nuovo Set Futuro]
-        this.addRenderableWidget(Button.builder(Component.literal("+ Crea Nuovo Set Futuro"), b -> {
-            isCreatingSet = true;
-            editingSetId = null;
-            currentCreatingSetName = "";
-            currentCreatingSetSearch = "";
-            creatingSetItemIndex = selectedItemIndex;
-            creatingSetEnchants.clear();
+        // Ricerca ben dimensionata sulla destra della riga 1 - MAI sovrapposta!
+        int searchX = curCatX + 4;
+        int searchW = Math.max(50, (libX + libW) - searchX);
+        this.creatingSetSearchField = new EditBox(this.font, searchX, row1Y, searchW, 18, Component.literal(""));
+        this.creatingSetSearchField.setValue(currentCreatingSetSearch);
+        this.creatingSetSearchField.setHint(Component.literal(LitnessI18n.t("search_hint")));
+        this.creatingSetSearchField.setResponder(text -> {
+            currentCreatingSetSearch = text;
             creatingSetPage = 0;
-            this.clearWidgets();
-            this.init();
-        }).bounds(startX, contentY, 155, 18).build());
+            refreshCreatingSetEnchantButtons(startY + 42, libX, libW);
+        });
+        this.addRenderableWidget(this.creatingSetSearchField);
 
-        // Paginazione
-        List<SavedSetsManager.CustomSet> allSets = SavedSetsManager.getSavedSets();
-        int totalSavedPages = Math.max(1, (int) Math.ceil((double) allSets.size() / 4));
-        if (savedSetsPage >= totalSavedPages) savedSetsPage = totalSavedPages - 1;
-        if (savedSetsPage < 0) savedSetsPage = 0;
-
-        Button prevBtn = Button.builder(Component.literal("◀"), b -> {
-            if (savedSetsPage > 0) {
-                savedSetsPage--;
+        // Riga 2: Pezzi della categoria attiva
+        int row2Y = row1Y + 21;
+        int curPieceX = libX;
+        for (int itemIdx : CATEGORY_ITEM_INDICES[activeCategory]) {
+            final int idx = itemIdx;
+            String piece = LitnessI18n.getItemPieceName(ITEM_KEYS[idx]);
+            int bw = Math.max(34, this.font.width(piece) + 8);
+            SoftwareButton bPiece = new SoftwareButton(curPieceX, row2Y, bw, 17, Component.literal(piece), b -> {
+                creatingSetItemIndex = idx;
+                creatingSetEnchants.clear();
+                creatingSetPage = 0;
                 this.clearWidgets();
                 this.init();
-            }
-        }).bounds(startX + panelWidth - 52, contentY, 24, 18).build();
-        prevBtn.active = savedSetsPage > 0;
-        this.addRenderableWidget(prevBtn);
+            }).setTabActive(creatingSetItemIndex == idx);
+            this.addRenderableWidget(bPiece);
+            creatingSetEnchantButtons.add(bPiece);
+            curPieceX += bw + 3;
+        }
 
-        Button nextBtn = Button.builder(Component.literal("▶"), b -> {
-            int t = Math.max(1, (int) Math.ceil((double) SavedSetsManager.getSavedSets().size() / 4));
-            if (savedSetsPage < t - 1) {
-                savedSetsPage++;
-                this.clearWidgets();
-                this.init();
-            }
-        }).bounds(startX + panelWidth - 26, contentY, 24, 18).build();
-        nextBtn.active = savedSetsPage < totalSavedPages - 1;
-        this.addRenderableWidget(nextBtn);
-
-        refreshSavedSetButtons(contentY + 23, startX, panelWidth);
+        refreshCreatingSetEnchantButtons(row2Y + 21, libX, libW);
     }
 
-    private void refreshCreatingSetEnchantButtons(int startY, int startX, int panelWidth) {
-        for (Button b : creatingSetEnchantButtons) {
+    private void refreshCreatingSetEnchantButtons(int startY, int libX, int libW) {
+        for (Button b : creatingSetLibraryButtons) {
             this.removeWidget(b);
         }
-        creatingSetEnchantButtons.clear();
+        creatingSetLibraryButtons.clear();
         creatingSetButtonDataList.clear();
 
-        String itemKey = ITEM_KEYS[creatingSetItemIndex];
-        ItemEntry targetItem = EnchantmentDatabase.getItem(itemKey);
-        if (targetItem == null) targetItem = EnchantmentDatabase.getItem("sword");
+        currentVisibleSelectionEnchants.clear();
+        String currentKey = ITEM_KEYS[creatingSetItemIndex];
+        ItemEntry currentItem = EnchantmentDatabase.getItem(currentKey);
+        if (currentItem == null) currentItem = EnchantmentDatabase.getItem("sword");
 
-        List<EnchantmentEntry> compList = new ArrayList<>();
         String q = (currentCreatingSetSearch != null) ? currentCreatingSetSearch.trim().toLowerCase() : "";
         for (EnchantmentEntry ee : EnchantmentDatabase.getAllEnchantments()) {
-            if (EnchantmentDatabase.isApplicable(ee, targetItem.id)) {
+            if (currentItem != null && EnchantmentDatabase.isApplicable(ee, currentItem.id)) {
+                String localized = LitnessI18n.getEnchantName(ee);
                 if (!q.isEmpty()) {
                     boolean match = (ee.name != null && ee.name.toLowerCase().contains(q))
-                            || (ee.id != null && ee.id.toLowerCase().contains(q))
-                            || (ee.description != null && ee.description.toLowerCase().contains(q));
+                            || (localized != null && localized.toLowerCase().contains(q))
+                            || (ee.id != null && ee.id.toLowerCase().contains(q));
                     if (!match) continue;
                 }
-                compList.add(ee);
+                currentVisibleSelectionEnchants.add(ee);
             }
         }
 
-        currentVisibleSelectionEnchants.clear();
-        currentVisibleSelectionEnchants.addAll(compList);
+        int pageSize = CREATING_SET_PAGE_SIZE;
+        int totalPages = Math.max(1, (int) Math.ceil((double) currentVisibleSelectionEnchants.size() / pageSize));
+        if (creatingSetPage >= totalPages) creatingSetPage = Math.max(0, totalPages - 1);
 
-        int itemsPerPage = getCreatingSetItemsPerPage();
-        int totalPages = Math.max(1, (int) Math.ceil((double) compList.size() / itemsPerPage));
-        if (creatingSetPage >= totalPages) creatingSetPage = totalPages - 1;
-        if (creatingSetPage < 0) creatingSetPage = 0;
+        int startIdx = creatingSetPage * pageSize;
+        int endIdx = Math.min(currentVisibleSelectionEnchants.size(), startIdx + pageSize);
 
-        int startIdx = creatingSetPage * itemsPerPage;
-        int endIdx = Math.min(startIdx + itemsPerPage, compList.size());
-        int colWidth = (panelWidth - 10) / 2;
+        int cardW = libW;
+        int rowHeight = 26;
 
         for (int i = startIdx; i < endIdx; i++) {
-            EnchantmentEntry ee = compList.get(i);
+            EnchantmentEntry ee = currentVisibleSelectionEnchants.get(i);
             int slot = i - startIdx;
-            int col = slot % 2;
-            int row = slot / 2;
+            int btnX = libX;
+            int btnY = startY + (slot * (rowHeight + 3));
 
-            int btnX = startX + (col * (colWidth + 10));
-            int btnY = startY + (row * 20);
+            creatingSetButtonDataList.add(new CreatingSetButtonData(btnX, btnY, cardW, rowHeight, ee));
 
-            creatingSetButtonDataList.add(new CreatingSetButtonData(btnX, btnY, ee));
-
-            boolean isSelected = creatingSetEnchants.contains(ee.id);
-            String conflict = getConflictWithCollection(ee, creatingSetEnchants);
-            boolean hasConflict = (conflict != null);
-            String baseName = AnvilOptimizer.formatEnchantName(ee.name, ee.maxLevel);
-
-            String pad = "     "; // Spazio per l'icona tematica 16x16
-            String label;
-            if (isSelected) {
-                if (hasConflict) {
-                    label = pad + "§e[!] §a• §c§m" + baseName + "§r §c(" + conflict + ")";
-                } else {
-                    label = pad + "§a• §f" + baseName;
-                }
-            } else {
-                if (hasConflict) {
-                    label = pad + "§e[!] §8[  ] §c§m" + baseName + "§r §8(vs " + conflict + ")";
-                } else {
-                    label = pad + "§8[  ] §7" + baseName;
+            String eeBaseId = LitnessI18n.getBaseId(ee.id);
+            boolean isSelected = false;
+            for (String sId : creatingSetEnchants) {
+                if (sId.equalsIgnoreCase(ee.id)) {
+                    isSelected = true;
+                    break;
                 }
             }
-            label = trimToWidth(label, colWidth - 8);
+            final boolean selected = isSelected;
+            String conflict = selected ? null : getConflictWithCollection(ee, creatingSetEnchants);
+            boolean hasConflict = (conflict != null);
+            String baseName = AnvilOptimizer.formatEnchantName(ee, ee.maxLevel);
+            ItemStack icon = EnchantmentThematicIconHelper.getIcon(ee);
 
-            Button enchBtn = Button.builder(Component.literal(label), b -> {
-                if (this.creatingSetNameField != null) {
-                    currentCreatingSetName = this.creatingSetNameField.getValue();
-                }
-                if (this.creatingSetSearchField != null) {
-                    currentCreatingSetSearch = this.creatingSetSearchField.getValue();
-                }
+            EnchantmentCardWidget card = new EnchantmentCardWidget(btnX, btnY, cardW, rowHeight, ee, false, selected, hasConflict, conflict, baseName, icon, b -> {
                 if (creatingSetEnchants.contains(ee.id)) {
                     creatingSetEnchants.remove(ee.id);
-                    statusMessage = "Rimosso dal set: " + ee.name;
                 } else {
                     if (creatingSetEnchants.size() >= 12) {
-                        statusMessage = "§cLimite massimo di 12 incantesimi raggiunto!";
                         return;
                     }
                     List<String> toRemove = new ArrayList<>();
@@ -969,126 +1189,182 @@ public class LitnessOptimizerScreen extends Screen {
                     }
                     if (!toRemove.isEmpty()) {
                         creatingSetEnchants.removeAll(toRemove);
-                        statusMessage = "§eSostituito con: " + baseName;
-                    } else {
-                        statusMessage = "Aggiunto al set futuro: " + baseName;
                     }
+                    // Se si seleziona un livello diverso dello stesso incantesimo (es. Efficienza VI -> Efficienza V), sostituisce il livello esistente
+                    creatingSetEnchants.removeIf(sId -> LitnessI18n.getBaseId(sId).equalsIgnoreCase(eeBaseId));
                     creatingSetEnchants.add(ee.id);
                 }
                 this.clearWidgets();
                 this.init();
-            }).bounds(btnX, btnY, colWidth, 19).build();
+            });
 
-            this.addRenderableWidget(enchBtn);
-            creatingSetEnchantButtons.add(enchBtn);
+            this.addRenderableWidget(card);
+            creatingSetLibraryButtons.add(card);
         }
 
-        int navY = this.height - 22;
-        Button prev = Button.builder(Component.literal("◀ Precedenti"), b -> {
-            if (this.creatingSetNameField != null) {
-                currentCreatingSetName = this.creatingSetNameField.getValue();
-            }
-            if (this.creatingSetSearchField != null) {
-                currentCreatingSetSearch = this.creatingSetSearchField.getValue();
-            }
+        // Tasti Pagina Libreria
+        int navY = getWinY() + getWinH() - 24;
+        SoftwareButton prev = new SoftwareButton(libX, navY, 52, 20, Component.literal("\u25C0 Prec"), b -> {
             if (creatingSetPage > 0) {
                 creatingSetPage--;
                 this.clearWidgets();
                 this.init();
             }
-        }).bounds(startX, navY, 110, 18).build();
-        prev.active = creatingSetPage > 0;
+        });
+        prev.active = (creatingSetPage > 0);
         this.addRenderableWidget(prev);
-        creatingSetEnchantButtons.add(prev);
+        creatingSetLibraryButtons.add(prev);
 
-        Button next = Button.builder(Component.literal("Successivi ▶"), b -> {
-            if (this.creatingSetNameField != null) {
-                currentCreatingSetName = this.creatingSetNameField.getValue();
-            }
-            if (this.creatingSetSearchField != null) {
-                currentCreatingSetSearch = this.creatingSetSearchField.getValue();
-            }
+        SoftwareButton next = new SoftwareButton(libX + libW - 52, navY, 52, 20, Component.literal("Succ \u25B6"), b -> {
             if (creatingSetPage < totalPages - 1) {
                 creatingSetPage++;
                 this.clearWidgets();
                 this.init();
             }
-        }).bounds(startX + panelWidth - 110, navY, 110, 18).build();
-        next.active = creatingSetPage < totalPages - 1;
+        });
+        next.active = (creatingSetPage < totalPages - 1);
         this.addRenderableWidget(next);
-        creatingSetEnchantButtons.add(next);
+        creatingSetLibraryButtons.add(next);
     }
 
-    private void refreshSavedSetButtons(int startY, int startX, int panelWidth) {
-        for (Button b : savedSetButtons) {
-            this.removeWidget(b);
-        }
-        savedSetButtons.clear();
+    // -------------------------------------------------------------
+    // CALCOLATORE & GUIDA WIDGETS
+    // -------------------------------------------------------------
+    private void initGuideViewWidgets(int startX, int startY, int panelWidth, int panelHeight) {
+        // Tasti Modalità (Simulatore vs Inventario)
+        SoftwareButton btnSim = new SoftwareButton(startX, startY, 90, 20, Component.literal("Simulatore"), b -> {
+            calcMode = CalcMode.SIMULATOR;
+            runCalculation();
+            this.clearWidgets();
+            this.init();
+        }).setTabActive(calcMode == CalcMode.SIMULATOR);
+        this.addRenderableWidget(btnSim);
 
-        List<SavedSetsManager.CustomSet> sets = SavedSetsManager.getSavedSets();
-        if (sets.isEmpty()) {
-            return;
-        }
+        SoftwareButton btnInv = new SoftwareButton(startX + 94, startY, 90, 20, Component.literal(LitnessI18n.t("in_inventory")), b -> {
+            calcMode = CalcMode.INVENTORY;
+            runCalculation();
+            this.clearWidgets();
+            this.init();
+        }).setTabActive(calcMode == CalcMode.INVENTORY);
+        this.addRenderableWidget(btnInv);
 
-        int startIdx = savedSetsPage * 4;
-        int endIdx = Math.min(startIdx + 4, sets.size());
-        int cardH = 44;
-        int gap = 4;
+        // Selettore Pezzo
+        String piece = LitnessI18n.getItemPieceName(ITEM_KEYS[selectedItemIndex]);
+        SoftwareButton btnItem = new SoftwareButton(startX + 192, startY, 90, 20, Component.literal(piece), b -> {
+            selectedItemIndex = (selectedItemIndex + 1) % ITEM_KEYS.length;
+            simulatorSelectedEnchants.clear();
+            runCalculation();
+            this.clearWidgets();
+            this.init();
+        });
+        this.addRenderableWidget(btnItem);
 
-        for (int i = startIdx; i < endIdx; i++) {
-            SavedSetsManager.CustomSet set = sets.get(i);
-            int row = i - startIdx;
-            int y = startY + row * (cardH + gap);
+        // Selettore Penalità
+        String penText = selectedPenaltyIndex == 0 ? LitnessI18n.t("penalty_zero") : LitnessI18n.t("penalty_plus") + PENALTY_STEPS[selectedPenaltyIndex] + LitnessI18n.t("levels");
+        SoftwareButton btnPen = new SoftwareButton(startX + 286, startY, 96, 20, Component.literal(penText), b -> {
+            selectedPenaltyIndex = (selectedPenaltyIndex + 1) % PENALTY_STEPS.length;
+            runCalculation();
+            this.clearWidgets();
+            this.init();
+        });
+        this.addRenderableWidget(btnPen);
 
-            // [Guida]
-            Button loadBtn = Button.builder(Component.literal("Guida"), b -> {
-                loadSavedSetIntoSimulator(set);
-            }).bounds(startX + panelWidth - 176, y + 13, 56, 18).build();
-            this.addRenderableWidget(loadBtn);
-            savedSetButtons.add(loadBtn);
+        // Tasto Copia Guida
+        SoftwareButton btnCopy = new SoftwareButton(startX + panelWidth - 95, startY, 95, 20, Component.literal(LitnessI18n.t("copy_guide_btn")), b -> copyGuideToClipboard()).setPrimary(true);
+        btnCopy.active = (currentSolution != null && !currentSolution.steps.isEmpty());
+        this.addRenderableWidget(btnCopy);
 
-            // [Pin HUD] / [Pinnato]
-            boolean isPinned = ActiveSessionManager.isSetPinned(set.id);
-            Button pinBtn = Button.builder(Component.literal(isPinned ? "§6Pinnato" : "Pin HUD"), b -> {
-                ActiveSessionManager.togglePinSet(set.id);
-                this.clearWidgets();
-                this.init();
-            }).bounds(startX + panelWidth - 116, y + 13, 60, 18).build();
-            this.addRenderableWidget(pinBtn);
-            savedSetButtons.add(pinBtn);
+        // Pulsanti paginazione / scorrimento passi forgia
+        int navY = getWinY() + getWinH() - 21;
+        btnCalcPrev = new SoftwareButton(startX + 6, navY, 65, 18, Component.literal("◀ Prec"), b -> {
+            if (calculatorScrollOffset > 0) {
+                calculatorScrollOffset = Math.max(0, calculatorScrollOffset - CALCULATOR_PAGE_SIZE);
+            }
+        });
+        btnCalcPrev.active = (calculatorScrollOffset > 0);
+        this.addRenderableWidget(btnCalcPrev);
 
-            // [Modifica Set]
-            Button editBtn = Button.builder(Component.literal("Mod"), b -> {
-                isCreatingSet = true;
-                editingSetId = set.id;
-                currentCreatingSetName = set.name;
-                for (int k = 0; k < ITEM_KEYS.length; k++) {
-                    if (ITEM_KEYS[k].equalsIgnoreCase(set.itemKey)) {
-                        creatingSetItemIndex = k;
-                        selectedItemIndex = k;
-                        break;
-                    }
+        btnCalcNext = new SoftwareButton(startX + panelWidth - 71, navY, 65, 18, Component.literal("Succ ▶"), b -> {
+            if (currentSolution != null) {
+                int maxScroll = Math.max(0, currentSolution.steps.size() - CALCULATOR_PAGE_SIZE);
+                if (calculatorScrollOffset < maxScroll) {
+                    calculatorScrollOffset = Math.min(maxScroll, calculatorScrollOffset + CALCULATOR_PAGE_SIZE);
                 }
-                creatingSetEnchants.clear();
-                creatingSetEnchants.addAll(set.enchantments);
-                creatingSetPage = 0;
-                statusMessage = "§eModifica del set '" + set.name + "' in corso...";
-                this.clearWidgets();
-                this.init();
-            }).bounds(startX + panelWidth - 52, y + 13, 24, 18).build();
-            this.addRenderableWidget(editBtn);
-            savedSetButtons.add(editBtn);
-
-            // [Elimina]
-            Button delBtn = Button.builder(Component.literal("X"), b -> {
-                SavedSetsManager.deleteSet(set.id);
-                statusMessage = "§cSet '" + set.name + "' eliminato.";
-                this.clearWidgets();
-                this.init();
-            }).bounds(startX + panelWidth - 26, y + 13, 24, 18).build();
-            this.addRenderableWidget(delBtn);
-            savedSetButtons.add(delBtn);
+            }
+        });
+        btnCalcNext.active = false;
+        if (currentSolution != null) {
+            int maxScroll = Math.max(0, currentSolution.steps.size() - CALCULATOR_PAGE_SIZE);
+            btnCalcNext.active = (calculatorScrollOffset < maxScroll);
         }
+        this.addRenderableWidget(btnCalcNext);
+
+        String inputKey = calcMode + "|" + selectedItemIndex + "|" + selectedPenaltyIndex + "|" + String.join(",", simulatorSelectedEnchants);
+        if (!inputKey.equals(lastCalculatedKey) && !isCalculating) {
+            runCalculation();
+        }
+    }
+
+    private void copyGuideToClipboard() {
+        if (currentSolution == null || currentSolution.steps.isEmpty()) return;
+        StringBuilder sb = new StringBuilder();
+        String piece = LitnessI18n.getItemPieceName(ITEM_KEYS[selectedItemIndex]);
+        sb.append("=== GUIDA INCUDINE LITNESS: ").append(piece.toUpperCase()).append(" ===\n");
+        int stepNum = 1;
+        for (MergeStep step : currentSolution.steps) {
+            sb.append(LitnessI18n.t("step_prefix")).append(stepNum++).append(": ");
+            if (step.isBookToBook) {
+                sb.append("[Slot 1: ").append(step.leftLabel).append("] + [Slot 2: ").append(step.rightLabel).append("]");
+            } else {
+                sb.append("[").append(step.leftLabel).append("] + [Libro: ").append(step.rightLabel).append("]");
+            }
+            sb.append(" -> ").append(step.cost).append(" liv. XP\n");
+        }
+        sb.append(LitnessI18n.t("total_cost")).append(": ").append(currentSolution.totalCost).append(" liv. XP | ")
+          .append(LitnessI18n.t("peak_cost")).append(": ").append(currentSolution.peakCost).append("/39 liv. XP");
+
+        Minecraft.getInstance().keyboardHandler.setClipboard(sb.toString());
+        statusMessage = "\u00A7a" + LitnessI18n.t("btn_copy") + " \u2713";
+    }
+
+    private String getConflictWithCollection(EnchantmentEntry ee, Collection<String> selectedIds) {
+        if (ee == null || selectedIds == null || selectedIds.isEmpty()) return null;
+        String eeBaseName = LitnessI18n.getBaseEnchantName(ee);
+        String eeBaseId = LitnessI18n.getBaseId(ee.id);
+        List<String> conflicts = EnchantmentDatabase.getResolvedConflicts(ee.id);
+
+        for (String selId : selectedIds) {
+            if (selId.equalsIgnoreCase(ee.id)) continue;
+            EnchantmentEntry selEe = EnchantmentDatabase.getEnchantment(selId);
+            if (selEe == null) continue;
+
+            String selBaseName = LitnessI18n.getBaseEnchantName(selEe);
+            String selBaseId = LitnessI18n.getBaseId(selEe.id);
+
+            // Se e' lo stesso incantesimo o la stessa base, non e' un conflitto con un altro incantesimo
+            if (selBaseId.equalsIgnoreCase(eeBaseId) || selBaseName.equalsIgnoreCase(eeBaseName)) {
+                continue;
+            }
+
+            // Due incantesimi UNICI non possono mai coesistere sullo stesso pezzo (es. Dynamite & Xray)
+            if (ee.unique && selEe.unique) {
+                return selBaseName;
+            }
+
+            for (String c : conflicts) {
+                if (c.equalsIgnoreCase(selBaseName) || c.equalsIgnoreCase(selEe.name) || c.equalsIgnoreCase(selBaseId) || c.equalsIgnoreCase(selId)) {
+                    return selBaseName;
+                }
+            }
+
+            List<String> selConflicts = EnchantmentDatabase.getResolvedConflicts(selId);
+            for (String sc : selConflicts) {
+                if (sc.equalsIgnoreCase(eeBaseName) || sc.equalsIgnoreCase(ee.name) || sc.equalsIgnoreCase(eeBaseId) || sc.equalsIgnoreCase(ee.id)) {
+                    return selBaseName;
+                }
+            }
+        }
+        return null;
     }
 
     private void loadSavedSetIntoSimulator(SavedSetsManager.CustomSet set) {
@@ -1096,379 +1372,55 @@ public class LitnessOptimizerScreen extends Screen {
         for (int i = 0; i < ITEM_KEYS.length; i++) {
             if (ITEM_KEYS[i].equalsIgnoreCase(set.itemKey)) {
                 selectedItemIndex = i;
-                ActiveSessionManager.setActiveItemIndex(i);
                 break;
             }
         }
         simulatorSelectedEnchants.clear();
         simulatorSelectedEnchants.addAll(set.enchantments);
-        ActiveSessionManager.setSelectedEnchants(set.itemKey, set.enchantments);
-        ActiveSessionManager.setActiveSetId(set.id);
-        this.calcMode = CalcMode.SIMULATOR;
-        guideStepPage = 0;
-        statusMessage = "§aCaricato set '" + set.name + "' (" + set.enchantments.size() + "/12)!";
-        simView = SimView.GUIDE;
+        calcMode = CalcMode.SIMULATOR;
         runCalculation();
+        statusMessage = "\u00A7aCaricato set '" + set.name + "' (" + set.enchantments.size() + "/12)!";
+        currentTab = Tab.CALCULATOR;
         this.clearWidgets();
         this.init();
     }
 
-    private void renderSavedSetsView(GuiGraphicsExtractor extractor, int panelX, int panelWidth, int mouseX, int mouseY) {
-        int startY = 73;
-
-        if (isCreatingSet) {
-            int bannerY = 71;
-            String conflictWarn = "";
-            for (String enchId : creatingSetEnchants) {
-                EnchantmentEntry ee = EnchantmentDatabase.getEnchantment(enchId);
-                String conf = getConflictWithCollection(ee, creatingSetEnchants);
-                if (conf != null) {
-                    conflictWarn = " • §e[!] Conflitto: " + (ee != null ? ee.name : enchId) + " vs " + conf;
-                    break;
-                }
-            }
-
-            int cornerW = 150;
-            int cornerH = 18;
-            int cornerX = panelX + panelWidth - cornerW;
-            int cornerY = bannerY - 1;
-
-            int bannerW = panelWidth - cornerW - 4;
-            int bannerBg = conflictWarn.isEmpty() ? 0xEE141422 : 0xEE2A1A14;
-            int bannerStripe = conflictWarn.isEmpty() ? 0xFF10B981 : 0xFFF59E0B;
-            extractor.fill(panelX, bannerY, panelX + bannerW, bannerY + 16, bannerBg);
-            extractor.fill(panelX, bannerY, panelX + 3, bannerY + 16, bannerStripe);
-            extractor.outline(panelX, bannerY, bannerW, 16, conflictWarn.isEmpty() ? 0xFF2A2A3E : 0xFF7C2D12);
-
-            String titlePrefix = editingSetId != null ? "Modifica" : "Crea";
-            String status = titlePrefix + " Set " + ITEM_NAMES[creatingSetItemIndex] + " (" + creatingSetEnchants.size() + "/12)" + conflictWarn;
-            extractor.text(this.font, status, panelX + 8, bannerY + 4, conflictWarn.isEmpty() ? 0xFF34D399 : 0xFFFBBF24, false);
-
-            // Box Anteprima Oggetto in alto a destra nell'angolo (mostra gli incanti messi senza rubare spazio)
-            boolean isCornerHovered = mouseX >= cornerX && mouseX <= cornerX + cornerW && mouseY >= cornerY && mouseY <= cornerY + cornerH;
-            extractor.fill(cornerX, cornerY, cornerX + cornerW, cornerY + cornerH, isCornerHovered ? 0xEE272B3F : 0xEE161A28);
-            extractor.outline(cornerX, cornerY, cornerW, cornerH, isCornerHovered ? 0xFF818CF8 : 0xFF4F46E5);
-            extractor.fakeItem(getItemStackForType(ITEM_KEYS[creatingSetItemIndex]), cornerX + 2, cornerY + 1);
-            extractor.text(this.font, ITEM_NAMES[creatingSetItemIndex] + " (" + creatingSetEnchants.size() + "/12)", cornerX + 22, cornerY + 5, 0xFFFDE047, false);
-
-            if (isCornerHovered) {
-                this.hoveredCreatingCornerItem = true;
-            }
-
-            this.hoveredSelectionEntry = null;
-            int itemsPerPage = getCreatingSetItemsPerPage();
-            int startIdx = creatingSetPage * itemsPerPage;
-            int endIdx = Math.min(startIdx + itemsPerPage, currentVisibleSelectionEnchants.size());
-
-            // Controlla il passaggio del mouse direttamente sui pulsanti reali (zero falsi positivi nel vuoto)
-            for (int i = startIdx; i < endIdx; i++) {
-                int slot = i - startIdx;
-                if (slot < creatingSetEnchantButtons.size()) {
-                    Button b = creatingSetEnchantButtons.get(slot);
-                    if (b != null && b.isHovered()) {
-                        this.hoveredSelectionEntry = currentVisibleSelectionEnchants.get(i);
-                        break;
-                    }
-                }
-            }
-            return;
-        }
-
-        List<SavedSetsManager.CustomSet> sets = SavedSetsManager.getSavedSets();
-
-        if (sets.isEmpty()) {
-            int emptyH = 50;
-            extractor.fill(panelX, startY, panelX + panelWidth, startY + emptyH, 0xEE141422);
-            extractor.outline(panelX, startY, panelWidth, emptyH, 0xFF2A2A3E);
-            extractor.centeredText(this.font, "§7Nessun set salvato.", panelX + panelWidth / 2, startY + 12, 0xFFA1A1AA);
-            extractor.centeredText(this.font, "§aClicca su 'Crea Nuovo Set Futuro' in alto a sinistra per creare il tuo set!", panelX + panelWidth / 2, startY + 28, 0xFF34D399);
-            return;
-        }
-
-        int startIdx = savedSetsPage * 4;
-        int endIdx = Math.min(startIdx + 4, sets.size());
-        int cardH = 44;
-        int gap = 4;
-
-        for (int i = startIdx; i < endIdx; i++) {
-            SavedSetsManager.CustomSet set = sets.get(i);
-            int row = i - startIdx;
-            int y = startY + row * (cardH + gap);
-
-            int inInv = InventoryTracker.countInInventory(set.enchantments);
-
-            String conflictFound = null;
-            for (String enchId : set.enchantments) {
-                EnchantmentEntry ee = EnchantmentDatabase.getEnchantment(enchId);
-                String conf = getConflictWithCollection(ee, set.enchantments);
-                if (conf != null) {
-                    conflictFound = (ee != null ? ee.name : enchId) + " vs " + conf;
-                    break;
-                }
-            }
-
-            boolean isPinned = ActiveSessionManager.isSetPinned(set.id);
-            int stripeColor = (conflictFound != null) ? 0xFFEF4444 : (isPinned ? 0xFFF59E0B : 0xFF6366F1);
-            int cardBg = isPinned ? 0xEE161528 : 0xEE12121E;
-            int cardOutline = (conflictFound != null) ? 0xFF7F1D1D : (isPinned ? 0xFFB45309 : 0xFF2A2A3E);
-            extractor.fill(panelX, y, panelX + panelWidth, y + cardH, cardBg);
-            extractor.fill(panelX, y, panelX + 3, y + cardH, stripeColor);
-            extractor.outline(panelX, y, panelWidth, cardH, cardOutline);
-
-            extractor.fakeItem(getItemStackForType(set.itemKey), panelX + 8, y + 14);
-
-            String warnIcon = (conflictFound != null) ? " §e[!]" : "";
-            String pinPrefix = isPinned ? "§6* " : "";
-            String title = pinPrefix + "§f" + set.name + " §8[" + capitalize(set.itemKey) + " • " + set.enchantments.size() + "/12]" + warnIcon;
-            extractor.text(this.font, title, panelX + 32, y + 6, (conflictFound != null) ? 0xFFFBBF24 : 0xFFFFFFFF, false);
-
-            String inInvTxt = (inInv == set.enchantments.size() && set.enchantments.size() > 0)
-                    ? "§a" + inInv + "/" + set.enchantments.size() + " In Inventario"
-                    : "§e" + inInv + "/" + set.enchantments.size() + " In Inventario";
-            if (conflictFound != null) {
-                inInvTxt += "  §e[!] (Conflitto: " + conflictFound + ")";
-            }
-            extractor.text(this.font, inInvTxt, panelX + 32, y + 18, (conflictFound != null) ? 0xFFFBBF24 : 0xFFA1A1AA, false);
-
-            List<String> names = new ArrayList<>();
-            for (String enchId : set.enchantments) {
-                EnchantmentEntry ee = EnchantmentDatabase.getEnchantment(enchId);
-                names.add(ee != null ? ee.name : enchId);
-            }
-            String preview = trimToWidth("§8" + String.join(", ", names), panelWidth - 215);
-            extractor.text(this.font, preview, panelX + 32, y + 30, 0xFF71717A, false);
-        }
-    }
-
-    private String capitalize(String str) {
-        if (str == null || str.isEmpty()) return "";
-        return Character.toUpperCase(str.charAt(0)) + str.substring(1);
-    }
-
-    private void applyDefaultRecommendedEnchants() {
-        simulatorSelectedEnchants.clear();
-        String itemKey = ITEM_KEYS[selectedItemIndex];
-        ItemEntry targetItem = EnchantmentDatabase.getItem(itemKey);
-        String targetId = targetItem != null ? targetItem.id : itemKey;
-
-        int added = 0;
-        for (EnchantmentEntry ee : EnchantmentDatabase.getAllEnchantments()) {
-            if (EnchantmentDatabase.isApplicable(ee, targetId)) {
-                simulatorSelectedEnchants.add(ee.id);
-                added++;
-                if (added >= 5) break;
-            }
-        }
-    }
-
-    private boolean matchesItemFilter(EnchantmentEntry ee) {
-        if ("ALL".equals(itemFilter)) return true;
-        if (ee == null) return false;
-
-        switch (itemFilter) {
-            case "sword":
-                return EnchantmentDatabase.isApplicable(ee, "sword");
-            case "pick":
-                return EnchantmentDatabase.isApplicable(ee, "pick");
-            case "armor":
-                return EnchantmentDatabase.isApplicable(ee, "helmet")
-                    || EnchantmentDatabase.isApplicable(ee, "chest")
-                    || EnchantmentDatabase.isApplicable(ee, "legs")
-                    || EnchantmentDatabase.isApplicable(ee, "boots");
-            case "bow":
-                return EnchantmentDatabase.isApplicable(ee, "bow")
-                    || (ee.applicableTo != null && (ee.applicableTo.contains("bow") || ee.applicableTo.contains("xbow") || ee.applicableTo.contains("crossbow")));
-            case "axe":
-                return EnchantmentDatabase.isApplicable(ee, "axe");
-            case "hoe":
-                return EnchantmentDatabase.isApplicable(ee, "hoe");
-            case "other":
-                boolean isMain = EnchantmentDatabase.isApplicable(ee, "sword")
-                    || EnchantmentDatabase.isApplicable(ee, "pick")
-                    || EnchantmentDatabase.isApplicable(ee, "helmet")
-                    || EnchantmentDatabase.isApplicable(ee, "chest")
-                    || EnchantmentDatabase.isApplicable(ee, "legs")
-                    || EnchantmentDatabase.isApplicable(ee, "boots")
-                    || EnchantmentDatabase.isApplicable(ee, "bow")
-                    || (ee.applicableTo != null && (ee.applicableTo.contains("bow") || ee.applicableTo.contains("xbow") || ee.applicableTo.contains("crossbow")))
-                    || EnchantmentDatabase.isApplicable(ee, "axe")
-                    || EnchantmentDatabase.isApplicable(ee, "hoe");
-                return !isMain;
-            default:
-                return true;
-        }
-    }
-
     private void updateSearch() {
         filteredEnchantments.clear();
-        String query = searchField != null ? searchField.getValue().toLowerCase().trim() : "";
+        String q = (this.searchField != null) ? this.searchField.getValue().trim().toLowerCase() : "";
 
         for (EnchantmentEntry ee : EnchantmentDatabase.getAllEnchantments()) {
-            if ("VANILLA".equals(categoryFilter) && !"vanilla".equalsIgnoreCase(ee.category)) continue;
-            if ("VANILLA_PLUS".equals(categoryFilter) && !"vanilla_plus".equalsIgnoreCase(ee.category)) continue;
-            if ("CUSTOM".equals(categoryFilter) && !"custom".equalsIgnoreCase(ee.category)) continue;
-            if (!matchesItemFilter(ee)) continue;
-
-            if (query.isEmpty()
-                    || ee.name.toLowerCase().contains(query)
-                    || ee.id.toLowerCase().contains(query)
-                    || (ee.description != null && ee.description.toLowerCase().contains(query))) {
-                filteredEnchantments.add(ee);
-            }
-        }
-    }
-
-    private void scanFromGameEnvironment() {
-        currentScannedBooks.clear();
-        if (this.minecraft == null || this.minecraft.player == null) return;
-
-        Set<ItemStack> scannedStacks = new HashSet<>();
-
-        // Se siamo dentro un'incudine reale, prendiamo gli slot dell'incudine
-        if (this.anvilMenu != null) {
-            for (int i = 0; i < 3; i++) {
-                ItemStack slotStack = this.anvilMenu.getSlot(i).getItem();
-                if (!slotStack.isEmpty() && scannedStacks.add(slotStack)) {
-                    processItemStackForBooks(slotStack);
-                }
-            }
-        }
-
-        // Inventario del giocatore (tutti gli slot dell'inventario)
-        var inv = this.minecraft.player.getInventory();
-        for (int i = 0; i < inv.getContainerSize(); i++) {
-            ItemStack stack = inv.getItem(i);
-            if (!stack.isEmpty() && scannedStacks.add(stack)) {
-                processItemStackForBooks(stack);
-            }
-        }
-    }
-
-    private void processItemStackForBooks(ItemStack stack) {
-        if (!stack.is(Items.ENCHANTED_BOOK) && !stack.is(Items.BOOK)) return;
-
-        int repairPenalty = stack.getOrDefault(DataComponents.REPAIR_COST, 0);
-        int priorWork = 0;
-        for (int p = 0; p < PENALTY_STEPS.length; p++) {
-            if (PENALTY_STEPS[p] == repairPenalty) {
-                priorWork = p;
-                break;
-            }
-        }
-
-        BookInput book = new BookInput(priorWork);
-        book.enchantments = extractAllEnchantmentsFromItem(stack);
-
-        int loreCost = InventoryTracker.extractAnvilCostFromLore(stack);
-        book.explicitCost = loreCost;
-        if (loreCost > 0) {
-            for (EnchantApplied ea : book.enchantments) {
-                EnchantmentDatabase.updateAnvilCost(ea.id, loreCost);
-            }
-        }
-
-        if (!book.enchantments.isEmpty()) {
-            currentScannedBooks.add(book);
-        }
-    }
-
-    private void runCalculation() {
-        String itemKey = ITEM_KEYS[selectedItemIndex];
-        ItemEntry targetItem = EnchantmentDatabase.getItem(itemKey);
-        if (targetItem == null) targetItem = EnchantmentDatabase.getItem("sword");
-
-        int priorPenaltyWork = selectedPenaltyIndex;
-        List<BookInput> books = new ArrayList<>();
-
-        if (calcMode == CalcMode.SIMULATOR) {
-            for (String enchId : simulatorSelectedEnchants) {
-                EnchantmentEntry ee = EnchantmentDatabase.getEnchantment(enchId);
-                if (ee != null) {
-                    BookInput b = new BookInput(0);
-                    b.enchantments.add(new EnchantApplied(ee.id, ee.maxLevel));
-                    books.add(b);
-                }
-            }
-            int uniqueCount = getSelectedUniqueCount();
-            String uniqueText = uniqueCount > 0 ? " • §d" + uniqueCount + "/1 Unico" : "";
-            String countColor = books.size() > 12 ? "§c" : (books.size() == 12 ? "§a" : "§f");
-            statusMessage = "Simulazione " + targetItem.name + ": " + countColor + books.size() + "/12 incantesimi§r" + uniqueText;
-        } else {
-            List<EnchantApplied> existingEnchantsOnSlot0 = new ArrayList<>();
-            if (this.anvilMenu != null) {
-                ItemStack slot0 = this.anvilMenu.getSlot(0).getItem();
-                if (!slot0.isEmpty()) {
-                    existingEnchantsOnSlot0 = extractAllEnchantmentsFromItem(slot0);
-                }
+            if (!"ALL".equalsIgnoreCase(categoryFilter)) {
+                if ("VANILLA".equalsIgnoreCase(categoryFilter) && !"vanilla".equalsIgnoreCase(ee.category)) continue;
+                if ("VANILLA_PLUS".equalsIgnoreCase(categoryFilter) && !"vanilla_plus".equalsIgnoreCase(ee.category)) continue;
+                if ("CUSTOM".equalsIgnoreCase(categoryFilter) && !"custom".equalsIgnoreCase(ee.category)) continue;
             }
 
-            Set<String> plannedEnchants = ActiveSessionManager.getSelectedEnchants(targetItem.id);
-
-            for (BookInput bi : currentScannedBooks) {
-                BookInput filtered = new BookInput(bi.works);
-                filtered.explicitCost = bi.explicitCost;
-                for (EnchantApplied ea : bi.enchantments) {
-                    EnchantmentEntry ee = EnchantmentDatabase.getEnchantment(ea.id);
-                    if (ee != null && EnchantmentDatabase.isApplicable(ee, targetItem.id)) {
-                        if (plannedEnchants != null && !plannedEnchants.isEmpty()) {
-                            boolean isPartOfPlan = false;
-                            for (String pid : plannedEnchants) {
-                                if (pid.equalsIgnoreCase(ee.id) || pid.equalsIgnoreCase(ee.name)) {
-                                    isPartOfPlan = true;
-                                    break;
-                                }
-                            }
-                            if (!isPartOfPlan) continue;
-                        }
-
-                        boolean alreadyPresent = false;
-                        boolean conflictsWithItem = false;
-                        List<String> confs = EnchantmentDatabase.getResolvedConflicts(ee.id);
-                        for (EnchantApplied exist : existingEnchantsOnSlot0) {
-                            if (exist.id.equalsIgnoreCase(ea.id) && exist.level >= ea.level) {
-                                alreadyPresent = true;
-                                break;
-                            }
-                            EnchantmentEntry eeExist = EnchantmentDatabase.getEnchantment(exist.id);
-                            String existName = eeExist != null ? eeExist.name : exist.id;
-                            if (confs.contains(existName) || confs.contains(exist.id)) {
-                                conflictsWithItem = true;
-                                break;
-                            }
-                        }
-                        if (!alreadyPresent && !conflictsWithItem) {
-                            filtered.enchantments.add(ea);
+            if (!"ALL".equalsIgnoreCase(itemFilter)) {
+                if (itemFilter.startsWith("cat_")) {
+                    int catIdx = Integer.parseInt(itemFilter.substring(4));
+                    boolean matchesCat = false;
+                    for (int idx : CATEGORY_ITEM_INDICES[catIdx]) {
+                        ItemEntry ie = EnchantmentDatabase.getItem(ITEM_KEYS[idx]);
+                        if (ie != null && EnchantmentDatabase.isApplicable(ee, ie.id)) {
+                            matchesCat = true;
+                            break;
                         }
                     }
-                }
-                if (!filtered.enchantments.isEmpty()) {
-                    books.add(filtered);
+                    if (!matchesCat) continue;
                 }
             }
 
-            if (books.isEmpty()) {
-                statusMessage = "§cNessun libro compatibile trovato nell'inventario per " + targetItem.name;
-            } else {
-                statusMessage = "Rilevati " + books.size() + " libri compatibili nell'inventario per " + targetItem.name;
+            if (!q.isEmpty()) {
+                String localized = LitnessI18n.getEnchantName(ee);
+                boolean match = (ee.name != null && ee.name.toLowerCase().contains(q))
+                        || (localized != null && localized.toLowerCase().contains(q))
+                        || (ee.id != null && ee.id.toLowerCase().contains(q))
+                        || (ee.description != null && ee.description.toLowerCase().contains(q));
+                if (!match) continue;
             }
-        }
 
-        currentSolution = AnvilOptimizer.optimize(books, priorPenaltyWork, targetItem, Collections.emptyList());
-
-        if (currentSolution != null && currentSolution.peakCost > 39) {
-            int penaltyVal = PENALTY_STEPS[selectedPenaltyIndex];
-            statusMessage = "§c[!] Troppo Costoso (" + currentSolution.peakCost + "/39 liv.)! Con penalità +" + penaltyVal + " riduci gli incanti selezionati.";
-        } else if (this.anvilMenu != null) {
-            ItemStack slot0 = this.anvilMenu.getSlot(0).getItem();
-            if (!slot0.isEmpty()) {
-                com.litness.optimizer.calculator.MaxabilityAnalyzer.MaxabilityResult maxability =
-                        com.litness.optimizer.calculator.MaxabilityAnalyzer.analyze(slot0, extractAllEnchantmentsFromItem(slot0));
-                if (maxability.status == com.litness.optimizer.calculator.MaxabilityAnalyzer.Status.PARTIALLY_MAXABLE) {
-                    statusMessage = "§e[!] Penalità attuale (+" + maxability.currentPenalty + "): puoi aggiungere ancora fino a " + maxability.maxAddable + " incanti prima del blocco!";
-                } else if (maxability.status == com.litness.optimizer.calculator.MaxabilityAnalyzer.Status.SATURATED) {
-                    statusMessage = "§c[!] Oggetto saturo (+" + maxability.currentPenalty + "): qualsiasi ulteriore incanto risulterà 'Troppo Costoso!'";
-                }
-            }
+            filteredEnchantments.add(ee);
         }
     }
 
@@ -1483,13 +1435,9 @@ public class LitnessOptimizerScreen extends Screen {
             String rawId = entry.getKey().unwrapKey().map(k -> k.identifier().getPath()).orElse("");
             int lvl = entry.getIntValue();
             String vPlusId = EnchantmentDatabase.resolveVanillaPlusId(rawId, lvl);
-            String id;
-            if (vPlusId != null) {
-                id = vPlusId;
-            } else {
-                EnchantmentEntry ee = EnchantmentDatabase.getEnchantment(rawId);
-                id = ee != null ? ee.id : rawId;
-            }
+            String id = (vPlusId != null) ? vPlusId : rawId;
+            EnchantmentEntry ee = EnchantmentDatabase.getEnchantment(id);
+            if (ee != null) id = ee.id;
             if (!id.isEmpty() && seen.add(id)) {
                 list.add(new EnchantApplied(id, lvl));
             }
@@ -1500,832 +1448,823 @@ public class LitnessOptimizerScreen extends Screen {
             String rawId = entry.getKey().unwrapKey().map(k -> k.identifier().getPath()).orElse("");
             int lvl = entry.getIntValue();
             String vPlusId = EnchantmentDatabase.resolveVanillaPlusId(rawId, lvl);
-            String id;
-            if (vPlusId != null) {
-                id = vPlusId;
-            } else {
-                EnchantmentEntry ee = EnchantmentDatabase.getEnchantment(rawId);
-                id = ee != null ? ee.id : rawId;
-            }
+            String id = (vPlusId != null) ? vPlusId : rawId;
+            EnchantmentEntry ee = EnchantmentDatabase.getEnchantment(id);
+            if (ee != null) id = ee.id;
             if (!id.isEmpty() && seen.add(id)) {
                 list.add(new EnchantApplied(id, lvl));
             }
         }
 
-        ItemLore lore = stack.getOrDefault(DataComponents.LORE, ItemLore.EMPTY);
-        for (Component comp : lore.lines()) {
-            LitnessTooltipHandler.MatchedEnchantment match = LitnessTooltipHandler.matchEnchantment(comp.getString());
-            if (match != null && match.entry != null && seen.add(match.entry.id)) {
-                list.add(new EnchantApplied(match.entry.id, match.level > 0 ? match.level : 1));
-            }
-        }
-
-        try {
-            if (this.minecraft != null && this.minecraft.player != null) {
-                var lines = stack.getTooltipLines(Item.TooltipContext.EMPTY, this.minecraft.player, TooltipFlag.NORMAL);
-                for (Component comp : lines) {
-                    LitnessTooltipHandler.MatchedEnchantment match = LitnessTooltipHandler.matchEnchantment(comp.getString());
-                    if (match != null && match.entry != null && seen.add(match.entry.id)) {
-                        list.add(new EnchantApplied(match.entry.id, match.level > 0 ? match.level : 1));
-                    }
-                }
-            }
-        } catch (Throwable ignored) {}
-
         return list;
     }
 
-    @Override
-    public void extractRenderState(GuiGraphicsExtractor extractor, int mouseX, int mouseY, float delta) {
+    private void runCalculation() {
         try {
-            extractor.fill(0, 0, this.width, this.height, 0xEE0B0B14);
+            calculatorPage = 0;
+            calculatorScrollOffset = 0;
+            final String itemKey = ITEM_KEYS[selectedItemIndex];
+            final ItemEntry item = EnchantmentDatabase.getItem(itemKey);
+            final int basePenalty = PENALTY_STEPS[selectedPenaltyIndex];
 
-            this.hoveredCatalogEntry = null;
-            this.hoveredGuideSlot = null;
-            this.hoveredGuideInfo = false;
-            this.hoveredSelectionEntry = null;
-            this.hoveredCreatingCornerItem = false;
-
-            if (currentTab == Tab.CATALOG) {
-                renderCatalogTab(extractor, mouseX, mouseY);
-            } else {
-                renderCalculatorTab(extractor, mouseX, mouseY);
-            }
-
-            super.extractRenderState(extractor, mouseX, mouseY, delta);
-
-            // Render icone tematiche visive all'interno dei pulsanti incantesimo durante la creazione set
-            if (currentTab == Tab.CALCULATOR && simView == SimView.SETS && isCreatingSet) {
-                for (CreatingSetButtonData data : creatingSetButtonDataList) {
-                    extractor.fakeItem(EnchantmentThematicIconHelper.getIcon(data.entry), data.x + 3, data.y + 1);
-                }
-            }
-
-            // Render icone degli oggetti Minecraft per categorie, oggetti e filtri
-            for (ItemIconData icon : activeItemIcons) {
-                extractor.fakeItem(icon.item, icon.x, icon.y);
-            }
-
-            // Render hover tooltips strictly AFTER widgets so they are never covered by buttons
-            if (currentTab == Tab.CATALOG) {
-                if (hoveredCatalogEntry != null) {
-                    renderEnchantmentTooltip(extractor, hoveredCatalogEntry, mouseX, mouseY);
-                }
-            } else if (currentTab == Tab.CALCULATOR) {
-                if (simView == SimView.GUIDE) {
-                    if (hoveredGuideInfo) {
-                        renderGuideInfoTooltip(extractor, mouseX, mouseY);
-                    } else if (hoveredGuideSlot != null) {
-                        renderGuideSlotTooltip(extractor, hoveredGuideSlot, mouseX, mouseY);
+            final List<BookInput> books = new ArrayList<>();
+            if (calcMode == CalcMode.INVENTORY && this.minecraft != null && this.minecraft.player != null) {
+                // Leggi libri reali nell'inventario
+                int invSize = this.minecraft.player.getInventory().getContainerSize();
+                for (int i = 0; i < invSize; i++) {
+                    ItemStack stack = this.minecraft.player.getInventory().getItem(i);
+                    if (stack.isEmpty() || ItemTypeHelper.isContainerOrShulker(stack)) continue;
+                    if (stack.is(Items.ENCHANTED_BOOK) || stack.is(Items.BOOK)) {
+                        int repCost = stack.getOrDefault(DataComponents.REPAIR_COST, 0);
+                        int work = 0;
+                        while ((1 << work) - 1 < repCost) work++;
+                        BookInput b = new BookInput(work);
+                        b.enchantments = extractAllEnchantmentsFromItem(stack);
+                        if (!b.enchantments.isEmpty()) books.add(b);
                     }
-                } else if (simView == SimView.SETS) {
-                    if (isCreatingSet) {
-                        if (hoveredCreatingCornerItem) {
-                            renderCreatingCornerItemTooltip(extractor, mouseX, mouseY);
-                        } else if (hoveredSelectionEntry != null) {
-                            renderEnchantmentTooltip(extractor, hoveredSelectionEntry, mouseX, mouseY);
+                }
+            } else {
+                // Simulazione teorica dai selezionati
+                if (simulatorSelectedEnchants.isEmpty()) {
+                    for (SavedSetsManager.CustomSet cs : SavedSetsManager.getSavedSets()) {
+                        if (cs != null && cs.itemKey.equalsIgnoreCase(itemKey) && !cs.enchantments.isEmpty()) {
+                            simulatorSelectedEnchants.addAll(cs.enchantments);
+                            break;
                         }
                     }
                 }
+                for (String enchId : simulatorSelectedEnchants) {
+                    EnchantmentEntry ee = EnchantmentDatabase.getEnchantment(enchId);
+                    if (ee != null) {
+                        BookInput b = new BookInput(0);
+                        b.enchantments.add(new EnchantApplied(ee.id, ee.maxLevel > 1 ? ee.maxLevel : 1));
+                        books.add(b);
+                    }
+                }
             }
+
+            this.lastCalculatedKey = calcMode + "|" + selectedItemIndex + "|" + selectedPenaltyIndex + "|" + String.join(",", simulatorSelectedEnchants);
+
+            if (books.isEmpty()) {
+                this.currentSolution = null;
+                this.isCalculating = false;
+                this.needsWidgetRebuild = true;
+                return;
+            }
+
+            isCalculating = true;
+            CALC_POOL.submit(() -> {
+                try {
+                    Solution sol = AnvilOptimizer.optimize(books, basePenalty, item, Collections.emptyList());
+                    this.currentSolution = sol;
+                } catch (Throwable t) {
+                    this.currentSolution = null;
+                } finally {
+                    this.isCalculating = false;
+                    this.needsWidgetRebuild = true;
+                }
+            });
         } catch (Throwable t) {
-            t.printStackTrace();
+            currentSolution = null;
+            isCalculating = false;
         }
     }
 
-    private void renderCatalogTab(GuiGraphicsExtractor extractor, int mouseX, int mouseY) {
-        int itemsPerPage = getItemsPerPage();
-        int maxPages = Math.max(1, (int) Math.ceil((double) filteredEnchantments.size() / itemsPerPage));
-        if (catalogPage >= maxPages) catalogPage = maxPages - 1;
+    // -------------------------------------------------------------
+    // RENDERING COMPLETO SCHERMATA SOFTWARE (Obsidian Minimal Style)
+    // -------------------------------------------------------------
+    @Override
+    public void extractRenderState(GuiGraphicsExtractor extractor, int mouseX, int mouseY, float delta) {
+        // 1. Sfondo trasparente scuro
+        extractor.fill(0, 0, this.width, this.height, 0xC507080E);
 
-        int searchCount = ActiveSessionManager.getSearchEnchants().size();
-        String searchInfo = searchCount > 0 ? "  •  §a" + searchCount + " in ricerca (/ah & casse)" : "";
-        String pageInfo = "Pagina " + (catalogPage + 1) + " / " + maxPages + "  (" + filteredEnchantments.size() + " incantesimi)" + searchInfo;
-        extractor.centeredText(this.font, pageInfo, this.width / 2, 77, 0xFF818CF8);
+        int winW = getWinW();
+        int winH = getWinH();
+        int winX = getWinX();
+        int winY = getWinY();
 
-        int startY = 94;
-        int cardWidth = Math.min(640, this.width - 24);
-        int cardX = (this.width - cardWidth) / 2;
+        // 2. Finestra Principale Software (Obsidian Minimal Stondata)
+        drawRoundedRect(extractor, winX, winY, winW, winH, 10, 0xFF0F1118);
+        drawRoundedOutline(extractor, winX, winY, winW, winH, 10, 0xFF1E2334);
 
-        int startIdx = catalogPage * itemsPerPage;
-        int endIdx = Math.min(startIdx + itemsPerPage, filteredEnchantments.size());
+        // 3. Header Software Bar Stondata
+        drawRoundedRect(extractor, winX + 1, winY + 1, winW - 2, HEADER_H - 1, 9, 0xFF141722);
+        extractor.fill(winX, winY + HEADER_H - 1, winX + winW, winY + HEADER_H, 0xFF1E2334);
 
-        EnchantmentEntry hoveredEntry = null;
+        // Barra accento blu elettrico Obsidian |
+        drawRoundedRect(extractor, winX + 10, winY + 9, 3, 14, 2, 0xFF3B82F6);
+        extractor.text(this.font, "Litness Enchant", winX + 20, winY + 12, 0xFFFFFFFF, false);
+        int brandW = this.font.width("Litness Enchant ");
+        extractor.text(this.font, "v1.3 | By Waaxey", winX + 20 + brandW, winY + 12, 0xFF60A5FA, false);
 
-        for (int i = startIdx; i < endIdx; i++) {
-            EnchantmentEntry e = filteredEnchantments.get(i);
-            int row = i - startIdx;
-            int y = startY + row * 19;
+        // Bandiera pixel nel pulsante lingua
+        if (this.btnLangToggle != null) {
+            LitnessI18n.renderFlag(extractor, this.btnLangToggle.getX() + 5, this.btnLangToggle.getY() + 5, LitnessI18n.isEnglish());
+        }
 
-            int btnW = 76;
-            boolean isHovered = mouseX >= cardX && mouseX < (cardX + cardWidth - btnW - 6) && mouseY >= y && mouseY <= y + 18;
-            if (isHovered) hoveredEntry = e;
+        // 4. Linea divisoria Barra Laterale Sinistra
+        extractor.fill(winX + SIDEBAR_W, winY + HEADER_H, winX + SIDEBAR_W + 1, winY + winH, 0xFF1A1D2E);
 
-            boolean isSearching = ActiveSessionManager.isSearchEnchant(e.id);
-            boolean isCustom = "custom".equalsIgnoreCase(e.category);
-            boolean isVanillaPlus = "vanilla_plus".equalsIgnoreCase(e.category);
-            int stripeColor = isSearching ? 0xFF00FF66 : (isVanillaPlus ? 0xFFF59E0B : (isCustom ? 0xFF10B981 : 0xFF6366F1));
-            int bgColor = isSearching ? (isHovered ? 0xEE163224 : 0xDD10241A) : (isHovered ? 0xEE1E1E2E : 0xDD141420);
+        // 5. Area Contenuto Destra
+        int contentX = winX + SIDEBAR_W + 8;
+        int contentY = winY + HEADER_H + 6;
+        int contentW = winW - SIDEBAR_W - 16;
+        int contentH = winH - HEADER_H - 12;
 
-            extractor.fill(cardX, y, cardX + cardWidth, y + 18, bgColor);
-            extractor.fill(cardX, y, cardX + 3, y + 18, stripeColor);
-            if (isSearching) {
-                extractor.fill(cardX, y, cardX + cardWidth, y + 1, 0x8000FF66);
-                extractor.fill(cardX, y + 17, cardX + cardWidth, y + 18, 0x8000FF66);
+        if (this.currentTab == Tab.CATALOG) {
+            renderCatalogTab(extractor, contentX, contentY, contentW, contentH, mouseX, mouseY);
+        } else if (this.currentTab == Tab.SETS) {
+            renderSavedSetsTab(extractor, contentX, contentY, contentW, contentH, mouseX, mouseY);
+        } else {
+            renderCalculatorTab(extractor, contentX, contentY, contentW, contentH, mouseX, mouseY);
+        }
+
+        // 7. Render widget standard (pulsanti e campi testo)
+        super.extractRenderState(extractor, mouseX, mouseY, delta);
+
+        // 8. Tooltip flottanti in primo piano
+        renderFloatingTooltips(extractor, mouseX, mouseY);
+    }
+
+    private void renderCatalogTab(GuiGraphicsExtractor extractor, int startX, int startY, int panelWidth, int panelHeight, int mouseX, int mouseY) {
+        int listW = (int)(panelWidth * 0.58) - 4;
+        int inspX = startX + listW + 8;
+        int inspW = panelWidth - listW - 8;
+        int inspY = startY + 50;
+        int inspH = panelHeight - 54;
+
+        int pageSize = CATALOG_PAGE_SIZE;
+        int totalPages = Math.max(1, (int) Math.ceil((double) filteredEnchantments.size() / pageSize));
+        int navY = getWinY() + getWinH() - 19;
+        String pageStr = (catalogPage + 1) + " / " + totalPages + " (" + filteredEnchantments.size() + ")";
+        extractor.centeredText(this.font, pageStr, startX + listW / 2, navY, 0xFF9CA3AF);
+
+        if (selectedCatalogEnchant == null && !filteredEnchantments.isEmpty()) {
+            selectedCatalogEnchant = filteredEnchantments.get(0);
+        }
+
+        if (selectedCatalogEnchant != null) {
+            renderCatalogInspector(extractor, inspX, inspY, inspW, inspH, selectedCatalogEnchant, mouseX, mouseY);
+        }
+    }
+
+    private void renderCatalogInspector(GuiGraphicsExtractor extractor, int x, int y, int w, int h, EnchantmentEntry ee, int mouseX, int mouseY) {
+        // Pannello Dossier Obsidian Minimal Stondato
+        drawRoundedRect(extractor, x, y, w, h, 8, 0xFF0B0D14);
+        drawRoundedOutline(extractor, x, y, w, h, 8, 0xFF1E2334);
+
+        // 1. Header con icona 3D, Nome, Categoria e Costo Anvil
+        ItemStack iconStack = EnchantmentThematicIconHelper.getIcon(ee);
+        drawRoundedRect(extractor, x + 8, y + 8, 26, 26, 6, 0xFF151926);
+        drawRoundedOutline(extractor, x + 8, y + 8, 26, 26, 6, 0xFF3B82F6);
+        if (iconStack != null && !iconStack.isEmpty()) {
+            extractor.fakeItem(iconStack, x + 13, y + 13);
+        }
+
+        String localizedName = LitnessI18n.getEnchantName(ee);
+        String title = AnvilOptimizer.formatEnchantName(localizedName, ee.maxLevel);
+        extractor.text(this.font, trimToWidth(this.font, title, w - 46), x + 40, y + 9, 0xFFFFFFFF, false);
+
+        String cat = "custom".equalsIgnoreCase(ee.category) ? "Custom Litness" : "Vanilla";
+        int cost = ee.getAnvilCostNumeric();
+        String costStr = cost > 0 ? (" \u2022 +" + cost + " liv. XP") : "";
+        extractor.text(this.font, "\u00A78" + cat + costStr, x + 40, y + 22, 0xFF3B82F6, false);
+
+        int curY = y + 38;
+
+        // 2. Box "Cosa Fa (Effetto in Gioco)"
+        extractor.text(this.font, "\u00A77COSA FA:", x + 8, curY, 0xFF9CA3AF, false);
+        curY += 10;
+
+        int descBoxH = 48;
+        drawRoundedRect(extractor, x + 8, curY, w - 16, descBoxH, 6, 0xFF08090E);
+        drawRoundedOutline(extractor, x + 8, curY, w - 16, descBoxH, 6, 0xFF1A1E2C);
+
+        String desc = (ee.description != null && !ee.description.isEmpty()) ? ee.description : "Nessuna descrizione disponibile.";
+        List<String> descLines = wrapTextLines(desc, Math.max(15, (w - 28) / 6));
+        int dy = curY + 4;
+        for (int i = 0; i < Math.min(descLines.size(), 4); i++) {
+            extractor.text(this.font, "\u00A7f" + descLines.get(i), x + 12, dy, 0xFFE2E8F0, false);
+            dy += 10;
+        }
+        curY += descBoxH + 8;
+
+        // 3. Conflitti Incompatibili (deduplicati, senza livelli)
+        List<String> conflicts = EnchantmentDatabase.getResolvedConflicts(ee.id);
+        extractor.text(this.font, "\u00A7c\u2694 CONFLITTI INCOMPATIBILI:", x + 8, curY, 0xFFF87171, false);
+        curY += 11;
+
+        if (conflicts.isEmpty()) {
+            extractor.text(this.font, "\u00A78Nessun conflitto con altri incantesimi.", x + 12, curY, 0xFF6B7280, false);
+            curY += 14;
+        } else {
+            int chipX = x + 8;
+            for (String conf : conflicts) {
+                String cleanConf = LitnessI18n.stripLevelSuffix(conf);
+                int cw = this.font.width(cleanConf) + 10;
+                if (chipX + cw > x + w - 8) {
+                    chipX = x + 8;
+                    curY += 14;
+                    if (curY > y + h - 55) break;
+                }
+                drawRoundedRect(extractor, chipX, curY, cw, 12, 4, 0xFF2A1218);
+                drawRoundedOutline(extractor, chipX, curY, cw, 12, 4, 0xFF7F1D1D);
+                extractor.text(this.font, "\u00A7c" + cleanConf, chipX + 5, curY + 2, 0xFFFCA5A5, false);
+                chipX += cw + 4;
+            }
+            curY += 16;
+        }
+
+        // 4. Oggetti Compatibili (3D preview)
+        List<ItemStack> compItems = LitnessTooltipHandler.getOrderedItemStacks(ee.applicableTo);
+        if (!compItems.isEmpty() && curY <= y + h - 52) {
+            extractor.text(this.font, "\u00A77OGGETTI COMPATIBILI:", x + 8, curY, 0xFF9CA3AF, false);
+            curY += 11;
+            int itemX = x + 8;
+            for (int i = 0; i < Math.min(compItems.size(), 7); i++) {
+                drawRoundedRect(extractor, itemX, curY, 18, 18, 4, 0xFF141724);
+                drawRoundedOutline(extractor, itemX, curY, 18, 18, 4, 0xFF22283A);
+                extractor.fakeItem(compItems.get(i), itemX + 1, curY + 1);
+                itemX += 22;
+            }
+        }
+    }
+
+    private void renderSavedSetsTab(GuiGraphicsExtractor extractor, int startX, int startY, int panelWidth, int panelHeight, int mouseX, int mouseY) {
+        if (isCreatingSet) {
+            renderSetCreatorOverlay(extractor, startX, startY, panelWidth, panelHeight, mouseX, mouseY);
+        } else {
+            List<CustomSet> sets = SavedSetsManager.getSavedSets();
+            if (sets.isEmpty()) {
+                extractor.centeredText(this.font, LitnessI18n.t("empty_sets"), startX + panelWidth / 2, startY + 60, 0xFF6B7280);
+                return;
             }
 
-            // Icona tematica visiva per l'incantesimo
-            extractor.fakeItem(EnchantmentThematicIconHelper.getIcon(e), cardX + 5, y + 1);
+            int curY = startY + 28;
+            for (CustomSet set : sets) {
+                if (!"ALL".equalsIgnoreCase(savedSetsFilterCategory)) {
+                    try {
+                        int targetCat = Integer.parseInt(savedSetsFilterCategory);
+                        int itemIdx = 0;
+                        for (int k = 0; k < ITEM_KEYS.length; k++) {
+                            if (ITEM_KEYS[k].equalsIgnoreCase(set.itemKey)) {
+                                itemIdx = k;
+                                break;
+                            }
+                        }
+                        if (getCategoryForItem(itemIdx) != targetCat) continue;
+                    } catch (Exception ignored) {}
+                }
 
-            String title = AnvilOptimizer.formatEnchantName(e.name, e.maxLevel > 1 ? e.maxLevel : 0);
-            extractor.text(this.font, title, cardX + 24, y + 5, isSearching ? 0xFF86EFAC : 0xFFFFFFFF, false);
+                // Card Set Salvato
+                boolean isPinned = ActiveSessionManager.isSetPinned(set.id);
+                int cardBg = isPinned ? 0xFF151A2E : 0xFF121422;
+                int cardBorder = isPinned ? 0xFF6366F1 : 0xFF222538;
 
-            int titleW = this.font.width(title);
-            int badgeX = cardX + 30 + titleW;
+                extractor.fill(startX, curY, startX + panelWidth, curY + 24, cardBg);
+                extractor.outline(startX, curY, panelWidth, 24, cardBorder);
 
-            String badge = isVanillaPlus ? "[VANILLA+]" : (isCustom ? "[" + (e.rarity != null ? e.rarity.toUpperCase() : "CUSTOM") + "]" : "[VANILLA]");
-            int badgeColor = isVanillaPlus ? 0xFFF59E0B : (isCustom ? 0xFF34D399 : 0xFF818CF8);
-            extractor.text(this.font, badge, badgeX, y + 5, badgeColor, false);
-            int badgeW = this.font.width(badge);
+                ItemStack pieceStack = getItemStackForType(set.itemKey);
+                extractor.fakeItem(pieceStack, startX + 4, curY + 4);
 
-            String cost = (isCustom || isVanillaPlus) ? "+" + e.getAnvilCostNumeric() + " liv." : "Vanilla";
-            String costText = "Costo: " + cost;
-            int costW = this.font.width(costText);
-            int costX = (cardX + cardWidth - btnW - 6) - costW - 6;
-            extractor.text(this.font, costText, costX, y + 5, 0xFFFBBF24, false);
+                String pinBadge = isPinned ? "\u00A76[\u2605 PIN] \u00A7r" : "";
+                String title = pinBadge + "\u00A7f" + set.name + " \u00A78(" + set.enchantments.size() + "/12)";
+                extractor.text(this.font, title, startX + 24, curY + 8, 0xFFFFFFFF, false);
 
-            int descStartX = Math.max(cardX + 235, badgeX + badgeW + 12);
-            int availDescW = costX - descStartX - 8;
-            if (availDescW > 30) {
-                String desc = trimToWidth(e.description != null ? e.description : "", availDescW);
-                extractor.text(this.font, desc, descStartX, y + 5, 0xFFA1A1AA, false);
+                curY += 28;
+                if (curY > getWinY() + getWinH() - 32) break;
+            }
+        }
+    }
+
+    private void renderSetCreatorOverlay(GuiGraphicsExtractor extractor, int startX, int startY, int panelWidth, int panelHeight, int mouseX, int mouseY) {
+        int studioW = Math.max(132, (int)(panelWidth * 0.32));
+        int libX = startX + studioW + 8;
+        int libW = panelWidth - studioW - 8;
+        int botY = getWinY() + getWinH() - 24;
+
+        // 1. Box Studio Sinistro (Tooltip Card Item Enchantato con aura ametista obsidian)
+        drawRoundedRect(extractor, startX - 2, startY - 2, studioW + 4, panelHeight - 26, 8, 0xFF0B0D14);
+        drawRoundedOutline(extractor, startX - 2, startY - 2, studioW + 4, panelHeight - 26, 8, 0xFF261D38);
+
+        // Icona 3D pezzo in alto a sinistra dentro slot dedicato con bagliore
+        ItemStack pieceStack = getItemStackForType(ITEM_KEYS[creatingSetItemIndex]);
+        drawRoundedRect(extractor, startX + 4, startY + 2, 22, 22, 5, 0xFF141024);
+        drawRoundedOutline(extractor, startX + 4, startY + 2, 22, 22, 5, 0xFF8B5CF6);
+        extractor.fakeItem(pieceStack, startX + 7, startY + 5);
+
+        // Sottotitolo pezzo
+        String pieceName = LitnessI18n.getItemPieceName(ITEM_KEYS[creatingSetItemIndex]);
+        int count = creatingSetEnchants.size();
+        boolean isEn = LitnessI18n.isEnglish();
+        String summary = "\u00A77" + LitnessI18n.t("piece_label") + "\u00A7b" + pieceName + " \u00A78\u2022 \u00A7d" + count + "/12";
+        extractor.text(this.font, summary, startX + 30, startY + 19, 0xFF9CA3AF, false);
+
+        // Divisorio sotto header pezzo
+        drawRoundedRect(extractor, startX + 4, startY + 28, studioW - 8, 1, 0, 0xFF261D38);
+        extractor.text(this.font, isEn ? "\u00A7d\u2726 Enchantments:" : "\u00A7d\u2726 Incantesimi:", startX + 6, startY + 31, 0xFFC084FC, false);
+
+        // Slot liberi (i >= count) stile tooltip Minecraft
+        int availLoreH = (botY - (startY + 34)) - 24;
+        int loreRowH = Math.min(11, Math.max(9, availLoreH / 12));
+        int loreStartY = startY + 42;
+        for (int i = count; i < 12; i++) {
+            int sy = loreStartY + (i * loreRowH);
+            extractor.text(this.font, "\u00A78\u2022 [Slot " + (i + 1) + "]", startX + 8, sy + 1, 0xFF334155, false);
+        }
+
+        // Divisorio sotto lista incantesimi
+        int postLoreDivY = loreStartY + (12 * loreRowH) + 2;
+        drawRoundedRect(extractor, startX + 4, postLoreDivY, studioW - 8, 1, 0, 0xFF261D38);
+
+        // 2. Box Libreria Destra
+        int pageSize = CREATING_SET_PAGE_SIZE;
+        int totalPages = Math.max(1, (int) Math.ceil((double) currentVisibleSelectionEnchants.size() / pageSize));
+        int navY = getWinY() + getWinH() - 19;
+        String pageStr = (creatingSetPage + 1) + " / " + totalPages + " (" + currentVisibleSelectionEnchants.size() + " incantesimi)";
+        extractor.centeredText(this.font, pageStr, libX + libW / 2, navY, 0xFF9CA3AF);
+    }
+
+    private void renderCalculatorTab(GuiGraphicsExtractor extractor, int startX, int startY, int panelWidth, int panelHeight, int mouseX, int mouseY) {
+        if (isCalculating) {
+            drawRoundedRect(extractor, startX, startY + 50, panelWidth, 60, 8, 0xFF0B0D14);
+            drawRoundedOutline(extractor, startX, startY + 50, panelWidth, 60, 8, 0xFF1E2334);
+            extractor.centeredText(this.font, "✦ Calcolo combinazione ottimale in corso...", startX + panelWidth / 2, startY + 74, 0xFF60A5FA);
+            return;
+        }
+
+        if (currentSolution == null || currentSolution.steps.isEmpty()) {
+            extractor.centeredText(this.font, "Seleziona incantesimi per calcolare i passi dell'incudine.", startX + panelWidth / 2, startY + 60, 0xFF6B7280);
+            return;
+        }
+
+        // 4 KPI Stats Cards Super Stondate in alto
+        int kpiW = (panelWidth - 18) / 4;
+        int kpiH = 34;
+        int kpiY = startY + 24;
+
+        // KPI 1: Costo Totale XP
+        drawRoundedRect(extractor, startX, kpiY, kpiW, kpiH, 6, 0xFF0B0D14);
+        drawRoundedOutline(extractor, startX, kpiY, kpiW, kpiH, 6, 0xFF1E2334);
+        extractor.text(this.font, "\u00A78COSTO TOTALE XP", startX + 6, kpiY + 5, 0xFF9CA3AF, false);
+        extractor.text(this.font, "\u00A7a" + currentSolution.totalCost + " Livelli", startX + 6, kpiY + 18, 0xFF34D399, false);
+
+        // KPI 2: Picco Massimo
+        int kpi2X = startX + kpiW + 6;
+        drawRoundedRect(extractor, kpi2X, kpiY, kpiW, kpiH, 6, 0xFF0B0D14);
+        drawRoundedOutline(extractor, kpi2X, kpiY, kpiW, kpiH, 6, 0xFF1E2334);
+        extractor.text(this.font, "\u00A78PICCO MASSIMO", kpi2X + 6, kpiY + 5, 0xFF9CA3AF, false);
+        extractor.text(this.font, "\u00A7b" + currentSolution.peakCost + "/39 Livelli", kpi2X + 6, kpiY + 18, 0xFF60A5FA, false);
+
+        // KPI 3: Passi Forgia
+        int kpi3X = kpi2X + kpiW + 6;
+        drawRoundedRect(extractor, kpi3X, kpiY, kpiW, kpiH, 6, 0xFF0B0D14);
+        drawRoundedOutline(extractor, kpi3X, kpiY, kpiW, kpiH, 6, 0xFF1E2334);
+        extractor.text(this.font, "\u00A78PASSI FORGIA", kpi3X + 6, kpiY + 5, 0xFF9CA3AF, false);
+        extractor.text(this.font, "\u00A7f" + currentSolution.steps.size() + " Passi", kpi3X + 6, kpiY + 18, 0xFFFFFFFF, false);
+
+        // KPI 4: Maxabilità
+        int kpi4X = kpi3X + kpiW + 6;
+        drawRoundedRect(extractor, kpi4X, kpiY, kpiW, kpiH, 6, 0xFF0B0D14);
+        drawRoundedOutline(extractor, kpi4X, kpiY, kpiW, kpiH, 6, 0xFF1E2334);
+        extractor.text(this.font, "\u00A78MAXABILIT\u00C0", kpi4X + 6, kpiY + 5, 0xFF9CA3AF, false);
+        String maxText = (currentSolution.peakCost <= 39) ? "\u00A7a100% Maxabile" : "\u00A7cTroppo Costoso";
+        extractor.text(this.font, maxText, kpi4X + 6, kpiY + 18, 0xFF34D399, false);
+
+        // Lista passi ottimizzati con icone 3D e card stondate paginati
+        int stepY = kpiY + kpiH + 8;
+        int rowH = 32;
+        ItemStack pieceStack = getItemStackForType(ITEM_KEYS[selectedItemIndex]);
+
+        int pageSize = CALCULATOR_PAGE_SIZE;
+        int totalSteps = currentSolution.steps.size();
+        int maxScroll = Math.max(0, totalSteps - pageSize);
+        if (calculatorScrollOffset > maxScroll) calculatorScrollOffset = maxScroll;
+        if (calculatorScrollOffset < 0) calculatorScrollOffset = 0;
+        int startIdx = calculatorScrollOffset;
+        int endIdx = Math.min(startIdx + pageSize, totalSteps);
+
+        if (btnCalcPrev != null) btnCalcPrev.active = (calculatorScrollOffset > 0);
+        if (btnCalcNext != null) btnCalcNext.active = (calculatorScrollOffset < maxScroll);
+
+        for (int i = startIdx; i < endIdx; i++) {
+            MergeStep step = currentSolution.steps.get(i);
+            int stepNum = i + 1;
+            int cardBg = step.isBookToBook ? 0xFF131724 : 0xFF101924;
+            int cardBorder = step.isBookToBook ? 0xFF1E2334 : 0xFF1E3A4B;
+
+            drawRoundedRect(extractor, startX, stepY, panelWidth, rowH, 6, cardBg);
+            drawRoundedOutline(extractor, startX, stepY, panelWidth, rowH, 6, cardBorder);
+
+            // Step badge a sinistra in pillola
+            drawRoundedRect(extractor, startX + 5, stepY + 7, 36, 18, 4, 0xFF1A1F30);
+            drawRoundedOutline(extractor, startX + 5, stepY + 7, 36, 18, 4, 0xFF3B82F6);
+            String stepTag = "#" + stepNum;
+            extractor.centeredText(this.font, stepTag, startX + 23, stepY + 11, 0xFF60A5FA);
+
+            int curX = startX + 46;
+
+            // Slot 1: Oggetto base o Libro
+            ItemStack leftStack = step.isBookToBook ? new ItemStack(Items.ENCHANTED_BOOK) : pieceStack;
+            drawRoundedRect(extractor, curX - 2, stepY + 6, 20, 20, 4, 0xFF151926);
+            extractor.fakeItem(leftStack, curX, stepY + 8);
+            curX += 24;
+
+            // Segno +
+            extractor.text(this.font, "\u00A77+", curX, stepY + 12, 0xFF9CA3AF, false);
+            curX += 12;
+
+            // Slot 2: Sempre Libro
+            drawRoundedRect(extractor, curX - 2, stepY + 6, 20, 20, 4, 0xFF151926);
+            extractor.fakeItem(new ItemStack(Items.ENCHANTED_BOOK), curX, stepY + 8);
+            curX += 24;
+
+            // Freccia ➔
+            extractor.text(this.font, "\u00A76\u2794", curX, stepY + 12, 0xFFF59E0B, false);
+            curX += 14;
+
+            // Risultato
+            ItemStack resStack = step.isBookToBook ? new ItemStack(Items.ENCHANTED_BOOK) : pieceStack;
+            drawRoundedRect(extractor, curX - 2, stepY + 6, 20, 20, 4, 0xFF151926);
+            extractor.fakeItem(resStack, curX, stepY + 8);
+            curX += 24;
+
+            // Dettaglio testuale
+            int availTextW = panelWidth - (curX - startX) - 68;
+            String textSlot1 = (step.isBookToBook ? "\u00A79" : "\u00A7e") + step.leftLabel;
+            String textSlot2 = "\u00A7d" + step.rightLabel;
+            extractor.text(this.font, trimToWidth(this.font, "1: " + textSlot1, availTextW), curX, stepY + 5, 0xFFFFFFFF, false);
+            extractor.text(this.font, trimToWidth(this.font, "2: " + textSlot2, availTextW), curX, stepY + 17, 0xFFCBD5E1, false);
+
+            // Costo XP sulla destra in pillola smeraldo
+            drawRoundedRect(extractor, startX + panelWidth - 62, stepY + 8, 56, 16, 4, 0xFF0D281E);
+            drawRoundedOutline(extractor, startX + panelWidth - 62, stepY + 8, 56, 16, 4, 0xFF10B981);
+            String costTag = "\u00A7a+" + step.cost + " liv.";
+            extractor.centeredText(this.font, costTag, startX + panelWidth - 34, stepY + 12, 0xFF34D399);
+
+            stepY += rowH + 4;
+            if (stepY + rowH > getWinY() + getWinH() - 24) break;
+        }
+
+        if (totalSteps > pageSize) {
+            int navY = getWinY() + getWinH() - 17;
+            String pageStr = "Passi " + (startIdx + 1) + "-" + endIdx + " di " + totalSteps + " \u00A78(Scorri con rotellina)";
+            extractor.centeredText(this.font, pageStr, startX + panelWidth / 2, navY, 0xFF9CA3AF);
+        }
+    }
+
+    // -------------------------------------------------------------
+    // TOOLTIPS FLOTTANTI IN PRIMO PIANO
+    // -------------------------------------------------------------
+    private void renderFloatingTooltips(GuiGraphicsExtractor extractor, int mouseX, int mouseY) {
+        // 1. Tooltip incantesimo hoverato nel Catalogo
+        if (this.currentTab == Tab.CATALOG) {
+            for (Button b : catalogRowButtons) {
+                if (b instanceof EnchantmentCardWidget) {
+                    EnchantmentCardWidget card = (EnchantmentCardWidget) b;
+                    if (card.isMouseOver(mouseX, mouseY)) {
+                        renderEnchantmentTooltip(extractor, card.entry, mouseX, mouseY);
+                        return;
+                    }
+                }
             }
         }
 
-        this.hoveredCatalogEntry = hoveredEntry;
+        // 2. Tooltip incantesimo hoverato nella Creazione Set
+        if (this.currentTab == Tab.SETS && isCreatingSet) {
+            for (CreatingSetButtonData data : creatingSetButtonDataList) {
+                if (mouseX >= data.x && mouseX < data.x + data.w && mouseY >= data.y && mouseY < data.y + data.h) {
+                    renderEnchantmentTooltip(extractor, data.entry, mouseX, mouseY);
+                    return;
+                }
+            }
+
+            // 3. Tooltip anteprima pezzo ed incantesimi nella barra superiore
+            int prevX = getWinX() + SIDEBAR_W + 8 + 138;
+            int prevY = getWinY() + HEADER_H + 6 + 1;
+            if (mouseX >= prevX && mouseX < prevX + 160 && mouseY >= prevY && mouseY < prevY + 24) {
+                renderCornerPreviewExpandedTooltip(extractor, mouseX, mouseY);
+            }
+        }
+
+        // 4. Tooltip passo incudine hoverato nella Guida Incudine
+        if (this.currentTab == Tab.CALCULATOR && currentSolution != null && !currentSolution.steps.isEmpty()) {
+            int startX = getWinX() + SIDEBAR_W + 8;
+            int panelWidth = getWinW() - SIDEBAR_W - 16;
+            int startY = getWinY() + HEADER_H + 6;
+            int kpiY = startY + 24;
+            int kpiH = 34;
+            int stepY = kpiY + kpiH + 8;
+            int rowH = 32;
+
+            int totalSteps = currentSolution.steps.size();
+            int maxScroll = Math.max(0, totalSteps - CALCULATOR_PAGE_SIZE);
+            if (calculatorScrollOffset > maxScroll) calculatorScrollOffset = maxScroll;
+            int startIdx = calculatorScrollOffset;
+            int endIdx = Math.min(startIdx + CALCULATOR_PAGE_SIZE, totalSteps);
+
+            for (int i = startIdx; i < endIdx; i++) {
+                if (mouseX >= startX && mouseX <= startX + panelWidth && mouseY >= stepY && mouseY <= stepY + rowH) {
+                    MergeStep step = currentSolution.steps.get(i);
+                    renderStepCardTooltip(extractor, step, i + 1, mouseX, mouseY);
+                    return;
+                }
+                stepY += rowH + 4;
+            }
+        }
+    }
+
+    private void renderStepCardTooltip(GuiGraphicsExtractor extractor, MergeStep step, int stepNum, int mouseX, int mouseY) {
+        if (step == null) return;
+        List<Component> lines = new ArrayList<>();
+
+        String opType = step.isBookToBook ? (LitnessI18n.isEnglish() ? "Merge Books" : "Unisci Libri") : (LitnessI18n.isEnglish() ? "Apply to Item" : "Applica all'Oggetto");
+        lines.add(Component.literal("\u00A7b#" + stepNum + " \u00A7e" + opType + " \u00A78\u2022 \u00A7a+" + step.cost + (LitnessI18n.isEnglish() ? " lv." : " liv.")));
+
+        if (!step.rightEnchants.isEmpty()) {
+            for (AnvilOptimizer.EnchantApplied ea : step.rightEnchants) {
+                EnchantmentEntry ee = EnchantmentDatabase.getEnchantment(ea.id);
+                String eName = (ee != null) ? AnvilOptimizer.formatEnchantName(ee, ea.level) : ea.id;
+                boolean isCustom = ee != null && "custom".equalsIgnoreCase(ee.category);
+                lines.add(Component.literal((isCustom ? "\u00A7d\u2022 " : "\u00A7a\u2022 ") + eName + (isCustom ? " \u00A78[Custom]" : " \u00A78[Vanilla]")));
+                if (ee != null && ee.description != null && !ee.description.trim().isEmpty()) {
+                    for (String dLine : wrapFormattedText(ee.description.trim(), 36, "\u00A77")) {
+                        lines.add(Component.literal("  \u00A77" + dLine));
+                    }
+                }
+            }
+        }
+
+        if (step.isBookToBook && !step.leftEnchants.isEmpty()) {
+            lines.add(Component.literal("\u00A78" + (LitnessI18n.isEnglish() ? "Base (Slot 1):" : "Base (Slot 1):")));
+            for (AnvilOptimizer.EnchantApplied ea : step.leftEnchants) {
+                EnchantmentEntry ee = EnchantmentDatabase.getEnchantment(ea.id);
+                String eName = (ee != null) ? AnvilOptimizer.formatEnchantName(ee, ea.level) : ea.id;
+                lines.add(Component.literal(" \u00A79\u2022 " + eName));
+            }
+        }
+
+        int maxW = 0;
+        for (Component c : lines) maxW = Math.max(maxW, this.font.width(c));
+        int tw = Math.max(130, maxW + 12);
+        int rowH = 10;
+        int th = lines.size() * rowH + 8;
+        int tx = mouseX + 12;
+        int ty = mouseY - 8;
+
+        if (tx + tw > this.width - 4) tx = mouseX - tw - 8;
+        if (ty + th > this.height - 4) ty = this.height - th - 4;
+        if (tx < 4) tx = 4;
+        if (ty < 4) ty = 4;
+
+        drawRoundedRect(extractor, tx, ty, tw, th, 4, 0xF6090C14);
+        drawRoundedOutline(extractor, tx, ty, tw, th, 4, 0xFF3B82F6);
+
+        int cy = ty + 4;
+        for (Component c : lines) {
+            extractor.text(this.font, c, tx + 6, cy, 0xFFFFFFFF, false);
+            cy += rowH;
+        }
+    }
+
+    private void renderCornerPreviewExpandedTooltip(GuiGraphicsExtractor extractor, int mouseX, int mouseY) {
+        if (creatingSetEnchants.isEmpty()) return;
+
+        List<Component> lines = new ArrayList<>();
+        String pieceName = LitnessI18n.getItemPieceName(ITEM_KEYS[creatingSetItemIndex]);
+        lines.add(Component.literal("\u00A7b\u2022 " + pieceName + " [" + currentCreatingSetName + "]"));
+        lines.add(Component.literal("\u00A7e" + LitnessI18n.t("enchants_word").trim() + " (" + creatingSetEnchants.size() + "/12):"));
+
+        for (String id : creatingSetEnchants) {
+            EnchantmentEntry ee = EnchantmentDatabase.getEnchantment(id);
+            String name = (ee != null) ? AnvilOptimizer.formatEnchantName(ee, ee.maxLevel) : id;
+            lines.add(Component.literal(" \u00A7a\u2022 " + name));
+        }
+
+        int maxW = 0;
+        for (Component c : lines) maxW = Math.max(maxW, this.font.width(c));
+        int tw = maxW + 16;
+        int th = lines.size() * 11 + 8;
+        int tx = mouseX - tw - 6;
+        int ty = mouseY + 6;
+
+        drawRoundedRect(extractor, tx, ty, tw, th, 4, 0xF60B0D14);
+        drawRoundedOutline(extractor, tx, ty, tw, th, 4, 0xFF3B82F6);
+
+        int cy = ty + 4;
+        for (Component c : lines) {
+            extractor.text(this.font, c, tx + 6, cy, 0xFFFFFFFF, false);
+            cy += 11;
+        }
     }
 
     private void renderEnchantmentTooltip(GuiGraphicsExtractor extractor, EnchantmentEntry e, int mouseX, int mouseY) {
-        List<String> conflicts = EnchantmentDatabase.getResolvedConflicts(e.id);
-        boolean hasConflicts = !conflicts.isEmpty();
-        List<ItemStack> compItems = com.litness.optimizer.tooltip.LitnessTooltipHandler.getOrderedItemStacks(e.applicableTo);
-        boolean hasComp = !compItems.isEmpty();
+        if (e == null) return;
 
-        Collection<String> activeSet = isCreatingSet ? creatingSetEnchants : simulatorSelectedEnchants;
-        String activeConflict = getConflictWithCollection(e, activeSet);
-        boolean hasActiveConflict = (activeConflict != null);
-
-        int tipW = Math.min(340, this.width - 24);
-        int innerW = tipW - 16;
+        List<Component> lines = new ArrayList<>();
+        String localizedName = LitnessI18n.getEnchantName(e);
+        String title = AnvilOptimizer.formatEnchantName(localizedName, e.maxLevel);
 
         boolean isCustom = "custom".equalsIgnoreCase(e.category);
-        boolean isVanillaPlus = "vanilla_plus".equalsIgnoreCase(e.category);
-        String catName = isVanillaPlus ? "Vanilla+ Speciale" : (isCustom ? "Custom Litness (" + (e.rarity != null ? e.rarity : "Speciale") + ")" : "Incantesimo Vanilla");
-        String formattedTitle = AnvilOptimizer.formatEnchantName(e.name, e.maxLevel > 1 ? e.maxLevel : 0);
-        String title = (hasActiveConflict ? "§e[!] " : "") + formattedTitle;
-        String sub = catName + " • Costo: " + ((isCustom || isVanillaPlus) ? "+" + e.getAnvilCostNumeric() + " liv." : "Standard");
-        String desc = (e.description != null && !e.description.isEmpty()) ? e.description : "Nessuna descrizione.";
+        String cat = isCustom ? "Custom" : "Vanilla";
+        int cost = e.getAnvilCostNumeric();
+        String costUnit = LitnessI18n.isEnglish() ? " lv." : " liv.";
+        String costStr = cost > 0 ? (" \u00A78\u2022 \u00A7a+" + cost + costUnit) : "";
 
-        int descH = this.font.wordWrapHeight(Component.literal(desc), innerW);
+        // RIGA 1: Titolo incantesimo con categoria e costo XP
+        String header = (isCustom ? "\u00A7b" : "\u00A7f\u00A7l") + title + "  \u00A78[" + cat + "]" + costStr;
+        lines.add(Component.literal(header));
 
-        String activeWarnText = hasActiveConflict ? "§e[!] ATTENZIONE: Incompatibile con '§c" + activeConflict + "§e' già nel set!" : null;
-        int activeWarnH = hasActiveConflict ? this.font.wordWrapHeight(Component.literal(activeWarnText), innerW) : 0;
-
-        String confText = hasConflicts ? "§cConflitti: §f" + String.join("§7, §f", conflicts) : null;
-        int confH = hasConflicts ? this.font.wordWrapHeight(Component.literal(confText), innerW) : 0;
-
-        int tipH = 34 + (hasActiveConflict ? activeWarnH + 6 : 0) + descH + (hasConflicts ? 8 + confH : 0) + (hasComp ? 26 : 0) + 8;
-
-        int tipX = mouseX + 12;
-        if (tipX + tipW > this.width - 8) {
-            tipX = mouseX - tipW - 12;
-            if (tipX < 8) tipX = Math.max(8, this.width - tipW - 8);
-        }
-        int tipY = Math.max(8, Math.min(mouseY - 8, this.height - tipH - 8));
-
-        extractor.fill(tipX, tipY, tipX + tipW, tipY + tipH, 0xFA0E0E18);
-        int topStripe = hasActiveConflict ? 0xFFF59E0B : (isVanillaPlus ? 0xFFF59E0B : (isCustom ? 0xFF10B981 : 0xFF6366F1));
-        extractor.fill(tipX, tipY, tipX + tipW, tipY + 1, topStripe);
-        extractor.outline(tipX, tipY, tipW, tipH, hasActiveConflict ? 0xFFF59E0B : 0xFF2A2A3E);
-
-        extractor.text(this.font, title, tipX + 8, tipY + 6, hasActiveConflict ? 0xFFFBBF24 : 0xFFFFFFFF, false);
-        extractor.text(this.font, sub, tipX + 8, tipY + 18, isVanillaPlus ? 0xFFFBBF24 : (isCustom ? 0xFF34D399 : 0xFF818CF8), false);
-
-        int currentY = tipY + 31;
-        if (hasActiveConflict) {
-            extractor.textWithWordWrap(this.font, Component.literal(activeWarnText), tipX + 8, currentY, innerW, 0xFFFBBF24);
-            currentY += activeWarnH + 6;
-        }
-
-        extractor.textWithWordWrap(this.font, Component.literal(desc), tipX + 8, currentY, innerW, 0xFFA1A1AA);
-        currentY += descH + 8;
-
-        if (hasConflicts) {
-            extractor.textWithWordWrap(this.font, Component.literal(confText), tipX + 8, currentY, innerW, 0xFFF87171);
-            currentY += confH + 8;
-        }
-
-        if (hasComp) {
-            extractor.text(this.font, "Compatibile:", tipX + 8, currentY + 3, 0xFF71717A, false);
-            int itemX = tipX + 8 + this.font.width("Compatibile: ") + 3;
-            int maxIcons = Math.min(compItems.size(), 12);
-            for (int i = 0; i < maxIcons; i++) {
-                ItemStack itemStack = compItems.get(i);
-                extractor.fill(itemX, currentY, itemX + 16, currentY + 16, 0x55111118);
-                extractor.outline(itemX, currentY, 16, 16, 0x666366F1);
-                extractor.fakeItem(itemStack, itemX, currentY);
-                itemX += 17;
+        // RIGA 2+: Lore / Descrizione (piccola, compatta e ben leggibile)
+        if (e.description != null && !e.description.trim().isEmpty()) {
+            for (String descLine : wrapFormattedText(e.description.trim(), 42, "\u00A77")) {
+                lines.add(Component.literal(descLine.startsWith("\u00A7") ? descLine : ("\u00A77" + descLine)));
             }
+        } else {
+            lines.add(Component.literal("\u00A78" + (LitnessI18n.isEnglish() ? "No description available." : "Nessuna descrizione disponibile.")));
+        }
+
+        // RIGA Conflitti: se presenti, compatti e senza suffissi numerici
+        List<String> conflicts = EnchantmentDatabase.getResolvedConflicts(e.id);
+        if (!conflicts.isEmpty()) {
+            List<String> cleanConflicts = new ArrayList<>();
+            for (String c : conflicts) {
+                cleanConflicts.add(LitnessI18n.stripLevelSuffix(c));
+            }
+            String confLabel = LitnessI18n.t("conflicts_label");
+            String confStr = "\u00A7c" + confLabel + "\u00A7e" + String.join(", ", cleanConflicts);
+            for (String cLine : wrapFormattedText(confStr, 42, "\u00A7e")) {
+                lines.add(Component.literal(cLine.startsWith("\u00A7") ? cLine : ("\u00A7e" + cLine)));
+            }
+        }
+
+        int maxW = 0;
+        for (Component c : lines) maxW = Math.max(maxW, this.font.width(c));
+        int tw = Math.max(130, maxW + 12);
+        int rowH = 10;
+        int th = lines.size() * rowH + 8;
+        int tx = mouseX + 12;
+        int ty = mouseY - 8;
+
+        if (tx + tw > this.width - 4) tx = mouseX - tw - 8;
+        if (ty + th > this.height - 4) ty = this.height - th - 4;
+        if (tx < 4) tx = 4;
+        if (ty < 4) ty = 4;
+
+        // Finestra Obsidian Minimal compatta
+        drawRoundedRect(extractor, tx, ty, tw, th, 4, 0xF6090C14);
+        drawRoundedOutline(extractor, tx, ty, tw, th, 4, 0xFF2A3146);
+
+        int cy = ty + 4;
+        for (Component c : lines) {
+            extractor.text(this.font, c, tx + 6, cy, 0xFFFFFFFF, false);
+            cy += rowH;
         }
     }
 
+    private List<String> wrapFormattedText(String text, int maxChars, String defaultColor) {
+        List<String> result = new ArrayList<>();
+        if (text == null || text.isEmpty()) return result;
+        String[] words = text.split(" ");
+        StringBuilder current = new StringBuilder();
+        String currentColor = defaultColor;
+        for (String w : words) {
+            for (int i = 0; i < w.length() - 1; i++) {
+                if (w.charAt(i) == '\u00A7') {
+                    currentColor = "\u00A7" + w.charAt(i + 1);
+                }
+            }
+            int visualLen = current.toString().replaceAll("(?i)\u00A7[0-9a-fk-orx]", "").length();
+            int wordVisualLen = w.replaceAll("(?i)\u00A7[0-9a-fk-orx]", "").length();
+            if (visualLen + wordVisualLen + 1 > maxChars && current.length() > 0) {
+                result.add(current.toString());
+                current = new StringBuilder(currentColor).append(w);
+            } else {
+                if (current.length() > 0) current.append(" ");
+                current.append(w);
+            }
+        }
+        if (current.length() > 0) {
+            result.add(current.toString());
+        }
+        return result;
+    }
+
+    private List<String> wrapTextLines(String text, int maxChars) {
+        List<String> result = new ArrayList<>();
+        if (text == null || text.isEmpty()) return result;
+        if (text.length() <= maxChars) {
+            result.add(text);
+            return result;
+        }
+        String[] words = text.split(" ");
+        StringBuilder current = new StringBuilder();
+        for (String w : words) {
+            if (current.length() + w.length() + 1 > maxChars) {
+                result.add(current.toString());
+                current = new StringBuilder(w);
+            } else {
+                if (current.length() > 0) current.append(" ");
+                current.append(w);
+            }
+        }
+        if (current.length() > 0) {
+            result.add(current.toString());
+        }
+        return result;
+    }
+
     private ItemStack getItemStackForType(String type) {
-        if (type == null) return new ItemStack(Items.ENCHANTED_BOOK);
+        if (type == null) return new ItemStack(Items.DIAMOND_SWORD);
         switch (type.toLowerCase()) {
             case "sword": return new ItemStack(Items.DIAMOND_SWORD);
             case "axe": return new ItemStack(Items.DIAMOND_AXE);
             case "mace": return new ItemStack(Items.MACE);
             case "trident": return new ItemStack(Items.TRIDENT);
             case "bow": return new ItemStack(Items.BOW);
-            case "xbow":
-            case "crossbow": return new ItemStack(Items.CROSSBOW);
-            case "pick":
-            case "pickaxe": return new ItemStack(Items.DIAMOND_PICKAXE);
+            case "xbow": return new ItemStack(Items.CROSSBOW);
+            case "pick": return new ItemStack(Items.DIAMOND_PICKAXE);
             case "shovel": return new ItemStack(Items.DIAMOND_SHOVEL);
             case "hoe": return new ItemStack(Items.DIAMOND_HOE);
-            case "rod":
-            case "fishing_rod": return new ItemStack(Items.FISHING_ROD);
+            case "rod": return new ItemStack(Items.FISHING_ROD);
             case "helmet": return new ItemStack(Items.DIAMOND_HELMET);
-            case "chest":
-            case "chestplate": return new ItemStack(Items.DIAMOND_CHESTPLATE);
-            case "legs":
-            case "leggings": return new ItemStack(Items.DIAMOND_LEGGINGS);
+            case "chest": return new ItemStack(Items.DIAMOND_CHESTPLATE);
+            case "legs": return new ItemStack(Items.DIAMOND_LEGGINGS);
             case "boots": return new ItemStack(Items.DIAMOND_BOOTS);
             case "elytra": return new ItemStack(Items.ELYTRA);
             default: return new ItemStack(Items.ENCHANTED_BOOK);
         }
     }
 
-    private void renderCalculatorTab(GuiGraphicsExtractor extractor, int mouseX, int mouseY) {
-        int panelWidth = Math.min(550, this.width - 20);
-        int panelX = (this.width - panelWidth) / 2;
-
-        if (simView == SimView.GUIDE) {
-            renderGuideView(extractor, panelX, panelWidth, mouseX, mouseY);
-        } else {
-            renderSavedSetsView(extractor, panelX, panelWidth, mouseX, mouseY);
-        }
-    }
-
-    private void renderGuideView(GuiGraphicsExtractor extractor, int panelX, int panelWidth, int mouseX, int mouseY) {
-        int bannerY = 72;
-
-        if (currentSolution != null && !currentSolution.steps.isEmpty()) {
-            int bannerW = panelWidth - 92;
-            // BANNER RIEPILOGO COSTI IN CIMA SENZA ALCUNA SOVRAPPOSIZIONE
-            extractor.fill(panelX, bannerY, panelX + bannerW, bannerY + 20, 0xEE141422);
-            extractor.fill(panelX, bannerY, panelX + 3, bannerY + 20, 0xFF10B981);
-            extractor.outline(panelX, bannerY, bannerW, 20, 0xFF2A2A3E);
-
-            int curBannerX = panelX + 10;
-            String costTxt = "Costo: " + currentSolution.totalCost + " liv.";
-            extractor.text(this.font, costTxt, curBannerX, bannerY + 6, 0xFF34D399, false);
-            curBannerX += this.font.width(costTxt) + 16;
-
-            boolean safe = currentSolution.peakCost <= 39;
-            String peakTxt = "Picco: " + currentSolution.peakCost + "/39 liv. " + (safe ? "[OK]" : "[!]");
-            extractor.text(this.font, peakTxt, curBannerX, bannerY + 6, safe ? 0xFF818CF8 : 0xFFEF4444, false);
-            curBannerX += this.font.width(peakTxt) + 10;
-
-            int guideInfoX = curBannerX;
-            boolean isGuideInfoHovered = mouseX >= guideInfoX - 3 && mouseX <= guideInfoX + 16 && mouseY >= bannerY + 2 && mouseY <= bannerY + 18;
-            extractor.text(this.font, isGuideInfoHovered ? "§e[?]" : "§7[§e?§7]", guideInfoX, bannerY + 6, isGuideInfoHovered ? 0xFFFCD34D : 0xFF9CA3AF, false);
-            if (isGuideInfoHovered) {
-                this.hoveredGuideInfo = true;
-            }
-            curBannerX += 20;
-
-            int totalSteps = currentSolution.steps.size();
-            int stepsPerPage = 4;
-            int maxPages = Math.max(1, (int) Math.ceil((double) totalSteps / stepsPerPage));
-            if (guideStepPage >= maxPages) guideStepPage = maxPages - 1;
-            if (guideStepPage < 0) guideStepPage = 0;
-
-            String pagInfo = "Passi " + (guideStepPage * stepsPerPage + 1) + "-" + Math.min((guideStepPage + 1) * stepsPerPage, totalSteps) 
-                    + " di " + totalSteps;
-            int pagInfoX = panelX + bannerW - this.font.width(pagInfo) - 10;
-            extractor.text(this.font, pagInfo, Math.max(curBannerX + this.font.width(peakTxt) + 16, pagInfoX), bannerY + 6, 0xFFA5B4FC, false);
-
-            if (btnCopyGuide != null) {
-                btnCopyGuide.visible = true;
-                btnCopyGuide.active = true;
-                btnCopyGuide.setPosition(panelX + panelWidth - 88, bannerY + 1);
-            }
-
-            if (btnPrevStep != null && btnNextStep != null) {
-                btnPrevStep.visible = true;
-                btnNextStep.visible = true;
-                btnPrevStep.active = guideStepPage > 0;
-                btnNextStep.active = guideStepPage < maxPages - 1;
-            }
-
-            int stepStartY = bannerY + 24;
-            int cardH = 46;
-            int cardGap = 4;
-
-            int startStep = guideStepPage * stepsPerPage;
-            int endStep = Math.min(startStep + stepsPerPage, totalSteps);
-
-            HoveredBookSlot hoveredSlot = null;
-
-            for (int i = startStep; i < endStep; i++) {
-                MergeStep step = currentSolution.steps.get(i);
-                int y = stepStartY + (i - startStep) * (cardH + cardGap);
-
-                int stripeColor = step.isBookToBook ? 0xFF6366F1 : 0xFF10B981;
-                extractor.fill(panelX, y, panelX + panelWidth, y + cardH, 0xEE12121E);
-                extractor.fill(panelX, y, panelX + 3, y + cardH, stripeColor);
-                extractor.outline(panelX, y, panelWidth, cardH, 0xFF2A2A3E);
-
-                // HEADER CARD
-                String badge = "PASSO " + (i + 1) + "/" + totalSteps;
-                int badgeCol = step.isBookToBook ? 0xFF818CF8 : 0xFF34D399;
-                extractor.text(this.font, "[" + badge + "]", panelX + 8, y + 4, badgeCol, false);
-
-                String actIcon = com.litness.optimizer.data.ItemTypeHelper.getActionIcon(ITEM_KEYS[selectedItemIndex]);
-                String opType = step.isBookToBook ? "Fusione Libri nell'Incudine" : (actIcon.isEmpty() ? "" : actIcon + " ") + "Tempra Libro su " + step.leftLabel;
-                extractor.text(this.font, opType, panelX + 80, y + 4, 0xFFFFFFFF, false);
-
-                String costText = "Costo: " + step.cost + " liv. XP";
-                int costW = this.font.width(costText);
-                extractor.text(this.font, costText, panelX + panelWidth - costW - 8, y + 4, 0xFFFBBF24, false);
-
-                // 3 SLOT PROFESSIONALI CON IMMAGINI DEGLI OGGETTI (ANVIL WORKBENCH)
-                int slotY = y + 16;
-                int slotW = 185;
-
-                // SLOT 1 (Sinistra)
-                extractor.fill(panelX + 8, slotY, panelX + 8 + slotW, slotY + 26, 0xCC181826);
-                extractor.outline(panelX + 8, slotY, slotW, 26, 0xFF35354E);
-
-                // Render dell'icona reale dell'item/libro di Minecraft
-                ItemStack slot1Stack = step.isBookToBook ? new ItemStack(Items.ENCHANTED_BOOK) : getItemStackForType(ITEM_KEYS[selectedItemIndex]);
-                extractor.fakeItem(slot1Stack, panelX + 12, slotY + 5);
-
-                String leftHeader = step.isBookToBook ? "Slot 1 (Libro):" : "Slot 1 (Oggetto):";
-                extractor.text(this.font, leftHeader, panelX + 32, slotY + 4, 0xFF93C5FD, false);
-                if (step.isBookToBook && InventoryTracker.hasInInventory(step.leftLabel)) {
-                    String invBadge = "§aIn Inventario";
-                    int bW = this.font.width(invBadge);
-                    extractor.text(this.font, invBadge, panelX + 8 + slotW - bW - 4, slotY + 4, 0xFF34D399, false);
-                }
-                String leftName = trimToWidth(step.leftLabel, slotW - 36);
-                extractor.text(this.font, leftName, panelX + 32, slotY + 14, 0xFFFFFFFF, false);
-
-                // SEGNO PIÙ CENTRALE
-                extractor.centeredText(this.font, "+", panelX + 8 + slotW + 10, slotY + 9, 0xFFFBBF24);
-
-                // SLOT 2 (Destra)
-                int slot2X = panelX + 8 + slotW + 20;
-                extractor.fill(slot2X, slotY, slot2X + slotW, slotY + 26, 0xCC181826);
-                extractor.outline(slot2X, slotY, slotW, 26, 0xFF35354E);
-
-                // Render del libro sacrificato
-                extractor.fakeItem(new ItemStack(Items.ENCHANTED_BOOK), slot2X + 4, slotY + 5);
-
-                extractor.text(this.font, "Slot 2 (Libro):", slot2X + 24, slotY + 4, 0xFFF472B6, false);
-                if (InventoryTracker.hasInInventory(step.rightLabel)) {
-                    String invBadge = "§aIn Inventario";
-                    int bW = this.font.width(invBadge);
-                    extractor.text(this.font, invBadge, slot2X + slotW - bW - 4, slotY + 4, 0xFF34D399, false);
-                }
-                String rightName = trimToWidth(step.rightLabel, slotW - 28);
-                extractor.text(this.font, rightName, slot2X + 24, slotY + 14, 0xFFFFFFFF, false);
-
-                // FRECCIA RISULTATO
-                extractor.centeredText(this.font, "->", slot2X + slotW + 10, slotY + 9, 0xFF34D399);
-
-                // RISULTATO (Output Slot)
-                int resX = slot2X + slotW + 20;
-                int resW = panelWidth - (resX - panelX) - 8;
-                extractor.fill(resX, slotY, resX + resW, slotY + 26, 0xCC12241A);
-                extractor.outline(resX, slotY, resW, 26, 0xFF1E6638);
-
-                // Render dell'oggetto risultante
-                ItemStack resStack = step.isBookToBook ? new ItemStack(Items.ENCHANTED_BOOK) : getItemStackForType(ITEM_KEYS[selectedItemIndex]);
-                extractor.fakeItem(resStack, resX + 4, slotY + 5);
-
-                extractor.text(this.font, "Risultato:", resX + 24, slotY + 4, 0xFF34D399, false);
-                String resName = trimToWidth(step.resultLabel, resW - 28);
-                extractor.text(this.font, resName, resX + 24, slotY + 14, 0xFFE4E4E7, false);
-
-                // Hover sullo Slot 1 (Sinistra)
-                if (mouseX >= panelX + 8 && mouseX <= panelX + 8 + slotW && mouseY >= slotY && mouseY <= slotY + 26) {
-                    hoveredSlot = new HoveredBookSlot(
-                        step.isBookToBook,
-                        step.isBookToBook ? "Slot 1 (Libro Incantato)" : "Slot 1: " + step.leftLabel,
-                        step.leftLabel,
-                        step.leftWork,
-                        step.leftEnchants
-                    );
-                }
-
-                // Hover sullo Slot 2 (Destra - sempre libro)
-                if (mouseX >= slot2X && mouseX <= slot2X + slotW && mouseY >= slotY && mouseY <= slotY + 26) {
-                    hoveredSlot = new HoveredBookSlot(
-                        true,
-                        "Slot 2 (Libro da Unire)",
-                        step.rightLabel,
-                        step.rightWork,
-                        step.rightEnchants
-                    );
-                }
-
-                // Hover sul Risultato (Output)
-                if (mouseX >= resX && mouseX <= resX + resW && mouseY >= slotY && mouseY <= slotY + 26) {
-                    hoveredSlot = new HoveredBookSlot(
-                        step.isBookToBook,
-                        step.isBookToBook ? "Risultato (Libro Unito)" : "Risultato: " + step.resultLabel,
-                        step.resultLabel,
-                        step.resultWork,
-                        step.resultEnchants
-                    );
-                }
-            }
-
-            this.hoveredGuideSlot = hoveredSlot;
-        } else {
-            int bannerW = panelWidth;
-            extractor.fill(panelX, bannerY, panelX + bannerW, bannerY + 24, 0xEE141422);
-            extractor.outline(panelX, bannerY, bannerW, 24, 0xFF2A2A3E);
-            extractor.text(this.font, statusMessage.isEmpty() ? "Nessun incantesimo selezionato." : statusMessage, panelX + 10, bannerY + 8, 0xFFA5B4FC, false);
-            if (btnPrevStep != null) btnPrevStep.visible = false;
-            if (btnNextStep != null) btnNextStep.visible = false;
-            if (btnCopyGuide != null) {
-                btnCopyGuide.visible = false;
-                btnCopyGuide.active = false;
-            }
-        }
-    }
-
-    private void renderCreatingCornerItemTooltip(GuiGraphicsExtractor extractor, int mouseX, int mouseY) {
-        List<Component> tipLines = new ArrayList<>();
-        tipLines.add(Component.literal("§b• " + ITEM_NAMES[creatingSetItemIndex] + " §8[Set in Creazione]"));
-        tipLines.add(Component.literal("§eIncantesimi inseriti (" + creatingSetEnchants.size() + "/12):"));
-        if (creatingSetEnchants.isEmpty()) {
-            tipLines.add(Component.literal("   §8(Nessun incanto selezionato)"));
-        } else {
-            for (String enchId : creatingSetEnchants) {
-                EnchantmentEntry ee = EnchantmentDatabase.getEnchantment(enchId);
-                String name = (ee != null) ? AnvilOptimizer.formatEnchantName(ee.name, ee.maxLevel) : enchId;
-                tipLines.add(Component.literal("   §a• " + name));
-            }
-        }
-        tipLines.add(Component.empty());
-        tipLines.add(Component.literal("§8• Clicca un incanto nella lista per aggiungerlo o rimuoverlo"));
-
-        int maxW = 150;
-        for (Component c : tipLines) {
-            maxW = Math.max(maxW, this.font.width(c));
-        }
-        int tipW = maxW + 16;
-        int tipH = tipLines.size() * 11 + 10;
-
-        int panelWidth = Math.min(550, this.width - 20);
-        int panelX = (this.width - panelWidth) / 2;
-        int cornerW = 150;
-        int cornerX = panelX + panelWidth - cornerW;
-        int cornerY = 71;
-
-        int tipX = cornerX + cornerW - tipW;
-        int tipY = cornerY + 18 + 2;
-        if (tipX + tipW > this.width - 4) tipX = this.width - tipW - 4;
-        if (tipY + tipH > this.height - 4) tipY = this.height - tipH - 4;
-        if (tipX < 4) tipX = 4;
-        if (tipY < 4) tipY = 4;
-
-        extractor.outline(tipX - 1, tipY - 1, tipW + 2, tipH + 2, 0xFF000000);
-        extractor.fill(tipX, tipY, tipX + tipW, tipY + tipH, 0xF80E111A);
-        extractor.fill(tipX, tipY, tipX + tipW, tipY + 2, 0xFF6366F1);
-        extractor.outline(tipX, tipY, tipW, tipH, 0xFF4F46E5);
-
-        int textY = tipY + 6;
-        for (Component line : tipLines) {
-            if (line.getString().isEmpty()) {
-                textY += 4;
-            } else {
-                extractor.text(this.font, line, tipX + 8, textY, 0xFFFFFFFF, true);
-                textY += 11;
-            }
-        }
-    }
-
-    private void renderGuideInfoTooltip(GuiGraphicsExtractor extractor, int mouseX, int mouseY) {
-        List<Component> tipLines = new ArrayList<>();
-        tipLines.add(Component.literal("§6GUIDA COMPLETA (TEORICA)"));
-        tipLines.add(Component.literal("§7Mostra l'albero matematico perfetto calcolato a tavolino:"));
-        tipLines.add(Component.literal("§8• Ipotizza tutti i libri con penalità 0 e set completo."));
-        tipLines.add(Component.empty());
-        tipLines.add(Component.literal("§ePerché i passi all'Incudine possono cambiare?"));
-        tipLines.add(Component.literal("§8• L'Assistente laterale all'Incudine agisce come un GPS dinamico:"));
-        tipLines.add(Component.literal("§8  legge i libri che hai in mano e le penalità reali,"));
-        tipLines.add(Component.literal("§8  ricalcolando la mossa migliore per evitare 'Troppo Costoso!'."));
-
-        int maxW = 0;
-        for (Component c : tipLines) {
-            maxW = Math.max(maxW, this.font.width(c));
-        }
-        int tipW = maxW + 16;
-        int tipH = tipLines.size() * 11 + 10;
-        int tipX = this.width / 2 - tipW / 2;
-        int tipY = this.height / 2 - tipH / 2;
-
-        extractor.outline(tipX - 1, tipY - 1, tipW + 2, tipH + 2, 0xFF000000);
-        extractor.fill(tipX, tipY, tipX + tipW, tipY + tipH, 0xF80E111A);
-        extractor.fill(tipX, tipY, tipX + tipW, tipY + 2, 0xFFF59E0B);
-        extractor.outline(tipX, tipY, tipW, tipH, 0xFFD97706);
-
-        int textY = tipY + 6;
-        for (Component line : tipLines) {
-            if (line.getString().isEmpty()) {
-                textY += 4;
-            } else {
-                extractor.text(this.font, line, tipX + 8, textY, 0xFFFFFFFF, true);
-                textY += 11;
-            }
-        }
-    }
-
-    private void renderGuideSlotTooltip(GuiGraphicsExtractor extractor, HoveredBookSlot slot, int mouseX, int mouseY) {
-        if (slot == null) return;
-
-        if (slot.enchants.isEmpty()) {
-            String title = slot.slotTitle;
-            String content = slot.label;
-            String pen = "Penalità lavoro: +" + slot.work + " liv.";
-            int tipW = Math.max(160, Math.max(this.font.width(content), this.font.width(pen)) + 16);
-            int tipH = 44;
-            int tipX = Math.min(mouseX + 10, this.width - tipW - 8);
-            int tipY = Math.max(10, mouseY - 20);
-            extractor.fill(tipX, tipY, tipX + tipW, tipY + tipH, 0xFA0E1510);
-            extractor.fill(tipX, tipY, tipX + tipW, tipY + 1, 0xFF10B981);
-            extractor.outline(tipX, tipY, tipW, tipH, 0xFF227744);
-            extractor.text(this.font, title, tipX + 8, tipY + 6, 0xFF34D399, false);
-            extractor.text(this.font, content, tipX + 8, tipY + 18, 0xFFFFFFFF, false);
-            extractor.text(this.font, pen, tipX + 8, tipY + 29, 0xFFFBBF24, false);
-            return;
-        }
-
-        if (slot.enchants.size() == 1) {
-            EnchantApplied ea = slot.enchants.get(0);
-            EnchantmentEntry ee = EnchantmentDatabase.getEnchantment(ea.id);
-            if (ee == null) {
-                ee = new EnchantmentEntry();
-                ee.id = ea.id;
-                ee.name = ea.id;
-                ee.category = "vanilla";
-                ee.maxLevel = 5;
-            }
-
-            boolean isCustom = "custom".equalsIgnoreCase(ee.category);
-            boolean isVanillaPlus = "vanilla_plus".equalsIgnoreCase(ee.category);
-            String title = AnvilOptimizer.formatEnchantName(ee.name, ea.level);
-            String catName = isVanillaPlus ? "Vanilla+ Speciale" : (isCustom ? "Custom Litness (" + (ee.rarity != null ? ee.rarity : "Speciale") + ")" : "Incantesimo Vanilla");
-            String sub = catName + " • Costo: " + ((isCustom || isVanillaPlus) ? "+" + ee.getAnvilCostNumeric() + " liv." : "Standard");
-            String penTxt = "Penalità lavoro libro: +" + slot.work + " liv.";
-            String desc = (ee.description != null && !ee.description.isEmpty()) ? ee.description : "Nessuna descrizione.";
-
-            List<String> conflicts = EnchantmentDatabase.getResolvedConflicts(ee.id);
-            boolean hasConflicts = !conflicts.isEmpty();
-            String confText = hasConflicts ? "§cConflitti: §f" + String.join("§7, §f", conflicts) : null;
-
-            int tipW = Math.min(320, this.width - 24);
-            int innerW = tipW - 16;
-            int descH = this.font.wordWrapHeight(Component.literal(desc), innerW);
-            int confH = hasConflicts ? this.font.wordWrapHeight(Component.literal(confText), innerW) : 0;
-            int tipH = 46 + descH + (hasConflicts ? 6 + confH : 0) + 8;
-
-            int tipX = mouseX + 12;
-            if (tipX + tipW > this.width - 8) {
-                tipX = mouseX - tipW - 12;
-                if (tipX < 8) tipX = Math.max(8, this.width - tipW - 8);
-            }
-            int tipY = Math.max(8, Math.min(mouseY - 8, this.height - tipH - 8));
-
-            extractor.fill(tipX, tipY, tipX + tipW, tipY + tipH, 0xFA0E1510);
-            int topStripe = isVanillaPlus ? 0xFFF59E0B : (isCustom ? 0xFF10B981 : 0xFF6366F1);
-            extractor.fill(tipX, tipY, tipX + tipW, tipY + 1, topStripe);
-            extractor.outline(tipX, tipY, tipW, tipH, 0xFF227744);
-
-            extractor.text(this.font, title, tipX + 8, tipY + 6, 0xFF34D399, false);
-            extractor.text(this.font, sub, tipX + 8, tipY + 18, isVanillaPlus ? 0xFFFBBF24 : (isCustom ? 0xFF86EFAC : 0xFF93C5FD), false);
-            extractor.text(this.font, penTxt, tipX + 8, tipY + 29, 0xFFFBBF24, false);
-
-            int currentY = tipY + 42;
-            extractor.textWithWordWrap(this.font, Component.literal(desc), tipX + 8, currentY, innerW, 0xFFFFFFFF);
-            currentY += descH + 6;
-
-            if (hasConflicts) {
-                extractor.textWithWordWrap(this.font, Component.literal(confText), tipX + 8, currentY, innerW, 0xFFF87171);
-            }
-            return;
-        }
-
-        // Più incantesimi uniti sul libro
-        int tipW = Math.min(330, this.width - 24);
-        int innerW = tipW - 16;
-        String headerTitle = "Libro Incantato (" + slot.enchants.size() + " Incantesimi)";
-        String penTxt = "Penalità lavoro: +" + slot.work + " liv.";
-
-        int calcH = 34;
-        List<Integer> descHeights = new ArrayList<>();
-        for (EnchantApplied ea : slot.enchants) {
-            EnchantmentEntry ee = EnchantmentDatabase.getEnchantment(ea.id);
-            calcH += 12;
-            String d = (ee != null && ee.description != null && !ee.description.isEmpty()) ? ee.description : null;
-            if (d != null) {
-                int dh = this.font.wordWrapHeight(Component.literal(d), innerW - 8);
-                descHeights.add(dh);
-                calcH += dh + 4;
-            } else {
-                descHeights.add(0);
-            }
-            calcH += 4;
-        }
-        calcH += 6;
-
-        int tipH = Math.min(calcH, this.height - 20);
-        int tipX = mouseX + 12;
-        if (tipX + tipW > this.width - 8) {
-            tipX = mouseX - tipW - 12;
-            if (tipX < 8) tipX = Math.max(8, this.width - tipW - 8);
-        }
-        int tipY = Math.max(8, Math.min(mouseY - 8, this.height - tipH - 8));
-
-        extractor.fill(tipX, tipY, tipX + tipW, tipY + tipH, 0xFA0E1510);
-        extractor.fill(tipX, tipY, tipX + tipW, tipY + 1, 0xFF10B981);
-        extractor.outline(tipX, tipY, tipW, tipH, 0xFF227744);
-
-        extractor.text(this.font, headerTitle, tipX + 8, tipY + 6, 0xFF34D399, false);
-        extractor.text(this.font, penTxt, tipX + 8, tipY + 18, 0xFFFBBF24, false);
-        extractor.fill(tipX + 6, tipY + 29, tipX + tipW - 6, tipY + 30, 0xFF225533);
-
-        int curY = tipY + 34;
-        for (int i = 0; i < slot.enchants.size(); i++) {
-            if (curY >= tipY + tipH - 12) break;
-            EnchantApplied ea = slot.enchants.get(i);
-            EnchantmentEntry ee = EnchantmentDatabase.getEnchantment(ea.id);
-            boolean isCustom = ee != null && "custom".equalsIgnoreCase(ee.category);
-            boolean isVanillaPlus = ee != null && "vanilla_plus".equalsIgnoreCase(ee.category);
-            String catLabel = isVanillaPlus ? "Vanilla+" : (isCustom ? ee.rarity : "Vanilla");
-            String nameText = "• " + AnvilOptimizer.formatEnchantName(ee != null ? ee.name : ea.id, ea.level) 
-                    + " §7(" + catLabel + ")";
-            int textCol = isVanillaPlus ? 0xFFFBBF24 : (isCustom ? 0xFF86EFAC : 0xFF93C5FD);
-            extractor.text(this.font, nameText, tipX + 8, curY, textCol, false);
-            curY += 11;
-
-            String d = (ee != null && ee.description != null && !ee.description.isEmpty()) ? ee.description : null;
-            if (d != null) {
-                int dh = descHeights.get(i);
-                extractor.textWithWordWrap(this.font, Component.literal(d), tipX + 14, curY, innerW - 8, 0xFFD1D5DB);
-                curY += dh + 4;
-            }
-            curY += 2;
-        }
-    }
-
-    public static List<EnchantApplied> parseEnchantmentsFromLabel(String label) {
-        List<EnchantApplied> list = new ArrayList<>();
-        if (label == null || label.trim().isEmpty()) return list;
-        String[] parts = label.split("\\+");
-        for (String p : parts) {
-            p = p.trim();
-            if (p.isEmpty()) continue;
-            String name = p;
-            int lvl = 1;
-            int lastSpace = p.lastIndexOf(' ');
-            if (lastSpace > 0) {
-                String possibleRoman = p.substring(lastSpace + 1).trim();
-                int parsed = parseRomanOrInt(possibleRoman);
-                if (parsed > 0) {
-                    lvl = parsed;
-                    name = p.substring(0, lastSpace).trim();
-                }
-            }
-            EnchantmentEntry ee = EnchantmentDatabase.getEnchantment(name);
-            if (ee != null) {
-                list.add(new EnchantApplied(ee.id, lvl));
-            }
-        }
-        return list;
-    }
-
-    private static int parseRomanOrInt(String s) {
-        if (s == null) return 0;
-        s = s.trim().toUpperCase();
-        switch (s) {
-            case "I": case "1": return 1;
-            case "II": case "2": return 2;
-            case "III": case "3": return 3;
-            case "IV": case "4": return 4;
-            case "V": case "5": return 5;
-            case "VI": case "6": return 6;
-            case "VII": case "7": return 7;
-            case "VIII": case "8": return 8;
-            case "IX": case "9": return 9;
-            case "X": case "10": return 10;
-            default:
-                try { return Integer.parseInt(s); } catch (Exception ignored) { return 0; }
-        }
-    }
-
-    private String trimToWidth(String s, int maxWidth) {
-        if (s == null) return "";
-        if (this.font.width(s) <= maxWidth) return s;
-        while (s.length() > 3 && this.font.width(s + "...") > maxWidth) {
-            s = s.substring(0, s.length() - 1);
-        }
-        return s + "...";
-    }
-
     @Override
     public boolean mouseScrolled(double mouseX, double mouseY, double horizontalAmount, double verticalAmount) {
-        if (currentTab == Tab.CATALOG) {
-            int totalPages = Math.max(1, (int) Math.ceil((double) filteredEnchantments.size() / getItemsPerPage()));
+        int winX = getWinX();
+        int winY = getWinY();
+        int winW = getWinW();
+        int winH = getWinH();
+        if (mouseX < winX || mouseX > winX + winW || mouseY < winY || mouseY > winY + winH) {
+            return super.mouseScrolled(mouseX, mouseY, horizontalAmount, verticalAmount);
+        }
+
+        if (this.currentTab == Tab.CATALOG) {
+            int pageSize = CATALOG_PAGE_SIZE;
+            int totalPages = Math.max(1, (int) Math.ceil((double) filteredEnchantments.size() / pageSize));
             if (verticalAmount > 0 && catalogPage > 0) {
                 catalogPage--;
-                refreshCatalogButtons();
+                this.clearWidgets();
+                this.init();
                 return true;
             } else if (verticalAmount < 0 && catalogPage < totalPages - 1) {
                 catalogPage++;
-                refreshCatalogButtons();
+                this.clearWidgets();
+                this.init();
                 return true;
             }
-        } else if (currentTab == Tab.CALCULATOR) {
-            if (simView == SimView.GUIDE && currentSolution != null && !currentSolution.steps.isEmpty()) {
-                int totalSteps = currentSolution.steps.size();
-                int maxPages = Math.max(1, (int) Math.ceil((double) totalSteps / 4));
-                if (verticalAmount > 0 && guideStepPage > 0) {
-                    guideStepPage--;
-                    return true;
-                } else if (verticalAmount < 0 && guideStepPage < maxPages - 1) {
-                    guideStepPage++;
-                    return true;
-                }
-            } else if (simView == SimView.SETS) {
-                if (isCreatingSet) {
-                    if (this.creatingSetNameField != null) {
-                        currentCreatingSetName = this.creatingSetNameField.getValue();
-                    }
-                    if (this.creatingSetSearchField != null) {
-                        currentCreatingSetSearch = this.creatingSetSearchField.getValue();
-                    }
-                    int totalPages = Math.max(1, (int) Math.ceil((double) currentVisibleSelectionEnchants.size() / getCreatingSetItemsPerPage()));
-                    if (verticalAmount > 0 && creatingSetPage > 0) {
-                        creatingSetPage--;
-                        this.clearWidgets();
-                        this.init();
-                        return true;
-                    } else if (verticalAmount < 0 && creatingSetPage < totalPages - 1) {
-                        creatingSetPage++;
-                        this.clearWidgets();
-                        this.init();
-                        return true;
-                    }
-                } else {
-                    int totalPages = Math.max(1, (int) Math.ceil((double) SavedSetsManager.getSavedSets().size() / 4));
-                    if (verticalAmount > 0 && savedSetsPage > 0) {
-                        savedSetsPage--;
-                        this.clearWidgets();
-                        this.init();
-                        return true;
-                    } else if (verticalAmount < 0 && savedSetsPage < totalPages - 1) {
-                        savedSetsPage++;
-                        this.clearWidgets();
-                        this.init();
-                        return true;
-                    }
-                }
+        } else if (this.currentTab == Tab.SETS && isCreatingSet) {
+            int pageSize = CREATING_SET_PAGE_SIZE;
+            int totalPages = Math.max(1, (int) Math.ceil((double) currentVisibleSelectionEnchants.size() / pageSize));
+            if (verticalAmount > 0 && creatingSetPage > 0) {
+                creatingSetPage--;
+                this.clearWidgets();
+                this.init();
+                return true;
+            } else if (verticalAmount < 0 && creatingSetPage < totalPages - 1) {
+                creatingSetPage++;
+                this.clearWidgets();
+                this.init();
+                return true;
+            }
+        } else if (this.currentTab == Tab.CALCULATOR && currentSolution != null && currentSolution.steps.size() > CALCULATOR_PAGE_SIZE) {
+            int maxScroll = Math.max(0, currentSolution.steps.size() - CALCULATOR_PAGE_SIZE);
+            if (verticalAmount > 0 && calculatorScrollOffset > 0) {
+                calculatorScrollOffset--;
+                return true;
+            } else if (verticalAmount < 0 && calculatorScrollOffset < maxScroll) {
+                calculatorScrollOffset++;
+                return true;
             }
         }
         return super.mouseScrolled(mouseX, mouseY, horizontalAmount, verticalAmount);
     }
 
-    private static boolean isShiftKeyDown() {
-        try {
-            return InputConstants.isKeyDown(InputConstants.KEY_LSHIFT)
-                || InputConstants.isKeyDown(InputConstants.KEY_RSHIFT);
-        } catch (Throwable ignored) {
-            return false;
+    @Override
+    public void tick() {
+        super.tick();
+        if (needsWidgetRebuild) {
+            needsWidgetRebuild = false;
+            this.clearWidgets();
+            this.init();
         }
     }
 
     @Override
     public void onClose() {
-        if (this.minecraft != null && this.parentScreen != null) {
-            this.minecraft.setScreenAndShow(this.parentScreen);
-        } else {
-            super.onClose();
+        if (this.minecraft != null) {
+            if (this.parentScreen != null) {
+                this.minecraft.setScreenAndShow(this.parentScreen);
+            } else {
+                super.onClose();
+            }
         }
     }
 

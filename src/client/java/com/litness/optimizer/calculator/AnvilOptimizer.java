@@ -75,38 +75,14 @@ public class AnvilOptimizer {
         return (1 << work) - 1;
     }
 
-    private static class Node {
-        int work;
-        int total;
-        int peak;
-        int cost;
-        int transferCost;
-        int mask;
-        Node left;
-        Node right;
-
-        String getSignature(List<BookInput> books) {
-            if (left == null || right == null) {
-                return formatMaskLabel(mask, books);
-            }
-            return "(" + left.getSignature(books) + "+" + right.getSignature(books) + ")";
-        }
-    }
-
-    private static class ApplyNode {
-        int targetWork;
-        int total;
-        int peak;
-        int cost;
-        int transferCost;
-        ApplyNode prev;
-        Node bookNode;
-
-        String getSignature(List<BookInput> books) {
-            String bSig = bookNode != null ? bookNode.getSignature(books) : "";
-            String pSig = prev != null ? prev.getSignature(books) : "";
-            return targetWork + ":" + cost + ":" + bSig + ">" + pSig;
-        }
+    public static class SimNode {
+        public int work;
+        public int cost;
+        public String label;
+        public List<EnchantApplied> enchants = new ArrayList<>();
+        public List<MergeStep> steps = new ArrayList<>();
+        public int totalCost;
+        public int peakCost;
     }
 
     public static String getBookSignature(BookInput b) {
@@ -121,91 +97,79 @@ public class AnvilOptimizer {
         return b.works + "|" + getBookCost(b) + "|" + String.join(",", list);
     }
 
+    static int popcount(int v) { return Integer.bitCount(v); }
+
+    private static class BookNode {
+        int work, total, peak, cost, transfer, mask;
+        BookNode left, right;
+    }
+
+    private static class ApplyNode {
+        int targetWork, total, peak, cost, transfer;
+        ApplyNode prev;
+        BookNode bookNode;
+    }
+
+    private static void insertParetoNode(List<BookNode> list, BookNode next) {
+        for (int i = 0; i < list.size(); i++) {
+            BookNode curr = list.get(i);
+            if (curr.total <= next.total && curr.peak <= next.peak) return;
+        }
+        list.removeIf(curr -> next.total <= curr.total && next.peak <= curr.peak);
+        list.add(next);
+    }
+
+    private static void insertParetoApply(List<ApplyNode> list, ApplyNode next) {
+        for (int i = 0; i < list.size(); i++) {
+            ApplyNode curr = list.get(i);
+            if (curr.peak <= next.peak && curr.total <= next.total) return;
+        }
+        list.removeIf(curr -> next.peak <= curr.peak && next.total <= curr.total);
+        list.add(next);
+    }
+
+    private static void collectBookSteps(BookNode node, List<BookInput> rawBooks, List<MergeStep> steps, Set<BookNode> visited) {
+        if (node == null || node.left == null || node.right == null) return;
+        if (!visited.add(node)) return;
+
+        collectBookSteps(node.left, rawBooks, steps, visited);
+        collectBookSteps(node.right, rawBooks, steps, visited);
+
+        MergeStep s = new MergeStep();
+        s.isBookToBook = true;
+        s.leftLabel = formatMaskLabel(node.left.mask, rawBooks);
+        s.rightLabel = formatMaskLabel(node.right.mask, rawBooks);
+        s.resultLabel = formatMaskLabel(node.mask, rawBooks);
+        s.leftEnchants = getEnchantsForMask(node.left.mask, rawBooks);
+        s.rightEnchants = getEnchantsForMask(node.right.mask, rawBooks);
+        s.resultEnchants = getEnchantsForMask(node.mask, rawBooks);
+        s.cost = node.cost;
+        s.transferCost = node.transfer;
+        s.leftWork = node.left.work;
+        s.rightWork = node.right.work;
+        s.resultWork = node.work;
+        steps.add(s);
+    }
+
     public static Solution optimize(List<BookInput> rawBooks, int targetWorks, ItemEntry targetItem, List<EnchantApplied> existingEnchants) {
         if (rawBooks == null || rawBooks.isEmpty()) return null;
 
-        List<MergeStep> prepSteps = new ArrayList<>();
-        List<BookInput> books = new ArrayList<>();
-        for (BookInput bi : rawBooks) {
-            BookInput copy = new BookInput(bi.works);
-            copy.enchantments.addAll(bi.enchantments);
-            copy.explicitCost = bi.explicitCost;
-            books.add(copy);
+        String itemLabel = targetItem != null ? 
+            (com.litness.optimizer.data.LitnessI18n.isEnglish() ? targetItem.name : com.litness.optimizer.data.LitnessI18n.getItemPieceName(targetItem.id)) : "Oggetto";
+
+        int count = rawBooks.size();
+        if (count > 12) {
+            rawBooks = rawBooks.subList(0, 12);
+            count = 12;
         }
-
-        // Ordinamento canonico deterministico a monte
-        Comparator<BookInput> canonicalBookComparator = (b1, b2) -> {
-            if (b1.works != b2.works) return Integer.compare(b1.works, b2.works);
-            int c1 = getBookCost(b1);
-            int c2 = getBookCost(b2);
-            if (c1 != c2) return Integer.compare(c2, c1);
-            return getBookSignature(b1).compareTo(getBookSignature(b2));
-        };
-        books.sort(canonicalBookComparator);
-
-        // Se ci sono più di 8 libri, pre-combiniamo a coppie i libri più economici
-        // per garantire esecuzione istantanea (<2ms) senza sacrificare alcun incantesimo
-        while (books.size() > 8) {
-            books.sort((b1, b2) -> {
-                if (b1.works != b2.works) return Integer.compare(b1.works, b2.works);
-                int c1 = getBookCost(b1);
-                int c2 = getBookCost(b2);
-                if (c1 != c2) return Integer.compare(c1, c2);
-                return getBookSignature(b1).compareTo(getBookSignature(b2));
-            });
-
-            BookInput b1 = books.remove(0);
-            BookInput b2 = books.remove(0);
-
-            int transfer = getBookCost(b2);
-            int cost = transfer + getPriorPenalty(b1.works) + getPriorPenalty(b2.works);
-            int resultWork = Math.max(b1.works, b2.works) + 1;
-
-            BookInput combined = new BookInput(resultWork);
-            combined.enchantments.addAll(b1.enchantments);
-            combined.enchantments.addAll(b2.enchantments);
-            int expCost1 = b1.explicitCost > 0 ? b1.explicitCost : getBookCost(b1);
-            int expCost2 = b2.explicitCost > 0 ? b2.explicitCost : getBookCost(b2);
-            combined.explicitCost = expCost1 + expCost2;
-
-            MergeStep step = new MergeStep();
-            step.isBookToBook = true;
-            step.leftLabel = formatBookLabel(b1);
-            step.rightLabel = formatBookLabel(b2);
-            step.resultLabel = formatBookLabel(combined);
-            step.leftEnchants.addAll(b1.enchantments);
-            step.rightEnchants.addAll(b2.enchantments);
-            step.resultEnchants.addAll(combined.enchantments);
-            step.cost = cost;
-            step.transferCost = transfer;
-            step.leftWork = b1.works;
-            step.rightWork = b2.works;
-            step.resultWork = resultWork;
-
-            prepSteps.add(step);
-            books.add(combined);
-        }
-
-        int count = books.size();
-        int stateCount = 1 << count;
-        int fullMask = stateCount - 1;
 
         int[] enchantmentCosts = new int[count];
         for (int i = 0; i < count; i++) {
-            BookInput b = books.get(i);
-            int sum = 0;
-            if (b.explicitCost > 0) {
-                sum = b.explicitCost;
-            } else {
-                for (EnchantApplied ea : b.enchantments) {
-                    EnchantmentEntry ee = EnchantmentDatabase.getEnchantment(ea.id);
-                    if (ee != null) {
-                        sum += EnchantmentDatabase.getEnchantmentCost(ee, ea.level);
-                    }
-                }
-            }
-            enchantmentCosts[i] = Math.max(1, sum);
+            enchantmentCosts[i] = getBookCost(rawBooks.get(i));
         }
+
+        int stateCount = 1 << count;
+        int fullMask = stateCount - 1;
 
         int[] costsByMask = new int[stateCount];
         for (int mask = 1; mask < stateCount; mask++) {
@@ -214,28 +178,21 @@ public class AnvilOptimizer {
             costsByMask[mask] = costsByMask[mask ^ bit] + enchantmentCosts[index];
         }
 
-        // Costruzione combinazioni libro-libro deterministica
-        Map<Integer, Map<Integer, List<Node>>> builds = new LinkedHashMap<>();
-        for (int m = 0; m < stateCount; m++) builds.put(m, new TreeMap<>());
+        Map<Integer, Map<Integer, List<BookNode>>> builds = new HashMap<>();
+        for (int m = 0; m < stateCount; m++) builds.put(m, new HashMap<>());
 
-        // Libri base (dimensione 1)
         for (int i = 0; i < count; i++) {
             int mask = 1 << i;
-            Node n = new Node();
-            n.work = books.get(i).works;
-            n.total = 0;
-            n.peak = 0;
+            BookNode n = new BookNode();
+            n.work = rawBooks.get(i).works;
             n.mask = mask;
             builds.get(mask).computeIfAbsent(n.work, k -> new ArrayList<>()).add(n);
         }
 
-        // Fusioni tra libri
         for (int size = 2; size <= count; size++) {
             for (int mask = 1; mask < stateCount; mask++) {
-                if (Integer.bitCount(mask) != size) continue;
-
-                Map<Integer, List<Node>> targetBuildMap = builds.get(mask);
-
+                if (popcount(mask) != size) continue;
+                Map<Integer, List<BookNode>> targetMap = builds.get(mask);
                 for (int leftMask = (mask - 1) & mask; leftMask > 0; leftMask = (leftMask - 1) & mask) {
                     int rightMask = mask ^ leftMask;
                     if (rightMask == 0 || leftMask > rightMask) continue;
@@ -247,33 +204,30 @@ public class AnvilOptimizer {
                     for (int[] orient : orientations) {
                         int tMask = orient[0];
                         int sMask = orient[1];
+                        Map<Integer, List<BookNode>> leftMap = builds.get(tMask);
+                        Map<Integer, List<BookNode>> rightMap = builds.get(sMask);
 
-                        Map<Integer, List<Node>> leftMap = builds.get(tMask);
-                        Map<Integer, List<Node>> rightMap = builds.get(sMask);
-
-                        for (Map.Entry<Integer, List<Node>> le : leftMap.entrySet()) {
+                        for (var le : leftMap.entrySet()) {
                             int lWork = le.getKey();
-                            for (Map.Entry<Integer, List<Node>> re : rightMap.entrySet()) {
+                            for (var re : rightMap.entrySet()) {
                                 int rWork = re.getKey();
                                 int cost = costsByMask[sMask] + getPriorPenalty(lWork) + getPriorPenalty(rWork);
                                 if (cost > MAX_OPERATION_COST) continue;
-
                                 int resWork = Math.max(lWork, rWork) + 1;
-                                List<Node> candidates = targetBuildMap.computeIfAbsent(resWork, k -> new ArrayList<>());
+                                List<BookNode> candidates = targetMap.computeIfAbsent(resWork, k -> new ArrayList<>());
 
-                                for (Node leftNode : le.getValue()) {
-                                    for (Node rightNode : re.getValue()) {
-                                        Node next = new Node();
+                                for (BookNode leftNode : le.getValue()) {
+                                    for (BookNode rightNode : re.getValue()) {
+                                        BookNode next = new BookNode();
                                         next.work = resWork;
                                         next.total = leftNode.total + rightNode.total + cost;
                                         next.peak = Math.max(Math.max(leftNode.peak, rightNode.peak), cost);
                                         next.cost = cost;
-                                        next.transferCost = costsByMask[sMask];
+                                        next.transfer = costsByMask[sMask];
                                         next.mask = mask;
                                         next.left = leftNode;
                                         next.right = rightNode;
-
-                                        insertParetoNode(candidates, next, books);
+                                        insertParetoNode(candidates, next);
                                     }
                                 }
                             }
@@ -283,35 +237,31 @@ public class AnvilOptimizer {
             }
         }
 
-        // Applicazione all'oggetto finale deterministica
-        Map<Integer, Map<Integer, List<ApplyNode>>> states = new LinkedHashMap<>();
-        for (int m = 0; m < stateCount; m++) states.put(m, new TreeMap<>());
+        Map<Integer, Map<Integer, List<ApplyNode>>> states = new HashMap<>();
+        for (int m = 0; m < stateCount; m++) states.put(m, new HashMap<>());
 
         ApplyNode root = new ApplyNode();
         root.targetWork = targetWorks;
-        root.total = 0;
-        root.peak = 0;
         states.get(fullMask).computeIfAbsent(targetWorks, k -> new ArrayList<>()).add(root);
 
         for (int size = count; size >= 1; size--) {
             for (int remaining = 1; remaining < stateCount; remaining++) {
-                if (Integer.bitCount(remaining) != size) continue;
+                if (popcount(remaining) != size) continue;
+                Map<Integer, List<ApplyNode>> currMap = states.get(remaining);
+                if (currMap.isEmpty()) continue;
 
-                Map<Integer, List<ApplyNode>> currentWorkMap = states.get(remaining);
-                if (currentWorkMap.isEmpty()) continue;
-
-                for (Map.Entry<Integer, List<ApplyNode>> entry : new ArrayList<>(currentWorkMap.entrySet())) {
+                for (var entry : new ArrayList<>(currMap.entrySet())) {
                     int currTargetWork = entry.getKey();
                     List<ApplyNode> prefixes = entry.getValue();
 
                     for (int group = remaining; group > 0; group = (group - 1) & remaining) {
-                        Map<Integer, List<Node>> groupBuilds = builds.get(group);
+                        Map<Integer, List<BookNode>> groupBuilds = builds.get(group);
                         if (groupBuilds == null || groupBuilds.isEmpty()) continue;
 
                         int nextMask = remaining ^ group;
                         Map<Integer, List<ApplyNode>> nextWorkMap = states.get(nextMask);
 
-                        for (Map.Entry<Integer, List<Node>> be : groupBuilds.entrySet()) {
+                        for (var be : groupBuilds.entrySet()) {
                             int bookWork = be.getKey();
                             int cost = costsByMask[group] + getPriorPenalty(currTargetWork) + getPriorPenalty(bookWork);
                             if (cost > MAX_OPERATION_COST) continue;
@@ -320,17 +270,16 @@ public class AnvilOptimizer {
                             List<ApplyNode> targetList = nextWorkMap.computeIfAbsent(nextWork, k -> new ArrayList<>());
 
                             for (ApplyNode prefix : prefixes) {
-                                for (Node bNode : be.getValue()) {
+                                for (BookNode bNode : be.getValue()) {
                                     ApplyNode next = new ApplyNode();
                                     next.targetWork = nextWork;
                                     next.total = prefix.total + bNode.total + cost;
                                     next.peak = Math.max(Math.max(prefix.peak, bNode.peak), cost);
                                     next.cost = cost;
-                                    next.transferCost = costsByMask[group];
+                                    next.transfer = costsByMask[group];
                                     next.prev = prefix;
                                     next.bookNode = bNode;
-
-                                    insertParetoApply(targetList, next, books);
+                                    insertParetoApply(targetList, next);
                                 }
                             }
                         }
@@ -339,172 +288,93 @@ public class AnvilOptimizer {
             }
         }
 
-        // Seleziona la soluzione migliore deterministica
-        List<ApplyNode> finalSolutions = new ArrayList<>();
-        for (List<ApplyNode> list : states.get(0).values()) {
-            finalSolutions.addAll(list);
+        List<ApplyNode> solutions = new ArrayList<>();
+        for (List<ApplyNode> l : states.get(0).values()) solutions.addAll(l);
+
+        if (solutions.isEmpty()) {
+            return null;
         }
 
-        if (finalSolutions.isEmpty()) {
-            Solution fallback = fallbackGreedy(books, targetWorks, targetItem, costsByMask);
-            if (!prepSteps.isEmpty()) {
-                List<MergeStep> combined = new ArrayList<>(prepSteps);
-                combined.addAll(fallback.steps);
-                fallback.steps = combined;
-                for (MergeStep ps : prepSteps) {
-                    fallback.totalCost += ps.cost;
-                    fallback.peakCost = Math.max(fallback.peakCost, ps.cost);
-                }
-            }
-            return fallback;
+        solutions.sort((a, b) -> a.peak != b.peak ? Integer.compare(a.peak, b.peak) : (a.total != b.total ? Integer.compare(a.total, b.total) : Integer.compare(a.targetWork, b.targetWork)));
+        ApplyNode best = solutions.get(0);
+
+        List<ApplyNode> applySeq = new ArrayList<>();
+        ApplyNode cur = best;
+        while (cur != null && cur.bookNode != null) {
+            applySeq.add(cur);
+            cur = cur.prev;
         }
+        Collections.reverse(applySeq);
 
-        finalSolutions.sort((a, b) -> {
-            if (a.peak != b.peak) return Integer.compare(a.peak, b.peak);
-            if (a.total != b.total) return Integer.compare(a.total, b.total);
-            if (a.targetWork != b.targetWork) return Integer.compare(a.targetWork, b.targetWork);
-            return a.getSignature(books).compareTo(b.getSignature(books));
-        });
-
-        ApplyNode best = finalSolutions.get(0);
-        Solution res = new Solution();
-        res.totalCost = best.total;
-        res.peakCost = best.peak;
-
-        // Ricostruzione sequenza
         List<MergeStep> allSteps = new ArrayList<>();
-        ApplyNode curr = best;
-        List<ApplyNode> sequence = new ArrayList<>();
-        while (curr != null && curr.bookNode != null) {
-            sequence.add(curr);
-            curr = curr.prev;
-        }
-        Collections.reverse(sequence);
+        Set<BookNode> visited = new HashSet<>();
 
-        int currentItemWork = targetWorks;
-        String currentItemLabel = targetItem != null ? targetItem.name : "Oggetto";
-
-        for (ApplyNode an : sequence) {
-            collectBookSteps(an.bookNode, books, allSteps);
-
-            MergeStep step = new MergeStep();
-            step.isBookToBook = false;
-            step.leftLabel = currentItemLabel;
-            step.rightLabel = formatMaskLabel(an.bookNode.mask, books);
-            step.resultLabel = currentItemLabel;
-            step.rightEnchants = getEnchantsForMask(an.bookNode.mask, books);
-            step.resultEnchants.addAll(step.rightEnchants);
-            step.cost = an.cost;
-            step.transferCost = an.transferCost;
-            step.leftWork = currentItemWork;
-            step.rightWork = an.bookNode.work;
-            step.resultWork = an.targetWork;
-            allSteps.add(step);
-
-            currentItemWork = an.targetWork;
+        // 1. Raccogli tutte le combinazioni Libro + Libro all'inizio (post-order)
+        for (ApplyNode an : applySeq) {
+            collectBookSteps(an.bookNode, rawBooks, allSteps, visited);
         }
 
-        if (!prepSteps.isEmpty()) {
-            List<MergeStep> combined = new ArrayList<>(prepSteps);
-            combined.addAll(allSteps);
-            res.steps = combined;
-            for (MergeStep ps : prepSteps) {
-                res.totalCost += ps.cost;
-                res.peakCost = Math.max(res.peakCost, ps.cost);
+        // 2. Applica sequenzialmente i libri composti sull'oggetto base
+        int curToolWork = targetWorks;
+        List<EnchantApplied> currentToolEnchants = new ArrayList<>();
+        if (existingEnchants != null) {
+            currentToolEnchants.addAll(existingEnchants);
+        }
+
+        for (ApplyNode an : applySeq) {
+            List<EnchantApplied> bookEnchants = getEnchantsForMask(an.bookNode.mask, rawBooks);
+            List<EnchantApplied> resEnchants = new ArrayList<>(currentToolEnchants);
+            for (EnchantApplied ea : bookEnchants) {
+                boolean found = false;
+                for (int k = 0; k < resEnchants.size(); k++) {
+                    if (resEnchants.get(k).id.equals(ea.id)) {
+                        found = true;
+                        if (ea.level > resEnchants.get(k).level) {
+                            resEnchants.set(k, ea);
+                        }
+                        break;
+                    }
+                }
+                if (!found) resEnchants.add(ea);
             }
-        } else {
-            res.steps = allSteps;
-        }
-        return res;
-    }
 
-    private static void collectBookSteps(Node node, List<BookInput> books, List<MergeStep> out) {
-        if (node == null || node.left == null || node.right == null) return;
-        collectBookSteps(node.left, books, out);
-        collectBookSteps(node.right, books, out);
+            MergeStep s = new MergeStep();
+            s.isBookToBook = false;
+            s.leftLabel = itemLabel;
+            s.rightLabel = formatMaskLabel(an.bookNode.mask, rawBooks);
+            s.resultLabel = itemLabel;
+            s.leftEnchants = new ArrayList<>(currentToolEnchants);
+            s.rightEnchants = new ArrayList<>(bookEnchants);
+            s.resultEnchants = new ArrayList<>(resEnchants);
+            s.cost = an.cost;
+            s.transferCost = an.transfer;
+            s.leftWork = curToolWork;
+            s.rightWork = an.bookNode.work;
+            s.resultWork = an.targetWork;
 
-        MergeStep step = new MergeStep();
-        step.isBookToBook = true;
-        step.leftLabel = formatMaskLabel(node.left.mask, books);
-        step.rightLabel = formatMaskLabel(node.right.mask, books);
-        step.resultLabel = formatMaskLabel(node.mask, books);
-        step.leftEnchants = getEnchantsForMask(node.left.mask, books);
-        step.rightEnchants = getEnchantsForMask(node.right.mask, books);
-        step.resultEnchants = getEnchantsForMask(node.mask, books);
-        step.cost = node.cost;
-        step.transferCost = node.transferCost;
-        step.leftWork = node.left.work;
-        step.rightWork = node.right.work;
-        step.resultWork = node.work;
-        out.add(step);
-    }
-
-    private static void insertParetoNode(List<Node> list, Node next, List<BookInput> books) {
-        for (int i = 0; i < list.size(); i++) {
-            Node curr = list.get(i);
-            if (curr.total == next.total && curr.peak == next.peak) {
-                if (curr.getSignature(books).compareTo(next.getSignature(books)) <= 0) return;
-                list.set(i, next);
-                return;
-            }
-            if (curr.total <= next.total && curr.peak <= next.peak) return;
+            allSteps.add(s);
+            curToolWork = an.targetWork;
+            currentToolEnchants = resEnchants;
         }
-        list.removeIf(curr -> next.total <= curr.total && next.peak <= curr.peak);
-        if (list.size() < 2) {
-            list.add(next);
-        }
-    }
-
-    private static void insertParetoApply(List<ApplyNode> list, ApplyNode next, List<BookInput> books) {
-        for (int i = 0; i < list.size(); i++) {
-            ApplyNode curr = list.get(i);
-            if (curr.total == next.total && curr.peak == next.peak) {
-                if (curr.getSignature(books).compareTo(next.getSignature(books)) <= 0) return;
-                list.set(i, next);
-                return;
-            }
-            if (curr.total <= next.total && curr.peak <= next.peak) return;
-        }
-        list.removeIf(curr -> next.total <= curr.total && next.peak <= curr.peak);
-        if (list.size() < 2) {
-            list.add(next);
-        }
-    }
-
-    private static Solution fallbackGreedy(List<BookInput> books, int targetWorks, ItemEntry targetItem, int[] costsByMask) {
-        List<Integer> order = new ArrayList<>();
-        for (int i = 0; i < books.size(); i++) order.add(i);
-        order.sort((a, b) -> Integer.compare(costsByMask[1 << a], costsByMask[1 << b]));
 
         Solution sol = new Solution();
-        int curWork = targetWorks;
-        String itemLabel = targetItem != null ? targetItem.name : "Oggetto";
-
-        for (int idx : order) {
-            int bWork = books.get(idx).works;
-            int transfer = costsByMask[1 << idx];
-            int cost = transfer + getPriorPenalty(curWork) + getPriorPenalty(bWork);
-            int nextWork = Math.max(curWork, bWork) + 1;
-
-            MergeStep step = new MergeStep();
-            step.isBookToBook = false;
-            step.leftLabel = itemLabel;
-            step.rightLabel = formatMaskLabel(1 << idx, books);
-            step.resultLabel = itemLabel;
-            step.rightEnchants = getEnchantsForMask(1 << idx, books);
-            step.resultEnchants.addAll(step.rightEnchants);
-            step.cost = cost;
-            step.transferCost = transfer;
-            step.leftWork = curWork;
-            step.rightWork = bWork;
-            step.resultWork = nextWork;
-
-            sol.steps.add(step);
-            sol.totalCost += cost;
-            sol.peakCost = Math.max(sol.peakCost, cost);
-            curWork = nextWork;
-        }
+        sol.totalCost = best.total;
+        sol.peakCost = best.peak;
+        sol.steps = allSteps;
         return sol;
+    }
+
+    public static String formatEnchantsList(List<EnchantApplied> enchants) {
+        if (enchants == null || enchants.isEmpty()) return com.litness.optimizer.data.LitnessI18n.isEnglish() ? "Book" : "Libro";
+        StringBuilder sb = new StringBuilder();
+        boolean first = true;
+        for (EnchantApplied ea : enchants) {
+            if (!first) sb.append(" + ");
+            EnchantmentEntry ee = EnchantmentDatabase.getEnchantment(ea.id);
+            sb.append(formatEnchantName(ee != null ? com.litness.optimizer.data.LitnessI18n.getEnchantName(ee) : ea.id, ea.level));
+            first = false;
+        }
+        return sb.toString();
     }
 
     public static List<EnchantApplied> getEnchantsForMask(int mask, List<BookInput> books) {
@@ -526,12 +396,12 @@ public class AnvilOptimizer {
                 for (EnchantApplied ea : books.get(i).enchantments) {
                     if (!first) sb.append(" + ");
                     EnchantmentEntry ee = EnchantmentDatabase.getEnchantment(ea.id);
-                    sb.append(formatEnchantName(ee != null ? ee.name : ea.id, ea.level));
+                    sb.append(formatEnchantName(ee != null ? com.litness.optimizer.data.LitnessI18n.getEnchantName(ee) : ea.id, ea.level));
                     first = false;
                 }
             }
         }
-        return sb.length() > 0 ? sb.toString() : "Libro";
+        return sb.length() > 0 ? sb.toString() : (com.litness.optimizer.data.LitnessI18n.isEnglish() ? "Book" : "Libro");
     }
 
     public static int getBookCost(BookInput b) {
@@ -549,33 +419,48 @@ public class AnvilOptimizer {
     }
 
     public static String formatBookLabel(BookInput b) {
-        if (b == null || b.enchantments.isEmpty()) return "Libro";
+        if (b == null || b.enchantments.isEmpty()) return com.litness.optimizer.data.LitnessI18n.isEnglish() ? "Book" : "Libro";
         StringBuilder sb = new StringBuilder();
         boolean first = true;
         for (EnchantApplied ea : b.enchantments) {
             if (!first) sb.append(" + ");
             EnchantmentEntry ee = EnchantmentDatabase.getEnchantment(ea.id);
-            sb.append(formatEnchantName(ee != null ? ee.name : ea.id, ea.level));
+            sb.append(formatEnchantName(ee != null ? com.litness.optimizer.data.LitnessI18n.getEnchantName(ee) : ea.id, ea.level));
             first = false;
         }
-        return sb.length() > 0 ? sb.toString() : "Libro";
+        return sb.length() > 0 ? sb.toString() : (com.litness.optimizer.data.LitnessI18n.isEnglish() ? "Book" : "Libro");
     }
 
     public static String formatEnchantName(String baseName, int level) {
         if (baseName == null) return "";
         String trimmed = baseName.trim();
-        if (trimmed.matches(".*\\s+[IVXLCDM]+$")) {
-            return trimmed;
+        com.litness.optimizer.data.EnchantmentDatabase.EnchantmentEntry ee = com.litness.optimizer.data.EnchantmentDatabase.getEnchantment(trimmed);
+        if (ee != null) {
+            return formatEnchantName(ee, level);
         }
-        if (level > 0) {
-            return trimmed + " " + toRoman(level);
+        String translated = com.litness.optimizer.data.LitnessI18n.translateEnchantName(trimmed);
+        if (translated.matches(".*\\s+[IVXLCDM]+$") || translated.matches(".*\\s+[0-9]+$")) {
+            return translated;
         }
-        return trimmed;
+        if (level > 1) {
+            return translated + " " + toRoman(level);
+        }
+        return translated;
     }
 
     public static String formatEnchantName(EnchantmentEntry ee, int level) {
         if (ee == null) return "";
-        return formatEnchantName(ee.name, level);
+        String name = com.litness.optimizer.data.LitnessI18n.getEnchantName(ee);
+        if (name.matches(".*\\s+[IVXLCDM]+$") || name.matches(".*\\s+[0-9]+$")) {
+            return name;
+        }
+        if (level <= 1 && ee.maxLevel <= 1) {
+            return name;
+        }
+        if (level > 0) {
+            return name + " " + toRoman(level);
+        }
+        return name;
     }
 
     public static String toRoman(int n) {

@@ -27,7 +27,7 @@ public class InventoryTracker {
         Inventory inv = mc.player.getInventory();
         for (int i = 0; i < inv.getContainerSize(); i++) {
             ItemStack stack = inv.getItem(i);
-            if (!stack.isEmpty() && (stack.is(Items.ENCHANTED_BOOK) || stack.is(Items.BOOK))) {
+            if (!stack.isEmpty() && !ItemTypeHelper.isContainerOrShulker(stack) && (stack.is(Items.ENCHANTED_BOOK) || stack.is(Items.BOOK))) {
                 scanBookStack(stack, map);
             }
         }
@@ -217,7 +217,7 @@ public class InventoryTracker {
     }
 
     private static void scanAppliedStack(ItemStack stack, Set<String> set) {
-        if (stack == null || stack.isEmpty()) return;
+        if (stack == null || stack.isEmpty() || ItemTypeHelper.isContainerOrShulker(stack)) return;
 
         // 1. DataComponent ENCHANTMENTS su armi / armature
         ItemEnchantments enchants = stack.getOrDefault(DataComponents.ENCHANTMENTS, ItemEnchantments.EMPTY);

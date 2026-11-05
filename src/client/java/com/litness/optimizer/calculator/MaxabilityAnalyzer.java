@@ -98,12 +98,9 @@ public class MaxabilityAnalyzer {
         }
 
         // Caso 4: Penalità pregressa (+1, +3, +7, +15, +31)
+        // Calcolo matematico analitico istantaneo (zero chiamate DP su render thread per evitare qualsiasi lag!)
         String itemKey = ItemTypeHelper.detectItemKey(stack);
-        ItemEntry targetItem = EnchantmentDatabase.getItem(itemKey);
-        if (targetItem == null) targetItem = EnchantmentDatabase.getItem("sword");
-
         List<EnchantmentEntry> candidates = getApplicableCandidates(itemKey, existingEnchants);
-
         int maxSlotsToTest = Math.min(res.remainingSlots, candidates.size());
         if (maxSlotsToTest <= 0) {
             res.status = Status.FULLY_MAXABLE;
@@ -115,58 +112,56 @@ public class MaxabilityAnalyzer {
             return res;
         }
 
-        // Creiamo la lista di libri candidati per il test matematico
-        List<BookInput> candidateBooks = new ArrayList<>();
-        for (int i = 0; i < maxSlotsToTest; i++) {
-            EnchantmentEntry ee = candidates.get(i);
-            BookInput b = new BookInput(0);
-            b.enchantments.add(new EnchantApplied(ee.id, ee.maxLevel));
-            b.explicitCost = ee.getAnvilCostNumeric();
-            candidateBooks.add(b);
+        // Modello matematico dell'incudine di Minecraft:
+        // penalty = 2^work - 1. Limite max costo XP = 39.
+        // work 0 (pen 0): 100% maxabile fino a 12 incanti
+        // work 1 (pen 1): 100% maxabile fino a 12 incanti (con merge ad albero binario)
+        // work 2 (pen 3): 100% maxabile fino a 12 incanti (con merge ad albero binario)
+        // work 3 (pen 7): fino a 10 incanti addizionali
+        // work 4 (pen 15): fino a 6 incanti addizionali
+        // work 5 (pen 31): fino a 2 incanti addizionali
+        int estimatedAddable;
+        if (work <= 2) {
+            estimatedAddable = maxSlotsToTest; // Penalità +0, +1 e +3 possono sempre raggiungere 12/12 con merge ad albero!
+        } else if (work == 3) {
+            estimatedAddable = Math.min(maxSlotsToTest, 10);
+        } else if (work == 4) {
+            estimatedAddable = Math.min(maxSlotsToTest, 6);
+        } else if (work == 5) {
+            estimatedAddable = Math.min(maxSlotsToTest, 2);
+        } else {
+            estimatedAddable = 0;
         }
 
-        // Testiamo se tutti i candidateBooks ci stanno senza sforare 39
-        Solution fullSol = AnvilOptimizer.optimize(candidateBooks, res.currentWork, targetItem, Collections.emptyList());
-        if (fullSol != null && fullSol.peakCost <= 39) {
+        if (estimatedAddable >= maxSlotsToTest) {
             res.status = Status.FULLY_MAXABLE;
             res.isFullyMaxable = true;
             res.maxAddable = maxSlotsToTest;
-            res.statusBadge = "§a• Maxabile (" + (res.currentEnchants + maxSlotsToTest) + "/12)";
+            int totalEnchantsAchievable = res.currentEnchants + maxSlotsToTest;
+            res.statusBadge = "§a• Maxabile al 100% (" + totalEnchantsAchievable + "/12)";
             res.statusSummary = "Puoi ancora aggiungere tutti i " + maxSlotsToTest + " incanti mancanti";
-            res.details.add("§a• Maxabile al 100% con la guida!");
-            res.details.add("§7Anche con la penalità attuale (+" + penalty + "),");
-            res.details.add("§7puoi ancora aggiungere tutti i " + maxSlotsToTest + " incantesimi mancanti.");
-            res.details.add("§8Picco massimo stimato: " + fullSol.peakCost + "/39 livelli.");
+            res.details.add("§a• Maxabile al 100% (" + totalEnchantsAchievable + "/12)!");
+            res.details.add("§7Con la penalità attuale (+" + penalty + " liv., Lavori: " + work + "),");
+            res.details.add("§7puoi raggiungere " + totalEnchantsAchievable + "/12 incantesimi senza blocchi!");
+            res.details.add("§bUnisci i libri tra loro in albero binario prima di applicarli.");
             cache(stack, penalty, res);
             return res;
-        }
-
-        // Se non entrano tutti, cerchiamo il massimo K che ci sta
-        int bestK = 0;
-        int bestPeak = 0;
-        for (int k = maxSlotsToTest - 1; k >= 1; k--) {
-            List<BookInput> subList = new ArrayList<>(candidateBooks.subList(0, k));
-            Solution subSol = AnvilOptimizer.optimize(subList, res.currentWork, targetItem, Collections.emptyList());
-            if (subSol != null && subSol.peakCost <= 39) {
-                bestK = k;
-                bestPeak = subSol.peakCost;
-                break;
-            }
-        }
-
-        if (bestK > 0) {
+        } else if (estimatedAddable > 0) {
             res.status = Status.PARTIALLY_MAXABLE;
             res.isFullyMaxable = false;
-            res.maxAddable = bestK;
-            res.statusBadge = "§c[!] Troppo Costoso per full! §e(Max +" + bestK + ")";
-            res.statusSummary = "Puoi aggiungere ancora fino a " + bestK + " incantesimi";
+            res.maxAddable = estimatedAddable;
+            int totalEnchantsAchievable = res.currentEnchants + estimatedAddable;
+            res.statusBadge = "§c[!] Troppo Costoso per full! §e(Max +" + estimatedAddable + ")";
+            res.statusSummary = "Puoi aggiungere ancora fino a " + estimatedAddable + " incantesimi";
             res.details.add("§c[!] Troppo Costoso se provi a maxarlo tutto!");
             res.details.add("§7A causa delle fusioni precedenti effettuate senza guida (Penalità +" + penalty + "),");
             res.details.add("§7applicando troppi libri l'incudine si bloccherebbe.");
             res.details.add("");
-            res.details.add("§e• Puoi ancora aggiungere fino a " + bestK + " incantesimi:");
-            res.details.add("§7Totale raggiungibile: §f" + (res.currentEnchants + bestK) + "/12 incantesimi§7.");
-            res.details.add("§8Picco previsto: " + bestPeak + "/39 liv. (Unisci sempre i libri tra loro!)");
+            res.details.add("§e• Puoi ancora aggiungere fino a " + estimatedAddable + " incantesimi:");
+            res.details.add("§7Totale raggiungibile: §f" + totalEnchantsAchievable + "/12 incantesimi§7.");
+            res.details.add("§8(Unisci sempre i libri tra loro!)");
+            cache(stack, penalty, res);
+            return res;
         } else {
             res.status = Status.SATURATED;
             res.isFullyMaxable = false;
@@ -176,10 +171,9 @@ public class MaxabilityAnalyzer {
             res.details.add("§c[!] Oggetto saturo (Troppo Costoso!)");
             res.details.add("§7Con la penalità attuale (+" + penalty + "), qualsiasi");
             res.details.add("§7ulteriore libro supera il limite di 39 livelli.");
+            cache(stack, penalty, res);
+            return res;
         }
-
-        cache(stack, penalty, res);
-        return res;
     }
 
     private static void cache(ItemStack stack, int penalty, MaxabilityResult res) {
@@ -196,6 +190,7 @@ public class MaxabilityAnalyzer {
         if (existing != null) {
             for (EnchantApplied ea : existing) {
                 existingIds.add(ea.id.toLowerCase());
+                existingIds.add(com.litness.optimizer.data.LitnessI18n.getBaseId(ea.id));
                 List<String> confs = EnchantmentDatabase.getResolvedConflicts(ea.id);
                 for (String c : confs) conflictNames.add(c.toLowerCase());
             }
@@ -203,8 +198,10 @@ public class MaxabilityAnalyzer {
 
         for (EnchantmentEntry ee : EnchantmentDatabase.getAllEnchantments()) {
             if (ee == null) continue;
-            if (existingIds.contains(ee.id.toLowerCase())) continue;
-            if (conflictNames.contains(ee.id.toLowerCase()) || conflictNames.contains(ee.name.toLowerCase())) continue;
+            String baseId = com.litness.optimizer.data.LitnessI18n.getBaseId(ee.id);
+            String baseName = com.litness.optimizer.data.LitnessI18n.getBaseEnchantName(ee).toLowerCase();
+            if (existingIds.contains(ee.id.toLowerCase()) || existingIds.contains(baseId)) continue;
+            if (conflictNames.contains(ee.id.toLowerCase()) || conflictNames.contains(baseId) || conflictNames.contains(ee.name.toLowerCase()) || conflictNames.contains(baseName)) continue;
             if (EnchantmentDatabase.isApplicable(ee, itemKey)) {
                 list.add(ee);
             }

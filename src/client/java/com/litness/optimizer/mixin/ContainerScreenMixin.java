@@ -29,17 +29,22 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
 import net.minecraft.client.input.MouseButtonEvent;
 import net.minecraft.client.input.KeyEvent;
+import org.spongepowered.asm.mixin.gen.Invoker;
 
 import java.util.*;
 
 @Mixin(AbstractContainerScreen.class)
-public abstract class ContainerScreenMixin extends Screen {
+public abstract class ContainerScreenMixin extends Screen implements ContainerScreenAccessor {
 
     @Shadow protected int leftPos;
     @Shadow protected int topPos;
     @Shadow protected int imageWidth;
     @Shadow protected int imageHeight;
     @Shadow protected Slot hoveredSlot;
+
+    @Override
+    @Invoker("slotClicked")
+    public abstract void litness_invokeSlotClicked(Slot slot, int slotId, int mouseButton, net.minecraft.world.inventory.ContainerInput type);
 
     private static long lastTargetCheck = 0;
     private static Set<String> cachedTargetEnchants = Collections.emptySet();
@@ -66,6 +71,7 @@ public abstract class ContainerScreenMixin extends Screen {
     private void litness_preScanContainer(GuiGraphicsExtractor extractor, int mouseX, int mouseY, float delta, CallbackInfo ci) {
         if (!(((Object) this) instanceof net.minecraft.client.gui.screens.inventory.AnvilScreen)) {
             com.litness.optimizer.gui.AhPriceManager.scanCurrentContainer((AbstractContainerScreen<?>) (Object) this);
+            com.litness.optimizer.gui.AhPriceManager.tickAutoNavigation((AbstractContainerScreen<?>) (Object) this);
         }
     }
 
@@ -80,13 +86,13 @@ public abstract class ContainerScreenMixin extends Screen {
     }
 
     @Inject(method = "mouseClicked", at = @At("HEAD"), cancellable = true)
-    private void litness_onContainerMouseClicked(MouseButtonEvent event, boolean isDown, CallbackInfoReturnable<Boolean> cir) {
-        if (com.litness.optimizer.gui.AhPriceManager.handleMouseClicked(this, event, isDown)) {
+    private void litness_onContainerMouseClicked(MouseButtonEvent event, boolean doubleClick, CallbackInfoReturnable<Boolean> cir) {
+        if (com.litness.optimizer.gui.AhPriceManager.handleMouseClicked(this, event)) {
             cir.setReturnValue(true);
             return;
         }
 
-        if (isDown && this.hoveredSlot != null) {
+        if (this.hoveredSlot != null) {
             Minecraft mc = Minecraft.getInstance();
             if (mc.player != null && this.hoveredSlot.container != mc.player.getInventory()) {
                 com.litness.optimizer.gui.AhPriceManager.onSlotClicked((AbstractContainerScreen<?>) (Object) this, this.hoveredSlot);

@@ -93,12 +93,12 @@ public class AnvilTooltipState {
                 for (Slot s : anvil.getMenu().slots) {
                     if (s.container != mc.player.getInventory()) continue;
                     ItemStack st = s.getItem();
-                    if (st.isEmpty() || (!st.is(Items.ENCHANTED_BOOK) && !st.is(Items.BOOK))) continue;
+                    if (st.isEmpty() || ItemTypeHelper.isContainerOrShulker(st) || (!st.is(Items.ENCHANTED_BOOK) && !st.is(Items.BOOK))) continue;
                     if (matchesEnchantList(st, step.leftEnchants)) {
                         HighlightedSlot hs = new HighlightedSlot();
                         hs.slot = s;
                         hs.targetAnvilSlot = 1;
-                        hs.label = "Devi inserire nello Slot 1";
+                        hs.label = com.litness.optimizer.data.LitnessI18n.t("must_put_slot_1");
                         hs.bookName = step.leftLabel;
                         targets.add(hs);
                         usedIndices.add(s.index);
@@ -112,12 +112,12 @@ public class AnvilTooltipState {
                     if (s.container != mc.player.getInventory()) continue;
                     if (usedIndices.contains(s.index)) continue;
                     ItemStack st = s.getItem();
-                    if (st.isEmpty() || (!st.is(Items.ENCHANTED_BOOK) && !st.is(Items.BOOK))) continue;
+                    if (st.isEmpty() || ItemTypeHelper.isContainerOrShulker(st) || (!st.is(Items.ENCHANTED_BOOK) && !st.is(Items.BOOK))) continue;
                     if (matchesEnchantList(st, step.rightEnchants)) {
                         HighlightedSlot hs = new HighlightedSlot();
                         hs.slot = s;
                         hs.targetAnvilSlot = 2;
-                        hs.label = "Devi inserire nello Slot 2";
+                        hs.label = com.litness.optimizer.data.LitnessI18n.t("must_put_slot_2");
                         hs.bookName = step.rightLabel;
                         targets.add(hs);
                         break;
@@ -138,13 +138,15 @@ public class AnvilTooltipState {
                 for (Slot s : anvil.getMenu().slots) {
                     if (s.container != mc.player.getInventory()) continue;
                     ItemStack st = s.getItem();
-                    if (st.isEmpty() || st.is(Items.ENCHANTED_BOOK) || st.is(Items.BOOK)) continue;
+                    if (st.isEmpty() || ItemTypeHelper.isContainerOrShulker(st) || st.is(Items.ENCHANTED_BOOK) || st.is(Items.BOOK)) continue;
+                    if (!ItemTypeHelper.isEnchantableWeaponOrArmor(st)) continue;
+                    if (extractAllEnchantments(st).size() >= 12) continue; // Salta item già al limite massimo di 12 incanti!
                     String itemKey = ItemTypeHelper.detectItemKey(st);
-                    if (itemKey.equalsIgnoreCase(cachedItemKey)) {
+                    if (itemKey != null && !itemKey.isEmpty() && itemKey.equalsIgnoreCase(cachedItemKey)) {
                         HighlightedSlot hs = new HighlightedSlot();
                         hs.slot = s;
                         hs.targetAnvilSlot = 1;
-                        hs.label = "Devi inserire nello Slot 1";
+                        hs.label = com.litness.optimizer.data.LitnessI18n.t("must_put_slot_1");
                         hs.bookName = st.getHoverName().getString();
                         targets.add(hs);
                         usedIndices.add(s.index);
@@ -158,12 +160,12 @@ public class AnvilTooltipState {
                     if (s.container != mc.player.getInventory()) continue;
                     if (usedIndices.contains(s.index)) continue;
                     ItemStack st = s.getItem();
-                    if (st.isEmpty() || (!st.is(Items.ENCHANTED_BOOK) && !st.is(Items.BOOK))) continue;
+                    if (st.isEmpty() || ItemTypeHelper.isContainerOrShulker(st) || (!st.is(Items.ENCHANTED_BOOK) && !st.is(Items.BOOK))) continue;
                     if (matchesEnchantList(st, step.rightEnchants)) {
                         HighlightedSlot hs = new HighlightedSlot();
                         hs.slot = s;
                         hs.targetAnvilSlot = 2;
-                        hs.label = "Devi inserire nello Slot 2";
+                        hs.label = com.litness.optimizer.data.LitnessI18n.t("must_put_slot_2");
                         hs.bookName = step.rightLabel;
                         targets.add(hs);
                         break;
@@ -175,10 +177,15 @@ public class AnvilTooltipState {
         return targets;
     }
 
-    public static List<EnchantApplied> extractAllEnchantments(ItemStack stack) {
-        List<EnchantApplied> list = new ArrayList<>();
-        if (stack == null || stack.isEmpty()) return list;
+    private static final Map<ItemStack, List<EnchantApplied>> ENCHANT_CACHE = new WeakHashMap<>();
 
+    public static List<EnchantApplied> extractAllEnchantments(ItemStack stack) {
+        if (stack == null || stack.isEmpty() || ItemTypeHelper.isContainerOrShulker(stack)) return Collections.emptyList();
+
+        List<EnchantApplied> cached = ENCHANT_CACHE.get(stack);
+        if (cached != null) return cached;
+
+        List<EnchantApplied> list = new ArrayList<>();
         Set<String> seen = new HashSet<>();
 
         // 1. STORED_ENCHANTMENTS (libri incantati vanilla)
@@ -245,30 +252,12 @@ public class AnvilTooltipState {
             }
         }
 
-        // 5. Fallback con getTooltipLines per eventuali tooltip sintetici
-        try {
-            Minecraft mc = Minecraft.getInstance();
-            if (mc != null && mc.player != null) {
-                var lines = stack.getTooltipLines(Item.TooltipContext.EMPTY, mc.player, TooltipFlag.NORMAL);
-                for (Component comp : lines) {
-                    LitnessTooltipHandler.MatchedEnchantment match = LitnessTooltipHandler.matchEnchantment(comp.getString());
-                    if (match != null && match.entry != null) {
-                        int lvl = match.level > 0 ? match.level : match.entry.maxLevel;
-                        String vPlusId = EnchantmentDatabase.resolveVanillaPlusId(match.entry.id, lvl);
-                        String id = vPlusId != null ? vPlusId : match.entry.id;
-                        if (!id.isEmpty() && seen.add(id)) {
-                            list.add(new EnchantApplied(id, lvl));
-                        }
-                    }
-                }
-            }
-        } catch (Throwable ignored) {}
-
+        ENCHANT_CACHE.put(stack, list);
         return list;
     }
 
     public static boolean matchesEnchantList(ItemStack stack, List<EnchantApplied> targetEnchants) {
-        if (stack == null || stack.isEmpty() || targetEnchants == null || targetEnchants.isEmpty()) return false;
+        if (stack == null || stack.isEmpty() || ItemTypeHelper.isContainerOrShulker(stack) || targetEnchants == null || targetEnchants.isEmpty()) return false;
         List<EnchantApplied> stackEnchants = extractAllEnchantments(stack);
         if (stackEnchants.isEmpty() || stackEnchants.size() != targetEnchants.size()) return false;
         for (EnchantApplied target : targetEnchants) {
@@ -303,58 +292,70 @@ public class AnvilTooltipState {
         for (HighlightedSlot hs : targets) {
             int sx = leftPos + hs.slot.x;
             int sy = topPos + hs.slot.y;
+            boolean isSlot1 = (hs.targetAnvilSlot == 1);
 
-            // 1. Evidenziazione luminosa celeste sullo slot
-            extractor.fill(sx, sy, sx + 16, sy + 16, cyanFill);
-            extractor.outline(sx - 1, sy - 1, 18, 18, cyanBorder);
+            int slotBorder = isSlot1 ? ((borderAlpha << 24) | 0x38BDF8) : ((borderAlpha << 24) | 0xC084FC);
+            int slotFill = isSlot1 ? ((fillAlpha << 24) | 0x0EA5E9) : ((fillAlpha << 24) | 0xA855F7);
 
-            // 2. Targhetta fissa permanente visibile anche senza hover
-            String tag = (hs.targetAnvilSlot == 1) ? "SLOT 1" : "SLOT 2";
-            int tagW = font.width(tag) + 4;
-            int tagH = 9;
-            int tagX = sx + 8 - (tagW / 2);
-            int tagY = sy - 6;
+            // 1. Evidenziazione morbida sullo slot (Ciano per Slot 1, Viola per Slot 2)
+            extractor.fill(sx, sy, sx + 16, sy + 16, slotFill);
+            extractor.outline(sx - 1, sy - 1, 18, 18, slotBorder);
 
-            extractor.fill(tagX - 1, tagY - 1, tagX + tagW + 1, tagY + tagH + 1, 0xEE0A0F1D);
-            extractor.outline(tagX - 1, tagY - 1, tagW + 2, tagH + 2, 0xFF38BDF8);
-            extractor.text(font, tag, tagX + 2, tagY + 1, 0xFF38BDF8, false);
+            // 2. Mini-badge ultra-compatto soft [1] / [2] all'angolo superiore (massima leggibilità, mai sovrapposto)
+            String tag = isSlot1 ? "1" : "2";
+            int tagW = 8;
+            int tagH = 8;
+            int tagX = sx + 1;
+            int tagY = sy + 1;
+
+            int pillBg = isSlot1 ? 0xF00369A1 : 0xF06D28D9;
+            int pillBorder = isSlot1 ? 0xFF38BDF8 : 0xFFC084FC;
+
+            extractor.fill(tagX, tagY, tagX + tagW, tagY + tagH, pillBg);
+            extractor.outline(tagX, tagY, tagW, tagH, pillBorder);
+            extractor.centeredText(font, tag, tagX + (tagW / 2), tagY, 0xFFFFFFFF);
 
             if (mouseX >= sx && mouseX < sx + 16 && mouseY >= sy && mouseY < sy + 16) {
                 hoveredTarget = hs;
             }
         }
 
-        // 3. Se il cursore è sopra lo slot, mostra lore esplicita
+        // 3. Se il cursore è sopra lo slot, mostra lore morbida e discreta
         if (hoveredTarget != null) {
             List<Component> tipLines = new ArrayList<>();
-            tipLines.add(Component.literal("§b• Devi inserire questo nello Slot " + hoveredTarget.targetAnvilSlot + " dell'Incudine"));
-            if (hoveredTarget.bookName != null && !hoveredTarget.bookName.isEmpty()) {
-                tipLines.add(Component.literal("  §f" + hoveredTarget.bookName));
+            boolean isSlot1 = (hoveredTarget.targetAnvilSlot == 1);
+            String itemDesc = (hoveredTarget.bookName != null && !hoveredTarget.bookName.isEmpty()) 
+                    ? hoveredTarget.bookName 
+                    : (isSlot1 ? "Oggetto Base" : "Libro");
+            
+            if (isSlot1) {
+                tipLines.add(Component.literal("§7Slot 1 • §b" + itemDesc));
+            } else {
+                tipLines.add(Component.literal("§7Slot 2 • §d" + itemDesc));
             }
 
             int tipW = 0;
             for (Component c : tipLines) {
                 tipW = Math.max(tipW, font.width(c));
             }
-            tipW += 16;
-            int tipH = tipLines.size() * 11 + 8;
+            tipW += 12;
+            int tipH = tipLines.size() * 10 + 6;
 
-            int tipX = mouseX + 12;
-            int tipY = mouseY - 12;
-            if (tipX + tipW > anvil.width - 4) tipX = mouseX - tipW - 8;
+            int tipX = mouseX + 10;
+            int tipY = mouseY - 10;
+            if (tipX + tipW > anvil.width - 4) tipX = mouseX - tipW - 6;
             if (tipY + tipH > anvil.height - 4) tipY = anvil.height - tipH - 4;
             if (tipX < 4) tipX = 4;
             if (tipY < 4) tipY = 4;
 
-            extractor.outline(tipX - 1, tipY - 1, tipW + 2, tipH + 2, 0xFF000000);
-            extractor.fill(tipX, tipY, tipX + tipW, tipY + tipH, 0xF80B132B);
-            extractor.fill(tipX, tipY, tipX + tipW, tipY + 2, 0xFF38BDF8);
-            extractor.outline(tipX, tipY, tipW, tipH, 0xFF0284C7);
+            extractor.outline(tipX - 1, tipY - 1, tipW + 2, tipH + 2, 0x80000000);
+            extractor.fill(tipX, tipY, tipX + tipW, tipY + tipH, 0xEA0D111D);
+            extractor.outline(tipX, tipY, tipW, tipH, isSlot1 ? 0x8038BDF8 : 0x80C084FC);
 
-            int ty = tipY + 5;
+            int ty = tipY + 4;
             for (Component line : tipLines) {
-                extractor.text(font, line, tipX + 8, ty, 0xFFFFFFFF, true);
-                ty += 11;
+                extractor.text(font, line, tipX + 6, ty, 0xFFFFFFFF, false);
+                ty += 10;
             }
         }
     }
@@ -520,7 +521,7 @@ public class AnvilTooltipState {
             tipLines.add(Component.literal("§9• Slot 1: §f" + step.leftLabel));
             for (EnchantApplied ea : step.leftEnchants) {
                 EnchantmentEntry ee = EnchantmentDatabase.getEnchantment(ea.id);
-                String eName = AnvilOptimizer.formatEnchantName(ee != null ? ee.name : ea.id, ea.level);
+                String eName = AnvilOptimizer.formatEnchantName(ee != null ? com.litness.optimizer.data.LitnessI18n.getEnchantName(ee) : ea.id, ea.level);
                 tipLines.add(Component.literal("   §b• " + eName));
             }
             tipLines.add(Component.empty());
@@ -528,37 +529,29 @@ public class AnvilTooltipState {
             tipLines.add(Component.literal("§d• Slot 2: §f" + step.rightLabel));
             for (EnchantApplied ea : step.rightEnchants) {
                 EnchantmentEntry ee = EnchantmentDatabase.getEnchantment(ea.id);
-                String eName = AnvilOptimizer.formatEnchantName(ee != null ? ee.name : ea.id, ea.level);
+                String eName = AnvilOptimizer.formatEnchantName(ee != null ? com.litness.optimizer.data.LitnessI18n.getEnchantName(ee) : ea.id, ea.level);
                 tipLines.add(Component.literal("   §d• " + eName));
             }
             tipLines.add(Component.empty());
 
-            tipLines.add(Component.literal("§a-> Risultato: §f" + step.resultLabel));
-            String peakStr = cachedSolution != null ? " §7(Picco: §d" + cachedSolution.peakCost + "/39 liv.§7)" : "";
-            tipLines.add(Component.literal("§6Costo Incudine: §e" + step.cost + " liv. XP" + peakStr));
+            tipLines.add(Component.literal("§a-> " + com.litness.optimizer.data.LitnessI18n.t("result_label") + " §f" + step.resultLabel));
+            String peakStr = cachedSolution != null ? " §7(" + com.litness.optimizer.data.LitnessI18n.t("peak_cost") + ": §d" + cachedSolution.peakCost + "/39 liv.§7)" : "";
+            tipLines.add(Component.literal("§6" + com.litness.optimizer.data.LitnessI18n.t("cost_xp") + "§e" + step.cost + " liv. XP" + peakStr));
         } else {
-            String targetName = anvil.getMenu().getSlot(0).hasItem() ? anvil.getMenu().getSlot(0).getItem().getHoverName().getString() : "Oggetto";
+            String targetName = anvil.getMenu().getSlot(0).hasItem() ? anvil.getMenu().getSlot(0).getItem().getHoverName().getString() : com.litness.optimizer.data.LitnessI18n.getItemPieceName(cachedItemKey);
             int penalty = anvil.getMenu().getSlot(0).hasItem() ? anvil.getMenu().getSlot(0).getItem().getOrDefault(DataComponents.REPAIR_COST, 0) : 0;
 
-            String actionName = "TEMPRA OGGETTO";
-            if ("pick".equals(cachedItemKey)) actionName = "TEMPRA PICCONE";
-            else if ("sword".equals(cachedItemKey)) actionName = "TEMPRA SPADA";
-            else if ("helmet".equals(cachedItemKey)) actionName = "TEMPRA ELMO";
-            else if ("chest".equals(cachedItemKey)) actionName = "TEMPRA CORAZZA";
-            else if ("legs".equals(cachedItemKey)) actionName = "TEMPRA GAMBALI";
-            else if ("boots".equals(cachedItemKey)) actionName = "TEMPRA STIVALI";
-            else if ("axe".equals(cachedItemKey)) actionName = "TEMPRA ASCIA";
-            else if ("bow".equals(cachedItemKey)) actionName = "TEMPRA ARCO";
+            String actionName = com.litness.optimizer.data.LitnessI18n.getActionName(cachedItemKey);
 
-            tipLines.add(Component.literal("§a• PASSO 1/" + totalSteps + ": " + actionName));
-            tipLines.add(Component.literal("§7Applica questo libro sull'oggetto nell'incudine:"));
+            tipLines.add(Component.literal("§a• " + com.litness.optimizer.data.LitnessI18n.t("step_prefix") + "1/" + totalSteps + ": " + actionName));
+            tipLines.add(Component.literal("§7" + com.litness.optimizer.data.LitnessI18n.t("temper_equip") + targetName + ":"));
             tipLines.add(Component.empty());
 
-            tipLines.add(Component.literal("§eSlot 1 (Oggetto): §f" + targetName + " §7(Penalità: +" + penalty + " liv.)"));
-            tipLines.add(Component.literal("§eSlot 2 (Libro): §f" + step.rightLabel));
+            tipLines.add(Component.literal("§eSlot 1: §f" + targetName + " §7(" + com.litness.optimizer.data.LitnessI18n.t("penalty_plus") + penalty + com.litness.optimizer.data.LitnessI18n.t("levels") + ")"));
+            tipLines.add(Component.literal("§eSlot 2: §f" + step.rightLabel));
             for (EnchantApplied ea : step.rightEnchants) {
                 EnchantmentEntry ee = EnchantmentDatabase.getEnchantment(ea.id);
-                String eName = AnvilOptimizer.formatEnchantName(ee != null ? ee.name : ea.id, ea.level);
+                String eName = AnvilOptimizer.formatEnchantName(ee != null ? com.litness.optimizer.data.LitnessI18n.getEnchantName(ee) : ea.id, ea.level);
                 tipLines.add(Component.literal("   §a• " + eName));
             }
             tipLines.add(Component.empty());

@@ -48,6 +48,7 @@ public class AhPriceManager {
         public final String formattedPrice;
         public final String formattedBreakdown;
         public final long seenTimestamp;
+        public int page = 1;
 
         public AhListing(String enchantId, String enchantName, int level, String seller, long price, long netPrice, long tax) {
             this.enchantId = enchantId;
@@ -129,6 +130,30 @@ public class AhPriceManager {
     private static long pendingBuyTime = 0;
     public static AhListing lastHoveredListing = null;
 
+    // Auto-navigazione pagine per acquisto rapido
+    private static AhListing autoNavListing = null;
+    private static int autoNavAttempts = 0;
+    private static long autoNavLastClick = 0;
+
+    // Scansione automatica di tutte le pagine di /ah
+    private static boolean isAutoScanning = false;
+    private static long lastAutoScanClick = 0;
+    private static int autoScanPageCount = 0;
+    private static boolean autoScanReturning = false;
+
+    // Coordinate tasto [⚡ Sfoglia]
+    private static int btnScanX = -9999;
+    private static int btnScanY = -9999;
+    private static int btnScanW = 46;
+    private static int btnScanH = 12;
+    private static boolean isScanHovered = false;
+
+    // Coordinate footer tasto sfoglia
+    private static int footerBtnX = -9999;
+    private static int footerBtnY = -9999;
+    private static int footerBtnW = 0;
+    private static int footerBtnH = 0;
+
     private static final Pattern PAGE_REGEX_1 = Pattern.compile("(?i)(?:pagina|page|pag\\.|p\\.)\\s*#?\\s*(\\d+)");
     private static final Pattern PAGE_REGEX_2 = Pattern.compile("(\\d+)\\s*/\\s*(\\d+)");
 
@@ -184,6 +209,11 @@ public class AhPriceManager {
         lastScannedPage = -1;
         pendingBuyKey = null;
         pendingBuyPrice = -1;
+        autoNavListing = null;
+        autoNavAttempts = 0;
+        isAutoScanning = false;
+        autoScanReturning = false;
+        autoScanPageCount = 0;
         scrollOffset = 0;
         maxScroll = 0;
         isDraggingScrollbar = false;
@@ -650,19 +680,55 @@ public class AhPriceManager {
 
     public static int detectPageNumber(AbstractContainerScreen<?> screen) {
         if (screen == null || screen.getMenu() == null) return -1;
+
+        // 1. Controlla il titolo del container (es. "AUCTION - Pagina 2")
+        String title = screen.getTitle().getString();
+        int titleP = parsePageFromString(title);
+        if (titleP > 0) return titleP;
+
         List<Slot> slots = screen.getMenu().slots;
         int maxSlot = Math.min(54, slots.size());
+
+        // 2. Cerca esplicito "Pagina X / Y" o "Pagina X di Y" nella barra di navigazione inferiore
+        for (int i = 45; i < maxSlot; i++) {
+            ItemStack stack = slots.get(i).getItem();
+            if (stack.isEmpty()) continue;
+
+            ItemLore lore = stack.getOrDefault(DataComponents.LORE, ItemLore.EMPTY);
+            for (Component c : lore.lines()) {
+                Matcher m = Pattern.compile("(?i)(?:pagina|page|pag\\.)?\\s*(\\d+)\\s*(?:/|di|of)\\s*(\\d+)").matcher(c.getString());
+                if (m.find()) {
+                    try { return Integer.parseInt(m.group(1)); } catch (Exception ignored) {}
+                }
+            }
+
+            Matcher mName = Pattern.compile("(?i)(?:pagina|page|pag\\.)?\\s*(\\d+)\\s*(?:/|di|of)\\s*(\\d+)").matcher(stack.getHoverName().getString());
+            if (mName.find()) {
+                try { return Integer.parseInt(mName.group(1)); } catch (Exception ignored) {}
+            }
+        }
+
+        // 3. Cerca "Pagina X" generico (escludendo frecce che indicano "Pagina successiva: X")
         for (int i = 45; i < maxSlot; i++) {
             ItemStack stack = slots.get(i).getItem();
             if (stack.isEmpty()) continue;
             String hoverName = stack.getHoverName().getString();
-            int p = parsePageFromString(hoverName);
-            if (p > 0) return p;
+            String lower = hoverName.toLowerCase();
+            if (!lower.contains("succ") && !lower.contains("next") && !lower.contains("avanti") && !lower.contains("prossim")
+                    && !lower.contains("prec") && !lower.contains("prev") && !lower.contains("indietro")) {
+                int p = parsePageFromString(hoverName);
+                if (p > 0) return p;
+            }
 
             ItemLore lore = stack.getOrDefault(DataComponents.LORE, ItemLore.EMPTY);
             for (Component c : lore.lines()) {
-                p = parsePageFromString(c.getString());
-                if (p > 0) return p;
+                String line = c.getString();
+                String lineLower = line.toLowerCase();
+                if (!lineLower.contains("succ") && !lineLower.contains("next") && !lineLower.contains("avanti") && !lineLower.contains("prossim")
+                        && !lineLower.contains("prec") && !lineLower.contains("prev") && !lineLower.contains("indietro")) {
+                    int p = parsePageFromString(line);
+                    if (p > 0) return p;
+                }
             }
         }
         return -1;
@@ -682,9 +748,32 @@ public class AhPriceManager {
     }
 
     public static void onSlotClicked(AbstractContainerScreen<?> screen, Slot slot) {
-        if (screen == null || slot == null || !isAuctionHouse(screen)) return;
+        if (screen == null || slot == null) return;
         ItemStack stack = slot.getItem();
-        if (stack.isEmpty() || !isBook(stack)) return;
+        if (stack.isEmpty()) return;
+
+        // Riconoscimento click di conferma in menu/popup di acquisto (es. Conferma Acquisto)
+        String screenTitle = screen.getTitle().getString().toLowerCase();
+        boolean isConfirmScreen = screenTitle.contains("conferma") || screenTitle.contains("confirm")
+                || screenTitle.contains("acquisto") || screenTitle.contains("purchase");
+        String itemName = stack.getHoverName().getString().toLowerCase();
+        boolean isConfirmItem = itemName.contains("conferma") || itemName.contains("confirm")
+                || itemName.contains("accetta") || itemName.contains("compra") || itemName.contains("buy");
+
+        if ((isConfirmScreen || isConfirmItem) && pendingBuyKey != null) {
+            // L'utente ha confermato l'acquisto: rimuovi subito l'offerta salvata!
+            cachedListings.remove(pendingBuyKey);
+            for (Set<String> pageSet : pageToListings.values()) {
+                pageSet.remove(pendingBuyKey);
+            }
+            lastScreenListingKeys.remove(pendingBuyKey);
+            recalculateMinPrices();
+            pendingBuyKey = null;
+            pendingBuyPrice = -1;
+            return;
+        }
+
+        if (!isAuctionHouse(screen) || !isBook(stack)) return;
 
         ParsedInfo info = parseSellerAndPrice(stack);
         if (info.price > 0) {
@@ -703,16 +792,33 @@ public class AhPriceManager {
     public static void onChatMessage(String text) {
         if (text == null || text.isEmpty()) return;
         String lower = text.toLowerCase(Locale.ROOT);
-        // Riconoscimento acquisto su Litness: "Asta » Hai appena comprato x1 Enchanted Book per 210$."
-        if (lower.contains("hai appena comprato") || lower.contains("hai comprato") || lower.contains("you bought") || lower.contains("bought x1")) {
+        // Riconoscimento messaggi di conferma acquisto su Litness in italiano e inglese
+        boolean isPurchase = lower.contains("hai appena comprato")
+                || lower.contains("hai comprato")
+                || lower.contains("hai acquistato")
+                || lower.contains("acquisto effettuato")
+                || lower.contains("acquisto completato")
+                || lower.contains("comprato x1")
+                || lower.contains("you bought")
+                || lower.contains("bought x1")
+                || lower.contains("purchased")
+                || lower.contains("vinto l'asta")
+                || (lower.contains("asta") && (lower.contains("comprat") || lower.contains("acquistat")));
+
+        if (isPurchase) {
             long parsedPrice = -1;
-            Matcher m = Pattern.compile("(?i)(?:per|for)\\s+([0-9.,kKmM]+)\\s*\\$").matcher(text);
+            Matcher m = Pattern.compile("(?i)(?:per|for|a)\\s+([0-9.,kKmM]+)\\s*\\$").matcher(text);
             if (m.find()) {
                 parsedPrice = parseMoneyAmount(m.group(1));
+            } else {
+                Matcher m2 = Pattern.compile("(?i)([0-9.,kKmM]+)\\s*\\$").matcher(text);
+                if (m2.find()) {
+                    parsedPrice = parseMoneyAmount(m2.group(1));
+                }
             }
 
-            // 1. Rimuovi la chiave cliccata di recente (ultimi 15 secondi)
-            if (pendingBuyKey != null && System.currentTimeMillis() - pendingBuyTime < 15000) {
+            // 1. Rimuovi la chiave cliccata di recente (ultimi 25 secondi)
+            if (pendingBuyKey != null && System.currentTimeMillis() - pendingBuyTime < 25000) {
                 cachedListings.remove(pendingBuyKey);
                 for (Set<String> pageSet : pageToListings.values()) {
                     pageSet.remove(pendingBuyKey);
@@ -751,6 +857,20 @@ public class AhPriceManager {
         }
         currentScreenMinPrices.clear();
         currentScreenMinPrices.putAll(minMap);
+    }
+
+    public static void clickSlot(AbstractContainerScreen<?> screen, Slot s) {
+        if (screen == null || s == null) return;
+        Minecraft mc = Minecraft.getInstance();
+        try {
+            if ((Object) screen instanceof com.litness.optimizer.mixin.ContainerScreenAccessor accessor) {
+                accessor.litness_invokeSlotClicked(s, s.index, 0, net.minecraft.world.inventory.ContainerInput.PICKUP);
+                return;
+            }
+        } catch (Throwable ignored) {}
+        if (mc.gameMode != null && mc.player != null) {
+            mc.gameMode.handleContainerInput(screen.getMenu().containerId, s.index, 0, net.minecraft.world.inventory.ContainerInput.PICKUP, mc.player);
+        }
     }
 
     public static void scanCurrentContainer(AbstractContainerScreen<?> screen) {
@@ -796,12 +916,14 @@ public class AhPriceManager {
             if (!matchesAnyFilter(singleId, level, filters)) continue;
 
             EnchantmentEntry ee = EnchantmentDatabase.getEnchantment(singleId);
-            String eName = (ee != null) ? ee.name : singleId;
+            String eName = (ee != null) ? com.litness.optimizer.data.LitnessI18n.getEnchantName(ee) : com.litness.optimizer.data.LitnessI18n.translateEnchantName(singleId);
 
             ParsedInfo info = parseSellerAndPrice(stack);
             if (info.price > 0) {
                 AhListing listing = new AhListing(singleId, eName, level, info.seller, info.price, info.netPrice, info.tax);
+                listing.page = Math.max(1, currentPage);
                 cachedListings.put(listing.key, listing);
+                pageToListings.computeIfAbsent(listing.page, k -> new HashSet<>()).add(listing.key);
                 currentFoundKeys.add(listing.key);
 
                 String matchKey = singleId + ":" + level;
@@ -816,14 +938,141 @@ public class AhPriceManager {
             }
         }
 
-        // Se un acquisto era pendente ed è stato completato, rimuovilo
-        if (pendingBuyKey != null && !currentFoundKeys.contains(pendingBuyKey)) {
-            cachedListings.remove(pendingBuyKey);
+        // Mantiene tutte le offerte accumulate attraverso tutte le pagine sfogliate di /ah!
+        // Le offerte vengono rimosse all'acquisto confermato o su click destro dell'utente.
+        lastScreenListingKeys = new HashSet<>(currentFoundKeys);
+
+        // Se un acquisto era pendente ed è scaduto il timeout (30s), azzeralo
+        if (pendingBuyKey != null && System.currentTimeMillis() - pendingBuyTime > 30000) {
             pendingBuyKey = null;
+            pendingBuyPrice = -1;
         }
 
         // Ricalcola i prezzi minimi su TUTTI i listing salvati tra tutte le pagine sfogliate
         recalculateMinPrices();
+    }
+
+    public static int findSlotForListing(AbstractContainerScreen<?> screen, AhListing listing) {
+        if (screen == null || screen.getMenu() == null || listing == null) return -1;
+        Minecraft mc = Minecraft.getInstance();
+        if (mc.player == null) return -1;
+        List<Slot> slots = screen.getMenu().slots;
+        int maxAuctionSlot = Math.min(54, slots.size());
+        for (int i = 0; i < maxAuctionSlot; i++) {
+            Slot slot = slots.get(i);
+            if (slot.container == mc.player.getInventory()) continue;
+            ItemStack stack = slot.getItem();
+            if (stack.isEmpty() || !isBook(stack)) continue;
+            Set<String> distinct = extractDistinctEnchantments(stack);
+            if (distinct.size() != 1) continue;
+            String singleId = distinct.iterator().next();
+            int level = extractLevel(stack, singleId);
+            if (!isIdMatching(singleId, listing.enchantId)) continue;
+            if (listing.level > 0 && level != listing.level) continue;
+            ParsedInfo info = parseSellerAndPrice(stack);
+            if (info.price == listing.price) {
+                if (listing.seller == null || listing.seller.equalsIgnoreCase("Sconosciuto") || info.seller.equalsIgnoreCase(listing.seller)) {
+                    return i;
+                }
+            }
+        }
+        return -1;
+    }
+
+    public static int findNextPageSlot(AbstractContainerScreen<?> screen) {
+        if (screen == null || screen.getMenu() == null) return -1;
+        List<Slot> slots = screen.getMenu().slots;
+        int maxSlot = Math.min(54, slots.size());
+
+        // 1. Cerca per nome o lore esplicita
+        for (int i = 45; i < maxSlot; i++) {
+            ItemStack stack = slots.get(i).getItem();
+            if (stack.isEmpty()) continue;
+            String name = stack.getHoverName().getString();
+            if (isNextPageText(name)) return i;
+
+            ItemLore lore = stack.getOrDefault(DataComponents.LORE, ItemLore.EMPTY);
+            for (Component c : lore.lines()) {
+                if (isNextPageText(c.getString())) return i;
+            }
+        }
+
+        // 2. Euristica di fallback: se lo slot 49 o 50 contiene una freccia / icona avanti
+        if (slots.size() >= 50) {
+            ItemStack s49 = slots.get(49).getItem();
+            if (!s49.isEmpty()) {
+                String n = s49.getHoverName().getString();
+                if (s49.is(Items.ARROW) || s49.is(Items.SPECTRAL_ARROW) || n.contains("↗") || n.contains("→") || n.contains(">")) {
+                    return 49;
+                }
+            }
+        }
+        if (slots.size() >= 51) {
+            ItemStack s50 = slots.get(50).getItem();
+            if (!s50.isEmpty()) {
+                String n = s50.getHoverName().getString();
+                if (s50.is(Items.ARROW) || s50.is(Items.SPECTRAL_ARROW) || n.contains("↗") || n.contains("→") || n.contains(">")) {
+                    return 50;
+                }
+            }
+        }
+        return -1;
+    }
+
+    private static boolean isNextPageText(String text) {
+        if (text == null) return false;
+        String t = text.toLowerCase(Locale.ROOT);
+        return t.contains("succ") || t.contains("next") || t.contains("avanti") || t.contains("prossim")
+                || t.contains("forward") || t.contains("▶") || t.contains("►") || t.contains(">")
+                || t.contains("»") || t.contains("→") || t.contains("↗") || t.contains("🡲") || t.contains("➜");
+    }
+
+    public static int findPrevPageSlot(AbstractContainerScreen<?> screen) {
+        if (screen == null || screen.getMenu() == null) return -1;
+        List<Slot> slots = screen.getMenu().slots;
+        int maxSlot = Math.min(54, slots.size());
+
+        // 1. Cerca per nome o lore esplicita
+        for (int i = 45; i < maxSlot; i++) {
+            ItemStack stack = slots.get(i).getItem();
+            if (stack.isEmpty()) continue;
+            String name = stack.getHoverName().getString();
+            if (isPrevPageText(name)) return i;
+
+            ItemLore lore = stack.getOrDefault(DataComponents.LORE, ItemLore.EMPTY);
+            for (Component c : lore.lines()) {
+                if (isPrevPageText(c.getString())) return i;
+            }
+        }
+
+        // 2. Euristica di fallback: se lo slot 48 o 47 contiene una freccia indietro
+        if (slots.size() >= 49) {
+            ItemStack s48 = slots.get(48).getItem();
+            if (!s48.isEmpty()) {
+                String n = s48.getHoverName().getString();
+                if (s48.is(Items.ARROW) || s48.is(Items.SPECTRAL_ARROW) || n.contains("↙") || n.contains("←") || n.contains("<")) {
+                    return 48;
+                }
+            }
+        }
+        if (slots.size() >= 48) {
+            ItemStack s47 = slots.get(47).getItem();
+            if (!s47.isEmpty()) {
+                String n = s47.getHoverName().getString();
+                if (s47.is(Items.ARROW) || s47.is(Items.SPECTRAL_ARROW) || n.contains("↙") || n.contains("←") || n.contains("<")) {
+                    return 47;
+                }
+            }
+        }
+        return -1;
+    }
+
+    private static boolean isPrevPageText(String text) {
+        if (text == null) return false;
+        String t = text.toLowerCase(Locale.ROOT);
+        return t.contains("prec") || t.contains("prev") || t.contains("indietro") || t.contains("back")
+                || t.contains("previous") || t.contains("◀") || t.contains("◄") || t.contains("<")
+                || t.contains("«") || t.contains("←") || t.contains("↙") || t.contains("🡰") || t.contains("⬅");
     }
 
     public static void initSearchWidget(AbstractContainerScreen<?> screen, Consumer<EditBox> widgetAdder) {
@@ -846,6 +1095,11 @@ public class AhPriceManager {
         maxScroll = 0;
         isDraggingScrollbar = false;
         lastHoveredListing = null;
+        autoNavListing = null;
+        autoNavAttempts = 0;
+        isAutoScanning = false;
+        autoScanReturning = false;
+        autoScanPageCount = 0;
         // Non cancelliamo cachedListings così quando l'utente sfoglia le pagine di /ah
         // o riapre l'asta ritrova tutti i prezzi migliori precedentemente scansionati!
         if (searchBox != null) {
@@ -936,17 +1190,16 @@ public class AhPriceManager {
             }
 
             if (match) {
-                boolean isVanillaPlus = "vanilla_plus".equalsIgnoreCase(ee.category);
                 boolean isCustom = "custom".equalsIgnoreCase(ee.category);
-                String badge = isVanillaPlus ? "[V+]" : (isCustom ? "[C]" : "[V]");
-                int badgeColor = isVanillaPlus ? 0xFFF59E0B : (isCustom ? 0xFF10B981 : 0xFF818CF8);
+                String badge = isCustom ? "[C]" : "[V]";
+                int badgeColor = isCustom ? 0xFF10B981 : 0xFF818CF8;
 
                 int targetLvl = (requestedLevel > 0 && requestedLevel <= ee.maxLevel + 1) ? requestedLevel : (ee.maxLevel > 1 ? ee.maxLevel : 1);
                 String searchKey = ee.id + ":" + targetLvl;
 
                 if (!addedKeys.contains(searchKey)) {
                     addedKeys.add(searchKey);
-                    String display = AnvilOptimizer.formatEnchantName(ee.name, targetLvl);
+                    String display = AnvilOptimizer.formatEnchantName(com.litness.optimizer.data.LitnessI18n.getEnchantName(ee), targetLvl);
                     currentSuggestions.add(new AutocompleteSuggestion(ee.id, targetLvl, searchKey, display, badge, badgeColor));
                 }
             }
@@ -954,7 +1207,7 @@ public class AhPriceManager {
         }
     }
 
-    public static boolean handleMouseClicked(Screen screen, MouseButtonEvent event, boolean isDown) {
+    public static boolean handleMouseClicked(Screen screen, MouseButtonEvent event) {
         if (!(screen instanceof AbstractContainerScreen<?> containerScreen) || !isAuctionHouse(containerScreen)) {
             return false;
         }
@@ -963,6 +1216,18 @@ public class AhPriceManager {
         double mouseY = event.y();
         int button = event.button();
         boolean isLeftClick = (button == 0 || button == InputConstants.MOUSE_BUTTON_LEFT);
+
+        boolean isMouseInSidebar = (mouseX >= lastSideX && mouseX <= lastSideX + lastSideW && mouseY >= lastSideY && mouseY <= lastSideY + lastSideH);
+        boolean isMouseInDropdown = (dropW > 0 && dropH > 0 && mouseX >= dropX && mouseX <= dropX + dropW && mouseY >= dropY && mouseY <= dropY + dropH);
+
+        // Se il cursore non si trova né nella sidebar né nel menu a discesa, non intercettare: lascia gestire a vanilla
+        if (!isMouseInSidebar && !isMouseInDropdown) {
+            if (!currentSuggestions.isEmpty()) {
+                currentSuggestions.clear();
+                hoveredSuggestionIndex = -1;
+            }
+            return false;
+        }
 
         // 1. Click su un suggerimento della tendina di completamento
         if (isLeftClick && !currentSuggestions.isEmpty() && dropW > 0 && dropH > 0) {
@@ -1017,6 +1282,44 @@ public class AhPriceManager {
             return true;
         }
 
+        // 2b. Click sul pulsante [⚡ Sfoglia] o sul footer interattivo
+        boolean clickedScan = (btnScanW > 0 && btnScanH > 0
+                && mouseX >= btnScanX && mouseX <= btnScanX + btnScanW
+                && mouseY >= btnScanY && mouseY <= btnScanY + btnScanH);
+        boolean clickedFooter = (footerBtnW > 0 && footerBtnH > 0
+                && mouseX >= footerBtnX && mouseX <= footerBtnX + footerBtnW
+                && mouseY >= footerBtnY && mouseY <= footerBtnY + footerBtnH);
+        if (isLeftClick && (clickedScan || clickedFooter)) {
+            Minecraft mc = Minecraft.getInstance();
+            if (isAutoScanning) {
+                isAutoScanning = false;
+                autoScanReturning = false;
+                autoScanPageCount = 0;
+                if (mc.player != null) {
+                    mc.player.sendOverlayMessage(Component.literal("§c• Scansione /ah interrotta"));
+                }
+            } else {
+                isAutoScanning = true;
+                autoScanReturning = false;
+                autoScanPageCount = 0;
+                lastAutoScanClick = System.currentTimeMillis();
+                int nextSlot = findNextPageSlot(containerScreen);
+                if (nextSlot >= 0) {
+                    Slot s = containerScreen.getMenu().slots.get(nextSlot);
+                    clickSlot(containerScreen, s);
+                    if (mc.player != null) {
+                        mc.player.sendOverlayMessage(Component.literal("§e✦ Avvio scansione completa di tutte le pagine /ah..."));
+                    }
+                } else {
+                    isAutoScanning = false;
+                    if (mc.player != null) {
+                        mc.player.sendOverlayMessage(Component.literal("§a✔ Sei già all'unica pagina disponibile"));
+                    }
+                }
+            }
+            return true;
+        }
+
         // 3. Click sulla barra di ricerca
         if (isLeftClick && searchBox != null && searchBox.visible) {
             if (mouseX >= lastSearchBoxX && mouseX <= lastSearchBoxX + lastSearchBoxW &&
@@ -1025,7 +1328,7 @@ public class AhPriceManager {
                 if (screen != null) {
                     screen.setFocused(searchBox);
                 }
-                searchBox.mouseClicked(event, isDown);
+                searchBox.mouseClicked(event, false);
                 return true;
             } else if (searchBox.isFocused()) {
                 searchBox.setFocused(false);
@@ -1050,16 +1353,66 @@ public class AhPriceManager {
             return true;
         }
 
-        // 5. Right-click per rimuovere manualmente un'offerta cliccata
+        // 5. Click su un'offerta nella lista (Left-click: Acquisto / Apertura menu, Right-click: Rimuovi)
         boolean isRightClick = (button == 1 || button == InputConstants.MOUSE_BUTTON_RIGHT);
-        if (isRightClick && lastHoveredListing != null) {
-            cachedListings.remove(lastHoveredListing.key);
-            recalculateMinPrices();
-            Minecraft mc = Minecraft.getInstance();
-            if (mc.player != null) {
-                mc.player.sendOverlayMessage(Component.literal("§c• Offerta rimossa: " + lastHoveredListing.getDisplayNameWithLevel()));
+        if (lastHoveredListing != null) {
+            if (isLeftClick) {
+                int slotIdx = findSlotForListing(containerScreen, lastHoveredListing);
+                Minecraft mc = Minecraft.getInstance();
+                if (slotIdx >= 0) {
+                    // L'oggetto è sulla pagina corrente! Clicca direttamente lo slot per aprire il menu di conferma acquisto
+                    Slot targetSlot = containerScreen.getMenu().slots.get(slotIdx);
+                    pendingBuyKey = lastHoveredListing.key;
+                    pendingBuyPrice = lastHoveredListing.price;
+                    pendingBuyTime = System.currentTimeMillis();
+                    clickSlot(containerScreen, targetSlot);
+                    if (mc.player != null) {
+                        mc.player.sendOverlayMessage(Component.literal("§a✔ Apertura menu acquisto per " + lastHoveredListing.getDisplayNameWithLevel()));
+                    }
+                    return true;
+                } else {
+                    // L'oggetto NON si trova sulla pagina corrente: avvia auto-navigazione automatica!
+                    autoNavListing = lastHoveredListing;
+                    autoNavAttempts = 0;
+                    autoNavLastClick = System.currentTimeMillis();
+
+                    int nextSlot = findNextPageSlot(containerScreen);
+                    if (nextSlot >= 0) {
+                        Slot s = containerScreen.getMenu().slots.get(nextSlot);
+                        clickSlot(containerScreen, s);
+                        if (mc.player != null) {
+                            mc.player.sendOverlayMessage(Component.literal("§e✦ Sfoglio /ah per trovare " + lastHoveredListing.getDisplayNameWithLevel() + "..."));
+                        }
+                    } else {
+                        int prevSlot = findPrevPageSlot(containerScreen);
+                        if (prevSlot >= 0) {
+                            Slot s = containerScreen.getMenu().slots.get(prevSlot);
+                            clickSlot(containerScreen, s);
+                            if (mc.player != null) {
+                                mc.player.sendOverlayMessage(Component.literal("§e✦ Sfoglio indietro per trovare " + lastHoveredListing.getDisplayNameWithLevel() + "..."));
+                            }
+                        } else {
+                            if (mc.player != null) {
+                                mc.player.sendOverlayMessage(Component.literal("§c• Impossibile sfogliare: tasto pagina non trovato"));
+                            }
+                            autoNavListing = null;
+                        }
+                    }
+                    return true;
+                }
+            } else if (isRightClick) {
+                cachedListings.remove(lastHoveredListing.key);
+                for (Set<String> pageSet : pageToListings.values()) {
+                    pageSet.remove(lastHoveredListing.key);
+                }
+                lastScreenListingKeys.remove(lastHoveredListing.key);
+                recalculateMinPrices();
+                Minecraft mc = Minecraft.getInstance();
+                if (mc.player != null) {
+                    mc.player.sendOverlayMessage(Component.literal("§c• Offerta rimossa: " + lastHoveredListing.getDisplayNameWithLevel()));
+                }
+                return true;
             }
-            return true;
         }
 
         if (!currentSuggestions.isEmpty() && (mouseX < dropX || mouseX > dropX + dropW || mouseY < dropY || mouseY > dropY + dropH)) {
@@ -1108,6 +1461,130 @@ public class AhPriceManager {
         return false;
     }
 
+    public static void tickAutoNavigation(AbstractContainerScreen<?> screen) {
+        if (screen == null || !isAuctionHouse(screen)) {
+            autoNavListing = null;
+            isAutoScanning = false;
+            autoScanReturning = false;
+            autoScanPageCount = 0;
+            return;
+        }
+
+        Minecraft mc = Minecraft.getInstance();
+        long now = System.currentTimeMillis();
+
+        // 1. SCANSIONE AUTOMATICA COMPLETA DI TUTTE LE PAGINE DI /AH
+        if (isAutoScanning) {
+            if (now - lastAutoScanClick < 320) return; // Attesa 320ms per sincronizzazione della cassa col server
+
+            if (!autoScanReturning) {
+                int nextSlot = findNextPageSlot(screen);
+                if (nextSlot >= 0 && autoScanPageCount < 25) {
+                    autoScanPageCount++;
+                    lastAutoScanClick = now;
+                    Slot s = screen.getMenu().slots.get(nextSlot);
+                    clickSlot(screen, s);
+                    if (mc.player != null) {
+                        mc.player.sendOverlayMessage(Component.literal("§e✦ Scansione /ah: pagina " + (autoScanPageCount + 1) + "... (" + cachedListings.size() + " offerte salvate)"));
+                    }
+                } else {
+                    // Fine delle pagine in avanti: torna indietro alla Pagina 1
+                    autoScanReturning = true;
+                    int prevSlot = findPrevPageSlot(screen);
+                    if (prevSlot >= 0) {
+                        lastAutoScanClick = now;
+                        Slot s = screen.getMenu().slots.get(prevSlot);
+                        clickSlot(screen, s);
+                    } else {
+                        isAutoScanning = false;
+                        autoScanReturning = false;
+                        autoScanPageCount = 0;
+                        if (mc.player != null) {
+                            mc.player.sendOverlayMessage(Component.literal("§a✔ Scansione completata! Trovate " + cachedListings.size() + " offerte totali."));
+                        }
+                    }
+                }
+            } else {
+                int prevSlot = findPrevPageSlot(screen);
+                if (prevSlot >= 0) {
+                    lastAutoScanClick = now;
+                    Slot s = screen.getMenu().slots.get(prevSlot);
+                    clickSlot(screen, s);
+                } else {
+                    // Tornati alla prima pagina!
+                    isAutoScanning = false;
+                    autoScanReturning = false;
+                    autoScanPageCount = 0;
+                    if (mc.player != null) {
+                        mc.player.sendOverlayMessage(Component.literal("§a✔ Scansione completata! Trovate " + cachedListings.size() + " offerte totali."));
+                    }
+                }
+            }
+            return;
+        }
+
+        // 2. NAVIGAZIONE AUTOMATICA PER TROVARE E COMPRARE UN'OFFERTA SU ALTRA PAGINA
+        if (autoNavListing != null) {
+            if (now - autoNavLastClick < 350) return;
+
+            int slotIdx = findSlotForListing(screen, autoNavListing);
+            if (slotIdx >= 0) {
+                Slot s = screen.getMenu().slots.get(slotIdx);
+                pendingBuyKey = autoNavListing.key;
+                pendingBuyPrice = autoNavListing.price;
+                pendingBuyTime = now;
+                clickSlot(screen, s);
+                if (mc.player != null) {
+                    mc.player.sendOverlayMessage(Component.literal("§a✔ Trovato! Apertura menu acquisto per " + autoNavListing.getDisplayNameWithLevel()));
+                }
+                autoNavListing = null;
+                autoNavAttempts = 0;
+                return;
+            }
+
+            if (autoNavAttempts >= 18) {
+                cachedListings.remove(autoNavListing.key);
+                recalculateMinPrices();
+                if (mc.player != null) {
+                    mc.player.sendOverlayMessage(Component.literal("§c• Offerta non più presente su /ah (rimossa dai prezzi)"));
+                }
+                autoNavListing = null;
+                autoNavAttempts = 0;
+                return;
+            }
+
+            int nextSlot = findNextPageSlot(screen);
+            if (nextSlot >= 0) {
+                autoNavAttempts++;
+                autoNavLastClick = now;
+                Slot s = screen.getMenu().slots.get(nextSlot);
+                clickSlot(screen, s);
+                if (mc.player != null) {
+                    mc.player.sendOverlayMessage(Component.literal("§e✦ Sfoglio /ah per trovare " + autoNavListing.getDisplayNameWithLevel() + " (pagina " + (autoNavAttempts + 1) + ")..."));
+                }
+            } else {
+                int prevSlot = findPrevPageSlot(screen);
+                if (prevSlot >= 0) {
+                    autoNavAttempts++;
+                    autoNavLastClick = now;
+                    Slot s = screen.getMenu().slots.get(prevSlot);
+                    clickSlot(screen, s);
+                    if (mc.player != null) {
+                        mc.player.sendOverlayMessage(Component.literal("§e✦ Sfoglio indietro per trovare " + autoNavListing.getDisplayNameWithLevel() + "..."));
+                    }
+                } else {
+                    cachedListings.remove(autoNavListing.key);
+                    recalculateMinPrices();
+                    if (mc.player != null) {
+                        mc.player.sendOverlayMessage(Component.literal("§c• Fine delle aste: offerta non trovata (rimossa dai prezzi)"));
+                    }
+                    autoNavListing = null;
+                    autoNavAttempts = 0;
+                }
+            }
+        }
+    }
+
     public static void renderAhSidebar(GuiGraphicsExtractor extractor, AbstractContainerScreen<?> screen, int leftPos, int topPos, int imageWidth, int imageHeight, int mouseX, int mouseY, float delta) {
         if (screen == null) return;
         if (!isAuctionHouse(screen)) {
@@ -1144,30 +1621,38 @@ public class AhPriceManager {
         lastSideW = sideW;
         lastSideH = sideH;
 
-        // Sfondo dark glass solido
-        extractor.outline(sideX - 1, sideY - 1, sideW + 2, sideH + 2, 0xFF000000);
-        extractor.fill(sideX, sideY, sideX + sideW, sideY + sideH, 0xF50F111A);
+        // Sfondo dark glass solido Obsidian Minimal
+        LitnessOptimizerScreen.drawRoundedRect(extractor, sideX, sideY, sideW, sideH, 8, 0xFA090B10);
+        LitnessOptimizerScreen.drawRoundedOutline(extractor, sideX, sideY, sideW, sideH, 8, 0xFF1E2334);
 
-        // Barra accento superiore Litness fiery gradient
-        int halfW = sideW / 2;
-        extractor.fillGradient(sideX, sideY, sideX + halfW, sideY + 2, 0xFFFFB800, 0xFFFF5722);
-        extractor.fillGradient(sideX + halfW, sideY, sideX + sideW, sideY + 2, 0xFFFF5722, 0xFFC62828);
-        extractor.outline(sideX, sideY, sideW, sideH, 0xFF2A2D40);
-
-        // Titolo Header con colore tema Litness
-        extractor.text(font, "PREZZI AH", sideX + 8, sideY + 6, 0xFFFFB800, true);
+        // Barra accento blu elettrico Obsidian |
+        LitnessOptimizerScreen.drawRoundedRect(extractor, sideX + 8, sideY + 7, 3, 12, 1, 0xFF3B82F6);
+        extractor.text(font, "MERCATO AH", sideX + 16, sideY + 9, 0xFFFFFFFF, false);
 
         Set<String> searchEnchants = getEffectiveSearchEnchants();
 
         // Tasto [Azzera]
+        btnClearW = 34;
         btnClearX = sideX + sideW - btnClearW - 6;
-        btnClearY = sideY + 4;
+        btnClearY = sideY + 5;
         isClearHovered = mouseX >= btnClearX && mouseX <= btnClearX + btnClearW && mouseY >= btnClearY && mouseY <= btnClearY + btnClearH;
-        int btnBg = isClearHovered ? 0x60EF4444 : 0x301E293B;
-        int btnBorder = isClearHovered ? 0xFFEF4444 : 0xFF334155;
-        extractor.fill(btnClearX, btnClearY, btnClearX + btnClearW, btnClearY + btnClearH, btnBg);
-        extractor.outline(btnClearX, btnClearY, btnClearW, btnClearH, btnBorder);
+        int btnBg = isClearHovered ? 0xFF991B1B : 0xFF181D2E;
+        int btnBorder = isClearHovered ? 0xFFEF4444 : 0xFF1E2334;
+        LitnessOptimizerScreen.drawRoundedRect(extractor, btnClearX, btnClearY, btnClearW, btnClearH, 4, btnBg);
+        LitnessOptimizerScreen.drawRoundedOutline(extractor, btnClearX, btnClearY, btnClearW, btnClearH, 4, btnBorder);
         extractor.centeredText(font, "Azzera", btnClearX + (btnClearW / 2), btnClearY + 2, isClearHovered ? 0xFFFCA5A5 : 0xFF94A3B8);
+
+        // Tasto [⚡ Sfoglia]
+        btnScanW = 46;
+        btnScanX = btnClearX - btnScanW - 4;
+        btnScanY = sideY + 5;
+        isScanHovered = mouseX >= btnScanX && mouseX <= btnScanX + btnScanW && mouseY >= btnScanY && mouseY <= btnScanY + btnScanH;
+        int scanBg = isAutoScanning ? 0xFF065F46 : (isScanHovered ? 0xFF1E3A8A : 0xFF181D2E);
+        int scanBorder = isAutoScanning ? 0xFF10B981 : (isScanHovered ? 0xFF3B82F6 : 0xFF1E2334);
+        LitnessOptimizerScreen.drawRoundedRect(extractor, btnScanX, btnScanY, btnScanW, btnScanH, 4, scanBg);
+        LitnessOptimizerScreen.drawRoundedOutline(extractor, btnScanX, btnScanY, btnScanW, btnScanH, 4, scanBorder);
+        String scanText = isAutoScanning ? "Stop" : "⚡ Sfoglia";
+        extractor.centeredText(font, scanText, btnScanX + (btnScanW / 2), btnScanY + 2, isAutoScanning ? 0xFF6EE7B7 : (isScanHovered ? 0xFF93C5FD : 0xFF60A5FA));
 
         // Barra di Ricerca Rapida Standard
         int searchBoxX = sideX + 6;
@@ -1195,14 +1680,14 @@ public class AhPriceManager {
             // Stato vuoto: Nessun incanto cercato
             int cardY = curY + 2;
             int cardH = sideH - (cardY - sideY) - 10;
-            extractor.fill(sideX + 6, cardY, sideX + sideW - 6, cardY + cardH, 0x40161826);
-            extractor.outline(sideX + 6, cardY, sideW - 12, cardH, 0xFF26293D);
+            LitnessOptimizerScreen.drawRoundedRect(extractor, sideX + 6, cardY, sideW - 12, cardH, 6, 0xFF131724);
+            LitnessOptimizerScreen.drawRoundedOutline(extractor, sideX + 6, cardY, sideW - 12, cardH, 6, 0xFF1E2334);
 
             extractor.fakeItem(new ItemStack(Items.ENCHANTED_BOOK), sideX + (sideW / 2) - 8, cardY + 14);
 
             extractor.centeredText(font, "Nessun filtro attivo", sideX + (sideW / 2), cardY + 36, 0xFFFFFFFF);
             extractor.centeredText(font, "Scrivi nella barra sopra,", sideX + (sideW / 2), cardY + 52, 0xFF9CA3AF);
-            extractor.centeredText(font, "premi [+ Cerca] in [N],", sideX + (sideW / 2), cardY + 64, 0xFFF97316);
+            extractor.centeredText(font, "premi [+ Cerca] in [N],", sideX + (sideW / 2), cardY + 64, 0xFF60A5FA);
             extractor.centeredText(font, "oppure pinna un set!", sideX + (sideW / 2), cardY + 76, 0xFF9CA3AF);
 
             // Rendering Menu a Discesa Autocomplete anche in stato vuoto se si sta scrivendo
@@ -1226,7 +1711,7 @@ public class AhPriceManager {
         if (filterCount == 1) {
             EnchantFilter first = filters.get(0);
             EnchantmentEntry fe = EnchantmentDatabase.getEnchantment(first.enchantId);
-            String baseName = fe != null ? fe.name : first.enchantId;
+            String baseName = fe != null ? com.litness.optimizer.data.LitnessI18n.getEnchantName(fe) : com.litness.optimizer.data.LitnessI18n.translateEnchantName(first.enchantId);
             if (first.targetLevel > 0) {
                 filterInfo = AnvilOptimizer.formatEnchantName(baseName, first.targetLevel);
             } else {
@@ -1235,9 +1720,9 @@ public class AhPriceManager {
         } else {
             filterInfo = filterCount + " incanti cercati";
         }
-        extractor.text(font, "§7Cerca: §e" + trimToWidth(font, filterInfo, sideW - 65), sideX + 8, curY, 0xFFFBBF24, false);
+        extractor.text(font, "§7Cerca: §f" + trimToWidth(font, filterInfo, sideW - 65), sideX + 8, curY, 0xFFFFFFFF, false);
         curY += 10;
-        extractor.text(font, "§6• Libri lisci (Migliori in Arancio)", sideX + 8, curY, 0xFFF97316, false);
+        extractor.text(font, "§9• §7Libri lisci (1 incanto)", sideX + 8, curY, 0xFF9CA3AF, false);
         curY += 12;
 
         if (matchingListings.isEmpty()) {
@@ -1246,11 +1731,11 @@ public class AhPriceManager {
             // Nessun libro trovato finora
             int boxY = curY + 2;
             int boxH = sideH - (boxY - sideY) - 10;
-            extractor.fill(sideX + 6, boxY, sideX + sideW - 6, boxY + boxH, 0x301E293B);
-            extractor.outline(sideX + 6, boxY, sideW - 12, boxH, 0xFF334155);
+            LitnessOptimizerScreen.drawRoundedRect(extractor, sideX + 6, boxY, sideW - 12, boxH, 6, 0xFF131724);
+            LitnessOptimizerScreen.drawRoundedOutline(extractor, sideX + 6, boxY, sideW - 12, boxH, 6, 0xFF1E2334);
 
             extractor.fakeItem(new ItemStack(Items.ENCHANTED_BOOK), sideX + (sideW / 2) - 8, boxY + 8);
-            extractor.centeredText(font, "0 libri lisci finora", sideX + (sideW / 2), boxY + 28, 0xFFFCD34D);
+            extractor.centeredText(font, "0 libri lisci finora", sideX + (sideW / 2), boxY + 28, 0xFF60A5FA);
             extractor.centeredText(font, "Sfoglia le pagine", sideX + (sideW / 2), boxY + 44, 0xFFE2E8F0);
             extractor.centeredText(font, "di /ah per leggere", sideX + (sideW / 2), boxY + 54, 0xFFE2E8F0);
             extractor.centeredText(font, "in automatico i prezzi!", sideX + (sideW / 2), boxY + 64, 0xFFE2E8F0);
@@ -1336,12 +1821,12 @@ public class AhPriceManager {
                     hoveredRank = 1;
                 }
 
-                int bestBg = isBestHovered ? 0x48F97316 : 0x30F97316;
-                int bestBorder = isBestHovered ? 0xFFFED7AA : 0xFFF97316;
-                extractor.fill(sideX + 5, bestBoxY, sideX + 5 + cardWidth, bestBoxY + bestBoxH, bestBg);
-                extractor.outline(sideX + 5, bestBoxY, cardWidth, bestBoxH, bestBorder);
+                int bestBg = isBestHovered ? 0xFF1E2438 : 0xFF131724;
+                int bestBorder = isBestHovered ? 0xFF3B82F6 : 0xFF1E2334;
+                LitnessOptimizerScreen.drawRoundedRect(extractor, sideX + 5, bestBoxY, cardWidth, bestBoxH, 6, bestBg);
+                LitnessOptimizerScreen.drawRoundedOutline(extractor, sideX + 5, bestBoxY, cardWidth, bestBoxH, 6, bestBorder);
 
-                extractor.text(font, "• MIGLIOR PREZZO:", sideX + 8, bestBoxY + 3, 0xFFFED7AA, false);
+                extractor.text(font, "• MIGLIOR PREZZO:", sideX + 8, bestBoxY + 3, 0xFF60A5FA, false);
                 EnchantmentEntry eeSingle = EnchantmentDatabase.getEnchantment(best.enchantId);
                 ItemStack iconSingle = EnchantmentThematicIconHelper.getIcon(eeSingle);
                 if (bestBoxY + 3 >= scrollAreaY - 2 && bestBoxY + 19 <= scrollAreaY + scrollAreaH + 2) {
@@ -1352,15 +1837,15 @@ public class AhPriceManager {
                 extractor.text(font, bestName, sideX + 8, bestBoxY + 13, 0xFFFFFFFF, true);
 
                 String sellerDisplay = trimToWidth(font, best.seller, 65);
-                String bestPriceLine = "§6" + best.formattedPrice + " §7(da " + sellerDisplay + ")";
-                extractor.text(font, bestPriceLine, sideX + 8, bestBoxY + 23, 0xFFFFA500, false);
-                extractor.text(font, "§e" + best.formattedBreakdown, sideX + 8, bestBoxY + 33, 0xFFFDBA74, false);
+                String bestPriceLine = "§a" + best.formattedPrice + " §7(da " + sellerDisplay + ")";
+                extractor.text(font, bestPriceLine, sideX + 8, bestBoxY + 23, 0xFF34D399, false);
+                extractor.text(font, "§9" + best.formattedBreakdown, sideX + 8, bestBoxY + 33, 0xFF60A5FA, false);
             }
             drawY = bestBoxY + bestBoxH + 5;
         } else {
             // Più incanti in ricerca: mostra una card per ciascun incanto trovato
             if (drawY >= scrollAreaY && drawY + 10 <= scrollAreaY + scrollAreaH) {
-                extractor.text(font, "• MIGLIORI PREZZI:", sideX + 8, drawY, 0xFFFED7AA, false);
+                extractor.text(font, "• MIGLIORI PREZZI:", sideX + 8, drawY, 0xFF60A5FA, false);
             }
             drawY += 10;
             int cardH = 26;
@@ -1372,10 +1857,10 @@ public class AhPriceManager {
                         hoveredIsBest = true;
                         hoveredRank = 1;
                     }
-                    int cardBg = isCardHovered ? 0x48F97316 : 0x2CF97316;
-                    int cardBorder = isCardHovered ? 0xFFFED7AA : 0xFFF97316;
-                    extractor.fill(sideX + 5, drawY, sideX + 5 + cardWidth, drawY + cardH, cardBg);
-                    extractor.outline(sideX + 5, drawY, cardWidth, cardH, cardBorder);
+                    int cardBg = isCardHovered ? 0xFF1E2438 : 0xFF131724;
+                    int cardBorder = isCardHovered ? 0xFF3B82F6 : 0xFF1E2334;
+                    LitnessOptimizerScreen.drawRoundedRect(extractor, sideX + 5, drawY, cardWidth, cardH, 6, cardBg);
+                    LitnessOptimizerScreen.drawRoundedOutline(extractor, sideX + 5, drawY, cardWidth, cardH, 6, cardBorder);
 
                     EnchantmentEntry eeMulti = EnchantmentDatabase.getEnchantment(best.enchantId);
                     ItemStack iconMulti = EnchantmentThematicIconHelper.getIcon(eeMulti);
@@ -1386,10 +1871,10 @@ public class AhPriceManager {
                     int nameMaxW = Math.max(30, cardWidth - 80);
                     String nameStr = trimToWidth(font, best.getDisplayNameWithLevel(), nameMaxW);
                     extractor.text(font, nameStr, sideX + 27, drawY + 3, 0xFFFFFFFF, true);
-                    extractor.text(font, best.formattedPrice, sideX + 5 + cardWidth - font.width(best.formattedPrice) - 3, drawY + 3, 0xFFFFA500, true);
+                    extractor.text(font, best.formattedPrice, sideX + 5 + cardWidth - font.width(best.formattedPrice) - 3, drawY + 3, 0xFF34D399, true);
 
-                    String subStr = "§e" + best.formattedBreakdown + " §7(da " + trimToWidth(font, best.seller, 40) + ")";
-                    extractor.text(font, trimToWidth(font, subStr, cardWidth - 28), sideX + 27, drawY + 14, 0xFFFDBA74, false);
+                    String subStr = "§9" + best.formattedBreakdown + " §7(da " + trimToWidth(font, best.seller, 40) + ")";
+                    extractor.text(font, trimToWidth(font, subStr, cardWidth - 28), sideX + 27, drawY + 14, 0xFF60A5FA, false);
                 }
                 drawY += cardH + 3;
             }
@@ -1415,27 +1900,27 @@ public class AhPriceManager {
                     hoveredRank = i + 1;
                 }
 
-                int rowBg = isRowHovered ? (isTop ? 0x50F97316 : 0x35334155) : (isTop ? 0x28F97316 : (i % 2 == 0 ? 0x181E293B : 0x0D1E293B));
-                extractor.fill(sideX + 5, itemY, sideX + 5 + cardWidth, itemY + rowH - 1, rowBg);
+                int rowBg = isRowHovered ? 0xFF1E2438 : (isTop ? 0x251E293B : (i % 2 == 0 ? 0x15151926 : 0x00000000));
+                LitnessOptimizerScreen.drawRoundedRect(extractor, sideX + 5, itemY, cardWidth, rowH - 1, 4, rowBg);
                 if (isRowHovered) {
-                    extractor.outline(sideX + 5, itemY, cardWidth, rowH - 1, isTop ? 0xFFF97316 : 0xFF475569);
+                    LitnessOptimizerScreen.drawRoundedOutline(extractor, sideX + 5, itemY, cardWidth, rowH - 1, 4, 0xFF3B82F6);
                 }
 
-                // Rango (#1 arancione se è il migliore del suo incanto, altri slate)
+                // Rango
                 String rank = (i + 1) + ".";
-                extractor.text(font, rank, sideX + 8, itemY + 3, isTop ? 0xFFF97316 : 0xFF64748B, false);
+                extractor.text(font, rank, sideX + 8, itemY + 3, isTop ? 0xFF60A5FA : 0xFF64748B, false);
 
                 // Prezzo formattato
-                extractor.text(font, l.formattedPrice, sideX + 22, itemY + 3, isTop ? 0xFFFFA500 : 0xFFE2E8F0, false);
+                extractor.text(font, l.formattedPrice, sideX + 22, itemY + 3, isTop ? 0xFF34D399 : 0xFFE2E8F0, false);
 
                 // Nome incanto
                 String sub = AnvilOptimizer.formatEnchantName(l.enchantName, l.level);
                 String subTrimmed = trimToWidth(font, sub, 65);
-                extractor.text(font, subTrimmed, sideX + 78, itemY + 3, isTop ? 0xFFFFF0D0 : 0xFF94A3B8, false);
+                extractor.text(font, subTrimmed, sideX + 78, itemY + 3, isTop ? 0xFFFFFFFF : 0xFF94A3B8, false);
 
                 // Venditore allineato a destra
                 String sellerTrimmed = trimToWidth(font, l.seller, Math.max(30, cardWidth - 138));
-                extractor.text(font, sellerTrimmed, sideX + 5 + cardWidth - font.width(sellerTrimmed) - 3, itemY + 3, isTop ? 0xFFFED7AA : 0xFF64748B, false);
+                extractor.text(font, sellerTrimmed, sideX + 5 + cardWidth - font.width(sellerTrimmed) - 3, itemY + 3, isTop ? 0xFFCBD5E1 : 0xFF64748B, false);
             }
         }
 
@@ -1444,21 +1929,27 @@ public class AhPriceManager {
 
         // 3. Barra di scorrimento laterale (Scrollbar) se il contenuto eccede
         if (maxScroll > 0) {
-            extractor.fill(scrollBarX, scrollAreaY, scrollBarX + scrollBarW, scrollAreaY + scrollAreaH, 0x301E293B);
+            LitnessOptimizerScreen.drawRoundedRect(extractor, scrollBarX, scrollAreaY, scrollBarW, scrollAreaH, 2, 0x301E293B);
             boolean isThumbHovered = mouseX >= scrollBarX - 1 && mouseX <= scrollBarX + scrollBarW + 1 && mouseY >= scrollThumbY && mouseY <= scrollThumbY + scrollThumbH;
-            int thumbColor = (isDraggingScrollbar || isThumbHovered) ? 0xFFFB923C : 0xFFF97316;
-            extractor.fill(scrollBarX, scrollThumbY, scrollBarX + scrollBarW, scrollThumbY + scrollThumbH, thumbColor);
+            int thumbColor = (isDraggingScrollbar || isThumbHovered) ? 0xFF60A5FA : 0xFF3B82F6;
+            LitnessOptimizerScreen.drawRoundedRect(extractor, scrollBarX, scrollThumbY, scrollBarW, scrollThumbH, 2, thumbColor);
         }
 
-        // Footer informativo con background solido opaco per mascherare elementi scrollati
+        // Footer informativo e interattivo per avviare o fermare la scansione
         int footerBoxH = 15;
         int footerY = sideY + sideH - footerBoxH;
-        extractor.fill(sideX + 1, footerY, sideX + sideW - 1, sideY + sideH - 1, 0xFF0F111A);
-        extractor.horizontalLine(sideX + 2, sideX + sideW - 2, footerY, 0xFF1E293B);
-        extractor.centeredText(font, "Sfoglia /ah per aggiornare", sideX + (sideW / 2), footerY + 3, 0xFF64748B);
+        footerBtnX = sideX + 1;
+        footerBtnY = footerY;
+        footerBtnW = sideW - 2;
+        footerBtnH = footerBoxH - 1;
+        boolean isFooterHovered = mouseX >= footerBtnX && mouseX <= footerBtnX + footerBtnW && mouseY >= footerBtnY && mouseY <= footerBtnY + footerBtnH;
+        int footerBg = isAutoScanning ? 0xFF064E3B : (isFooterHovered ? 0xFF1E293B : 0xFF0D0F18);
+        LitnessOptimizerScreen.drawRoundedRect(extractor, footerBtnX, footerBtnY, footerBtnW, footerBtnH, 6, footerBg);
+        String footerMsg = isAutoScanning ? "§e✦ Scansione in corso... (clicca Stop)" : (isFooterHovered ? "§b⚡ Clicca per sfogliare tutte le pagine" : "Sfoglia /ah per aggiornare");
+        extractor.centeredText(font, footerMsg, sideX + (sideW / 2), footerY + 3, isAutoScanning ? 0xFFFDE047 : (isFooterHovered ? 0xFF38BDF8 : 0xFF64748B));
 
         // Bordo finale contenitore
-        extractor.outline(sideX, sideY, sideW, sideH, 0xFF2A2D40);
+        LitnessOptimizerScreen.drawRoundedOutline(extractor, sideX, sideY, sideW, sideH, 8, 0xFF1E2334);
 
         lastHoveredListing = hoveredListing;
 
@@ -1482,10 +1973,9 @@ public class AhPriceManager {
         dropW = w;
         dropH = currentSuggestions.size() * 18 + 4;
 
-        // Pannello a discesa moderno
-        extractor.outline(dropX - 1, dropY - 1, dropW + 2, dropH + 2, 0xFF000000);
-        extractor.fill(dropX, dropY, dropX + dropW, dropY + dropH, 0xF8111422);
-        extractor.outline(dropX, dropY, dropW, dropH, 0xFFF97316);
+        // Pannello a discesa moderno Obsidian Minimal
+        LitnessOptimizerScreen.drawRoundedRect(extractor, dropX, dropY, dropW, dropH, 6, 0xFA090B10);
+        LitnessOptimizerScreen.drawRoundedOutline(extractor, dropX, dropY, dropW, dropH, 6, 0xFF3B82F6);
 
         hoveredSuggestionIndex = -1;
         for (int i = 0; i < currentSuggestions.size(); i++) {
@@ -1494,7 +1984,7 @@ public class AhPriceManager {
             boolean isSugHovered = mouseX >= dropX && mouseX <= dropX + dropW && mouseY >= itemY && mouseY < itemY + 18;
             if (isSugHovered) {
                 hoveredSuggestionIndex = i;
-                extractor.fill(dropX + 2, itemY, dropX + dropW - 2, itemY + 18, 0x48F97316);
+                LitnessOptimizerScreen.drawRoundedRect(extractor, dropX + 2, itemY, dropW - 4, 18, 4, 0xFF1E2438);
             }
 
             EnchantmentEntry ee = EnchantmentDatabase.getEnchantment(sug.enchantId);
@@ -1503,7 +1993,7 @@ public class AhPriceManager {
 
             int badgeW = font.width(sug.badge);
             int maxNameW = Math.max(30, dropW - 24 - badgeW - 6);
-            extractor.text(font, trimToWidth(font, sug.displayName, maxNameW), dropX + 22, itemY + 5, isSugHovered ? 0xFFFFA500 : 0xFFFFFFFF, false);
+            extractor.text(font, trimToWidth(font, sug.displayName, maxNameW), dropX + 22, itemY + 5, isSugHovered ? 0xFF60A5FA : 0xFFFFFFFF, false);
             extractor.text(font, sug.badge, dropX + dropW - badgeW - 5, itemY + 5, sug.badgeColor, false);
         }
     }
@@ -1526,7 +2016,7 @@ public class AhPriceManager {
         }
         lines.add(Component.literal("§7Venditore:      §b" + listing.seller));
         lines.add(Component.empty());
-        lines.add(Component.literal("§8Clicca sul libro per acquistarlo subito in /ah"));
+        lines.add(Component.literal("§a✦ Clicca con il tasto sinistro per acquistare"));
         lines.add(Component.literal("§8• Tasto destro sulla card per rimuovere l'offerta"));
 
         int maxW = 160;
@@ -1548,11 +2038,10 @@ public class AhPriceManager {
         if (tipY < 4) tipY = 4;
         if (tipX < 4) tipX = 4;
 
-        // Scatola Dark Glass per il tooltip
-        extractor.outline(tipX - 1, tipY - 1, tipW + 2, tipH + 2, 0xFF000000);
-        extractor.fill(tipX, tipY, tipX + tipW, tipY + tipH, 0xF80E111A);
-        extractor.fill(tipX, tipY, tipX + tipW, tipY + 2, isBest ? 0xFFF97316 : 0xFF10B981);
-        extractor.outline(tipX, tipY, tipW, tipH, isBest ? 0xFFEA580C : 0xFF2A2D40);
+        // Scatola Dark Glass per il tooltip Obsidian Minimal
+        LitnessOptimizerScreen.drawRoundedRect(extractor, tipX, tipY, tipW, tipH, 6, 0xFA090B10);
+        LitnessOptimizerScreen.drawRoundedOutline(extractor, tipX, tipY, tipW, tipH, 6, 0xFF1E2334);
+        LitnessOptimizerScreen.drawRoundedRect(extractor, tipX + 4, tipY + 4, 3, tipH - 8, 1, isBest ? 0xFF3B82F6 : 0xFF10B981);
 
         int textY = tipY + 6;
         for (Component line : lines) {

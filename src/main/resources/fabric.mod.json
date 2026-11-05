@@ -3,7 +3,7 @@
   "id": "litnessoptimizer",
   "version": "${version}",
   "name": "Litness Enchant Helper",
-  "description": "Assistente incudine e catalogo incantesimi in-game per il server Litness. Made by Waaxey.",
+  "description": "Litness Enchant v1.3 | By Waaxey - Assistente incudine, simulatore fusione Pareto-ottimale e comparatore asta per il server Litness.",
   "authors": [
     "Waaxey"
   ],

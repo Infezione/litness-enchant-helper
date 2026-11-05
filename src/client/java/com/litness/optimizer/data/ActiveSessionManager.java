@@ -17,6 +17,7 @@ public class ActiveSessionManager {
         String activeSetId = null;
         String pinnedSetId = null;
         List<String> searchEnchants = new ArrayList<>();
+        String language = "it";
     }
 
     private static final File CONFIG_FILE = new File("config/litnessoptimizer/active_session.json");
@@ -190,5 +191,20 @@ public class ActiveSessionManager {
             sessionData.searchEnchants.clear();
             save();
         }
+    }
+
+    public static synchronized String getLanguage() {
+        load();
+        return (sessionData.language != null && !sessionData.language.isEmpty()) ? sessionData.language : "it";
+    }
+
+    public static synchronized void setLanguage(String lang) {
+        load();
+        sessionData.language = (lang != null && lang.equalsIgnoreCase("en")) ? "en" : "it";
+        save();
+    }
+
+    public static synchronized boolean isEnglish() {
+        return "en".equalsIgnoreCase(getLanguage());
     }
 }

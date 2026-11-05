@@ -2,7 +2,9 @@ package com.litness.optimizer.mixin;
 
 import com.litness.optimizer.gui.AhPriceManager;
 import net.minecraft.client.gui.components.ChatComponent;
+import net.minecraft.client.multiplayer.chat.GuiMessageTag;
 import net.minecraft.network.chat.Component;
+import net.minecraft.network.chat.MessageSignature;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
@@ -20,6 +22,13 @@ public class ChatComponentMixin {
 
     @Inject(method = "addClientSystemMessage", at = @At("HEAD"))
     private void litness_onClientChatMessage(Component message, CallbackInfo ci) {
+        if (message != null) {
+            AhPriceManager.onChatMessage(message.getString());
+        }
+    }
+
+    @Inject(method = "addPlayerMessage", at = @At("HEAD"))
+    private void litness_onPlayerChatMessage(Component message, MessageSignature headerSignature, GuiMessageTag tag, CallbackInfo ci) {
         if (message != null) {
             AhPriceManager.onChatMessage(message.getString());
         }

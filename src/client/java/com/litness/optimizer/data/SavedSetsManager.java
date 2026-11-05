@@ -93,18 +93,20 @@ public class SavedSetsManager {
     }
 
     public static synchronized CustomSet getSetById(String id) {
+        if (id == null) return null;
         load();
         for (CustomSet s : customSets) {
-            if (s.id.equalsIgnoreCase(id)) return s;
+            if (s != null && s.id != null && s.id.equalsIgnoreCase(id)) return s;
         }
         return null;
     }
 
     public static synchronized boolean deleteSet(String id) {
+        if (id == null) return false;
         load();
         CustomSet toDelete = null;
         for (CustomSet s : customSets) {
-            if (s.id.equalsIgnoreCase(id)) {
+            if (s != null && s.id != null && s.id.equalsIgnoreCase(id)) {
                 toDelete = s;
                 break;
             }

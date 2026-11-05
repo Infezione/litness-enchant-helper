@@ -2,6 +2,7 @@ package com.litness.optimizer.data;
 
 import com.google.gson.*;
 import com.google.gson.reflect.TypeToken;
+import com.litness.optimizer.calculator.AnvilOptimizer;
 import java.io.File;
 import java.io.InputStream;
 import java.io.InputStreamReader;
@@ -157,35 +158,24 @@ public class EnchantmentDatabase {
             // Risoluzione bidirezionale dei conflitti (sia Vanilla che Custom)
             Map<String, Set<String>> conflictMap = new HashMap<>();
 
-            // 1. Gruppi di incompatibilità Vanilla & Vanilla+
+            // 1. Gruppi di incompatibilità Vanilla & Vanilla+ (base IDs per garantire nessun doppione)
             List<List<String>> vanillaGroups = List.of(
-                List.of("sharpness", "sharpness_6", "smite", "bane_of_arthropods", "density", "breach"),
-                List.of("protection", "protection_5", "fire_protection", "blast_protection", "projectile_protection"),
+                List.of("sharpness", "smite", "bane_of_arthropods", "density", "breach"),
+                List.of("protection", "fire_protection", "blast_protection", "projectile_protection"),
                 List.of("fortune", "silk_touch"),
                 List.of("infinity", "mending"),
                 List.of("multishot", "piercing"),
                 List.of("loyalty", "riptide"),
                 List.of("channeling", "riptide"),
-                List.of("depth_strider", "depth_strider_4", "frost_walker"),
-                List.of("feather_falling", "feather_falling_5"),
-                List.of("looting", "looting_4"),
-                List.of("respiration", "respiration_4"),
-                List.of("unbreaking", "unbreaking_4", "unbreaking_5"),
-                List.of("power", "power_6"),
-                List.of("efficiency", "efficiency_6")
+                List.of("depth_strider", "frost_walker")
             );
 
             for (List<String> group : vanillaGroups) {
                 for (String aId : group) {
-                    EnchantmentEntry aEntry = enchantmentsById.get(aId);
-                    if (aEntry == null) continue;
                     for (String bId : group) {
                         if (aId.equals(bId)) continue;
-                        EnchantmentEntry bEntry = enchantmentsById.get(bId);
-                        if (bEntry != null) {
-                            conflictMap.computeIfAbsent(aEntry.id, k -> new TreeSet<>()).add(bEntry.name);
-                            conflictMap.computeIfAbsent(bEntry.id, k -> new TreeSet<>()).add(aEntry.name);
-                        }
+                        conflictMap.computeIfAbsent(aId, k -> new TreeSet<>()).add(bId);
+                        conflictMap.computeIfAbsent(bId, k -> new TreeSet<>()).add(aId);
                     }
                 }
             }
@@ -195,22 +185,47 @@ public class EnchantmentDatabase {
                 if (ee.conflicts != null) {
                     for (String cName : ee.conflicts) {
                         EnchantmentEntry target = getEnchantment(cName);
-                        if (target != null) {
-                            conflictMap.computeIfAbsent(ee.id, k -> new TreeSet<>()).add(target.name);
-                            conflictMap.computeIfAbsent(target.id, k -> new TreeSet<>()).add(ee.name);
-                        } else {
-                            conflictMap.computeIfAbsent(ee.id, k -> new TreeSet<>()).add(cName);
+                        String targetId = target != null ? target.id : cName.toLowerCase().replace(' ', '-');
+                        conflictMap.computeIfAbsent(ee.id, k -> new TreeSet<>()).add(targetId);
+                        conflictMap.computeIfAbsent(targetId, k -> new TreeSet<>()).add(ee.id);
+                    }
+                }
+            }
+
+            // 3. Conflitti tra incantesimi UNICI (max 1 incantesimo unico per oggetto, es. Dynamite & Xray)
+            List<EnchantmentEntry> uniqueEnchants = new ArrayList<>();
+            for (EnchantmentEntry ench : allEnchantments) {
+                if (ench.unique) {
+                    uniqueEnchants.add(ench);
+                }
+            }
+            for (int i = 0; i < uniqueEnchants.size(); i++) {
+                EnchantmentEntry u1 = uniqueEnchants.get(i);
+                for (int j = i + 1; j < uniqueEnchants.size(); j++) {
+                    EnchantmentEntry u2 = uniqueEnchants.get(j);
+                    boolean sharesItem = false;
+                    if (u1.applicableTo != null && u2.applicableTo != null) {
+                        for (String item1 : u1.applicableTo) {
+                            if (u2.applicableTo.contains(item1)) {
+                                sharesItem = true;
+                                break;
+                            }
                         }
+                    }
+                    if (sharesItem) {
+                        conflictMap.computeIfAbsent(u1.id, k -> new TreeSet<>()).add(u2.id);
+                        conflictMap.computeIfAbsent(u2.id, k -> new TreeSet<>()).add(u1.id);
                     }
                 }
             }
 
             for (Map.Entry<String, Set<String>> entry : conflictMap.entrySet()) {
-                EnchantmentEntry self = enchantmentsById.get(entry.getKey());
-                if (self != null) {
-                    entry.getValue().remove(self.name);
-                }
-                resolvedConflicts.put(entry.getKey(), new ArrayList<>(entry.getValue()));
+                String k = entry.getKey();
+                String kBase = LitnessI18n.getBaseId(k);
+                entry.getValue().remove(k);
+                entry.getValue().remove(kBase);
+                entry.getValue().removeIf(c -> LitnessI18n.getBaseId(c).equalsIgnoreCase(kBase));
+                resolvedConflicts.put(k, new ArrayList<>(entry.getValue()));
             }
 
             System.out.println("[LitnessOptimizer] Database caricato con successo: " + allItems.size() + " oggetti, " + allEnchantments.size() + " incantesimi, " + resolvedConflicts.size() + " con conflitti risolti.");
@@ -285,23 +300,52 @@ public class EnchantmentDatabase {
         id = id.trim().toLowerCase();
         if (id.startsWith("minecraft:")) id = id.substring(10);
 
-        List<String> list = resolvedConflicts.get(id);
-        if (list != null) return list;
+        List<String> rawList = resolvedConflicts.get(id);
+        if (rawList == null) {
+            String base = LitnessI18n.getBaseId(id);
+            if (!base.equalsIgnoreCase(id)) {
+                rawList = resolvedConflicts.get(base);
+            }
+        }
+        if (rawList == null) {
+            String alt = id.replace('-', '_');
+            rawList = resolvedConflicts.get(alt);
+            if (rawList == null) {
+                alt = id.replace('_', '-');
+                rawList = resolvedConflicts.get(alt);
+            }
+        }
+        EnchantmentEntry selfEe = getEnchantment(id);
+        if (rawList == null && selfEe != null) {
+            rawList = resolvedConflicts.get(selfEe.id);
+            if (rawList == null) {
+                String base = LitnessI18n.getBaseId(selfEe.id);
+                rawList = resolvedConflicts.get(base);
+            }
+        }
+        if (rawList == null || rawList.isEmpty()) return Collections.emptyList();
 
-        String alt = id.replace('-', '_');
-        list = resolvedConflicts.get(alt);
-        if (list != null) return list;
+        String selfBaseName = selfEe != null ? LitnessI18n.getBaseEnchantName(selfEe) : LitnessI18n.getBaseEnchantNameById(id, id);
+        String selfBaseId = LitnessI18n.getBaseId(selfEe != null ? selfEe.id : id);
 
-        alt = id.replace('_', '-');
-        list = resolvedConflicts.get(alt);
-        if (list != null) return list;
+        Set<String> cleanConflicts = new TreeSet<>(String.CASE_INSENSITIVE_ORDER);
 
-        EnchantmentEntry ee = getEnchantment(id);
-        if (ee != null) {
-            return resolvedConflicts.getOrDefault(ee.id, Collections.emptyList());
+        for (String cName : rawList) {
+            EnchantmentEntry target = getEnchantment(cName);
+            String targetBaseId = target != null ? LitnessI18n.getBaseId(target.id) : LitnessI18n.getBaseId(cName);
+            String targetBaseName = target != null ? LitnessI18n.getBaseEnchantName(target) : LitnessI18n.getBaseEnchantNameById(cName, cName);
+
+            if (targetBaseName == null || targetBaseName.isEmpty()) continue;
+
+            // Mai confliggere con se stesso o con la propria famiglia di incantesimo
+            if (targetBaseId.equalsIgnoreCase(selfBaseId) || targetBaseName.equalsIgnoreCase(selfBaseName)) {
+                continue;
+            }
+
+            cleanConflicts.add(targetBaseName);
         }
 
-        return Collections.emptyList();
+        return new ArrayList<>(cleanConflicts);
     }
 
     public static ItemEntry getItem(String id) {

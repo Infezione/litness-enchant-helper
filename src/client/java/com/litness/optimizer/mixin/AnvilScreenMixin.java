@@ -11,6 +11,7 @@ import com.litness.optimizer.data.EnchantmentDatabase.EnchantmentEntry;
 import com.litness.optimizer.data.EnchantmentDatabase.ItemEntry;
 import com.litness.optimizer.data.InventoryTracker;
 import com.litness.optimizer.data.ItemTypeHelper;
+import com.litness.optimizer.data.LitnessI18n;
 import com.litness.optimizer.data.SavedSetsManager;
 import com.litness.optimizer.gui.LitnessOptimizerScreen;
 import com.litness.optimizer.gui.AnvilTooltipState;
@@ -53,8 +54,17 @@ public abstract class AnvilScreenMixin extends ItemCombinerScreen<AnvilMenu> {
     private Solution cachedSolution = null;
     private int lastSlot0Hash = 0;
     private int lastInvBooksHash = 0;
+    private int lastQuickInvHash = 0;
     private List<EnchantApplied> cachedSlot0Enchants = new ArrayList<>();
     private String cachedItemKey = "sword";
+
+    private static final java.util.concurrent.ExecutorService CALC_EXECUTOR = java.util.concurrent.Executors.newSingleThreadExecutor(r -> {
+        Thread t = new Thread(r, "LitnessAnvilCalc");
+        t.setDaemon(true);
+        return t;
+    });
+    private java.util.concurrent.Future<?> currentCalcTask = null;
+    private final java.util.concurrent.atomic.AtomicInteger calcIdCounter = new java.util.concurrent.atomic.AtomicInteger(0);
 
     public AnvilScreenMixin(AnvilMenu menu, Inventory inventory, Component title, Identifier texture) {
         super(menu, inventory, title, texture);
@@ -90,18 +100,18 @@ public abstract class AnvilScreenMixin extends ItemCombinerScreen<AnvilMenu> {
         int sideH = this.imageHeight + 10;
         int btnY = sideY + sideH + 3;
 
-        // 1. Tasto nella sidebar sotto l'helper
-        this.addRenderableWidget(Button.builder(Component.literal("Guida Completa [N]"), button -> {
+        // 1. Tasto nella sidebar sotto l'helper stile Obsidian
+        this.addRenderableWidget(new LitnessOptimizerScreen.SoftwareButton(sideX, btnY, sideW, 18, Component.literal("✦ Guida Completa [N]"), button -> {
             openOptimizer();
-        }).bounds(sideX, btnY, sideW, 18).build());
+        }).setPrimary(true));
 
-        // 2. Tasto rapido direttamente sopra l'incudine (nessuna sovrapposizione con il titolo)
-        int topBtnW = 80;
+        // 2. Tasto rapido direttamente sopra l'incudine
+        int topBtnW = 86;
         int topBtnX = this.leftPos + this.imageWidth - topBtnW;
         int topBtnY = this.topPos - 18;
-        this.addRenderableWidget(Button.builder(Component.literal("Guida Passi"), button -> {
+        this.addRenderableWidget(new LitnessOptimizerScreen.SoftwareButton(topBtnX, topBtnY, topBtnW, 16, Component.literal("✦ Guida Passi"), button -> {
             openOptimizer();
-        }).bounds(topBtnX, topBtnY, topBtnW, 16).build());
+        }));
     }
 
     @Inject(method = "keyPressed", at = @At("HEAD"), cancellable = true)
@@ -122,24 +132,18 @@ public abstract class AnvilScreenMixin extends ItemCombinerScreen<AnvilMenu> {
             int sideY = this.topPos - 14;
             int sideH = this.imageHeight + 10;
 
-            // Box scuro elegante laterale (stile dark glass premium)
-            extractor.fill(sideX, sideY, sideX + sideW, sideY + sideH, 0xF20F111A);
+            // Finestra Laterale Obsidian Minimal Stondata
+            LitnessOptimizerScreen.drawRoundedRect(extractor, sideX, sideY, sideW, sideH, 8, 0xFA090B10);
+            LitnessOptimizerScreen.drawRoundedOutline(extractor, sideX, sideY, sideW, sideH, 8, 0xFF1E2334);
 
-            // Bordo bicolore d'accento superiore (Indigo -> Emerald)
-            int halfW = sideW / 2;
-            extractor.fill(sideX, sideY, sideX + halfW, sideY + 2, 0xFF6366F1);
-            extractor.fill(sideX + halfW, sideY, sideX + sideW, sideY + 2, 0xFF10B981);
-
-            // Contorno sottile moderno
-            extractor.outline(sideX, sideY, sideW, sideH, 0xFF2A2D40);
-
-            // Titolo Header con badge info [?] affiancato
-            extractor.text(this.font, "LITNESS HELPER", sideX + 8, sideY + 6, 0xFFA5B4FC, false);
+            // Barra accento blu elettrico Obsidian |
+            LitnessOptimizerScreen.drawRoundedRect(extractor, sideX + 8, sideY + 7, 3, 13, 1, 0xFF3B82F6);
+            extractor.text(this.font, "LITNESS HELPER", sideX + 16, sideY + 9, 0xFFFFFFFF, false);
 
             int infoBtnX = sideX + sideW - 18;
-            int infoBtnY = sideY + 5;
+            int infoBtnY = sideY + 8;
             boolean isInfoHovered = mouseX >= infoBtnX - 3 && mouseX <= infoBtnX + 15 && mouseY >= infoBtnY - 2 && mouseY <= infoBtnY + 12;
-            extractor.text(this.font, isInfoHovered ? "§e[?]" : "§7[§e?§7]", infoBtnX, infoBtnY, isInfoHovered ? 0xFFFCD34D : 0xFF9CA3AF, false);
+            extractor.text(this.font, isInfoHovered ? "§9[?]" : "§8[?]", infoBtnX, infoBtnY, isInfoHovered ? 0xFF60A5FA : 0xFF64748B, false);
             if (isInfoHovered) {
                 com.litness.optimizer.gui.AnvilTooltipState.hoveredInfoModal = true;
             }
@@ -155,14 +159,25 @@ public abstract class AnvilScreenMixin extends ItemCombinerScreen<AnvilMenu> {
                 activeEquipment = slot0;
                 lastExplicitEquipment = slot0.copy();
                 equipInSlot0 = true;
-            } else {
+            } else if (!lastExplicitEquipment.isEmpty()) {
                 activeEquipment = findMatchingEquipmentInInventory(lastExplicitEquipment);
-                if (activeEquipment.isEmpty()) {
-                    activeEquipment = findAnyEquipmentInInventory();
-                    if (!activeEquipment.isEmpty() && lastExplicitEquipment.isEmpty()) {
-                        lastExplicitEquipment = activeEquipment.copy();
+            } else {
+                // Se nessun oggetto è ancora stato inserito nello slot 0, controlliamo se c'è un set esplicitamente pinnato
+                String pinnedId = ActiveSessionManager.getPinnedSetId();
+                if (pinnedId != null && !pinnedId.isEmpty()) {
+                    SavedSetsManager.CustomSet pinned = SavedSetsManager.getSetById(pinnedId);
+                    if (pinned != null && pinned.itemKey != null) {
+                        activeEquipment = findEquipmentByKeyInInventory(pinned.itemKey);
+                        if (!activeEquipment.isEmpty()) {
+                            lastExplicitEquipment = activeEquipment.copy();
+                        }
                     }
                 }
+            }
+
+            if (activeEquipment.isEmpty()) {
+                cachedSolution = null;
+                AnvilTooltipState.cachedSolution = null;
             }
 
             if (!activeEquipment.isEmpty()) {
@@ -170,11 +185,11 @@ public abstract class AnvilScreenMixin extends ItemCombinerScreen<AnvilMenu> {
 
                 int penalty = activeEquipment.getOrDefault(DataComponents.REPAIR_COST, 0);
 
-                // Box interno per l'oggetto
-                int wellY = sideY + 18;
+                // Box interno per l'oggetto (Obsidian Minimal Well)
+                int wellY = sideY + 23;
                 int wellH = 38;
-                extractor.fill(sideX + 6, wellY, sideX + sideW - 6, wellY + wellH, 0x60161826);
-                extractor.outline(sideX + 6, wellY, sideW - 12, wellH, 0xFF26293D);
+                LitnessOptimizerScreen.drawRoundedRect(extractor, sideX + 6, wellY, sideW - 12, wellH, 6, 0xFF131724);
+                LitnessOptimizerScreen.drawRoundedOutline(extractor, sideX + 6, wellY, sideW - 12, wellH, 6, 0xFF1E2334);
 
                 // Icona 3D dell'oggetto
                 extractor.fakeItem(activeEquipment, sideX + 9, wellY + 11);
@@ -213,11 +228,11 @@ public abstract class AnvilScreenMixin extends ItemCombinerScreen<AnvilMenu> {
                         EnchantApplied ea = cachedSlot0Enchants.get(i);
                         EnchantmentEntry ee = EnchantmentDatabase.getEnchantment(ea.id);
                         String eName = AnvilOptimizer.formatEnchantName(ee != null ? ee.name : ea.id, ea.level);
-                        extractor.text(this.font, "• " + trimToWidth(eName, sideW - 22), sideX + 10, curY, 0xFF818CF8, false);
+                        extractor.text(this.font, "• " + trimToWidth(eName, sideW - 22), sideX + 10, curY, 0xFF60A5FA, false);
                         curY += 9;
                     }
                     if (cachedSlot0Enchants.size() > 2) {
-                        extractor.text(this.font, "  +" + (cachedSlot0Enchants.size() - 2) + " altri...", sideX + 10, curY, 0xFF6B7280, false);
+                        extractor.text(this.font, "  +" + (cachedSlot0Enchants.size() - 2) + " altri...", sideX + 10, curY, 0xFF64748B, false);
                         curY += 9;
                     }
 
@@ -252,32 +267,31 @@ public abstract class AnvilScreenMixin extends ItemCombinerScreen<AnvilMenu> {
                         boolean ready = (slot0HasLeft && slot1HasRight) || (slot0HasRight && slot1HasLeft);
                         boolean oneInserted = slot0HasLeft || slot1HasRight || slot0HasRight || slot1HasLeft;
 
-                        int boxBg = ready ? 0x6010B981 : (isMoveHovered ? 0x60F59E0B : 0x30F59E0B);
-                        int boxBorder = ready ? 0xFF10B981 : 0xFFF59E0B;
-                        extractor.fill(sideX + 6, moveY, sideX + sideW - 6, moveY + moveH, boxBg);
-                        extractor.outline(sideX + 6, moveY, sideW - 12, moveH, boxBorder);
+                        int boxBg = ready ? 0xFF0D281E : (isMoveHovered ? 0xFF181D2E : 0xFF131724);
+                        int boxBorder = ready ? 0xFF10B981 : (isMoveHovered ? 0xFF3B82F6 : 0xFF1E2334);
+                        LitnessOptimizerScreen.drawRoundedRect(extractor, sideX + 6, moveY, sideW - 12, moveH, 6, boxBg);
+                        LitnessOptimizerScreen.drawRoundedOutline(extractor, sideX + 6, moveY, sideW - 12, moveH, 6, boxBorder);
 
-                        String badge = ready ? "§a✔ PRONTO DA UNIRE (1/" + totalSteps + ")" : "UNISCI 2 LIBRI (1/" + totalSteps + ")";
-                        int badgeColor = ready ? 0xFF34D399 : 0xFFFBBF24;
+                        String badge = ready ? "§a✔ " + LitnessI18n.t("ready_to_merge") + " (1/" + totalSteps + ")" : "UNISCI 2 LIBRI (1/" + totalSteps + ")";
+                        int badgeColor = ready ? 0xFF34D399 : 0xFF60A5FA;
                         extractor.text(this.font, badge, sideX + 10, moveY + 5, badgeColor, false);
 
                         if (ready) {
-                            extractor.text(this.font, "§a• Prendi il libro unito", sideX + 10, moveY + 18, 0xFF34D399, false);
-                            extractor.text(this.font, "  dallo slot di uscita!", sideX + 10, moveY + 30, 0xFFE2E8F0, false);
-                            extractor.text(this.font, "Costo: §a" + nextStep.cost + " liv. XP", sideX + 10, moveY + 43, 0xFF34D399, false);
+                            extractor.text(this.font, "§a• " + LitnessI18n.t("take_from_output"), sideX + 10, moveY + 18, 0xFF34D399, false);
+                            extractor.text(this.font, LitnessI18n.t("cost_xp") + "§a" + nextStep.cost + LitnessI18n.t("levels") + " XP", sideX + 10, moveY + 43, 0xFF34D399, false);
                         } else if (oneInserted) {
-                            extractor.text(this.font, "Slot 1: §a✔ Inserito", sideX + 10, moveY + 18, 0xFF34D399, false);
+                            extractor.text(this.font, "§7Slot 1: §a✔ Inserito", sideX + 10, moveY + 18, 0xFF34D399, false);
                             String missingLabel = (slot0HasLeft || slot1HasLeft) ? nextStep.rightLabel : nextStep.leftLabel;
-                            extractor.text(this.font, "Slot 2: Metti §d" + trimToWidth(missingLabel, sideW - 60), sideX + 10, moveY + 30, 0xFFE0E7FF, false);
-                            extractor.text(this.font, "Costo: §a" + nextStep.cost + " liv. XP", sideX + 10, moveY + 42, 0xFF34D399, false);
+                            extractor.text(this.font, "§7Slot 2: §d" + trimToWidth(missingLabel, sideW - 60), sideX + 10, moveY + 30, 0xFFE0E7FF, false);
+                            extractor.text(this.font, LitnessI18n.t("cost_xp") + "§a" + nextStep.cost + LitnessI18n.t("levels") + " XP", sideX + 10, moveY + 42, 0xFF34D399, false);
                         } else {
                             String l1 = trimToWidth(nextStep.leftLabel, sideW - 55);
                             String l2 = trimToWidth(nextStep.rightLabel, sideW - 55);
-                            extractor.text(this.font, "Slot 1: §b" + l1, sideX + 10, moveY + 18, 0xFF9CA3AF, false);
-                            extractor.text(this.font, "Slot 2: §d" + l2, sideX + 10, moveY + 30, 0xFF9CA3AF, false);
-                            extractor.text(this.font, "Costo: §a" + nextStep.cost + " liv. XP", sideX + 10, moveY + 42, 0xFF34D399, false);
+                            extractor.text(this.font, "§7Slot 1: §b" + l1, sideX + 10, moveY + 18, 0xFF9CA3AF, false);
+                            extractor.text(this.font, "§7Slot 2: §d" + l2, sideX + 10, moveY + 30, 0xFF9CA3AF, false);
+                            extractor.text(this.font, LitnessI18n.t("cost_xp") + "§a" + nextStep.cost + LitnessI18n.t("levels") + " XP", sideX + 10, moveY + 42, 0xFF34D399, false);
                             if (moveH >= 65) {
-                                extractor.text(this.font, "§6• Metti i 2 libri nell'incudine", sideX + 10, moveY + 54, 0xFFF59E0B, false);
+                                extractor.text(this.font, "§9• " + LitnessI18n.t("put_both_books"), sideX + 10, moveY + 54, 0xFF60A5FA, false);
                             }
                         }
                     } else {
@@ -286,49 +300,48 @@ public abstract class AnvilScreenMixin extends ItemCombinerScreen<AnvilMenu> {
                         boolean hasBookInSlot1 = AnvilTooltipState.matchesEnchantList(slot1, nextStep.rightEnchants);
                         boolean ready = hasEquipInSlot0 && hasBookInSlot1;
 
-                        int boxBg = ready ? 0x6010B981 : (isMoveHovered ? 0x5010B981 : 0x3010B981);
-                        int boxBorder = 0xFF10B981;
-                        extractor.fill(sideX + 6, moveY, sideX + sideW - 6, moveY + moveH, boxBg);
-                        extractor.outline(sideX + 6, moveY, sideW - 12, moveH, boxBorder);
+                        int boxBg = ready ? 0xFF0D281E : (isMoveHovered ? 0xFF181D2E : 0xFF131724);
+                        int boxBorder = ready ? 0xFF10B981 : (isMoveHovered ? 0xFF3B82F6 : 0xFF1E2334);
+                        LitnessOptimizerScreen.drawRoundedRect(extractor, sideX + 6, moveY, sideW - 12, moveH, 6, boxBg);
+                        LitnessOptimizerScreen.drawRoundedOutline(extractor, sideX + 6, moveY, sideW - 12, moveH, 6, boxBorder);
 
-                        String badge = ready ? "§a✔ PRONTO DA TEMPRARE (1/" + totalSteps + ")" : ((icon.isEmpty() ? "" : icon + " ") + actionName + " (1/" + totalSteps + ")");
+                        String badge = ready ? "§a✔ " + LitnessI18n.t("ready_to_forge") + " (1/" + totalSteps + ")" : ((icon.isEmpty() ? "" : icon + " ") + actionName + " (1/" + totalSteps + ")");
                         extractor.text(this.font, badge, sideX + 10, moveY + 5, 0xFF34D399, false);
 
                         if (ready) {
-                            extractor.text(this.font, "§a• Prendi l'oggetto", sideX + 10, moveY + 18, 0xFF34D399, false);
-                            extractor.text(this.font, "  dallo slot di uscita!", sideX + 10, moveY + 30, 0xFFE2E8F0, false);
-                            extractor.text(this.font, "Costo: §a" + nextStep.cost + " liv. XP", sideX + 10, moveY + 43, 0xFF34D399, false);
+                            extractor.text(this.font, "§a• " + LitnessI18n.t("take_from_output"), sideX + 10, moveY + 18, 0xFF34D399, false);
+                            extractor.text(this.font, LitnessI18n.t("cost_xp") + "§a" + nextStep.cost + LitnessI18n.t("levels") + " XP", sideX + 10, moveY + 43, 0xFF34D399, false);
                         } else if (!hasEquipInSlot0) {
-                            extractor.text(this.font, "Slot 1: Metti §b" + trimToWidth(itemName, sideW - 55), sideX + 10, moveY + 18, 0xFFE0E7FF, false);
-                            extractor.text(this.font, "Slot 2: Metti §d" + trimToWidth(nextStep.rightLabel, sideW - 55), sideX + 10, moveY + 30, 0xFFE0E7FF, false);
-                            extractor.text(this.font, "Costo: §a" + nextStep.cost + " liv. XP", sideX + 10, moveY + 42, 0xFF34D399, false);
+                            extractor.text(this.font, "§7Slot 1: §b" + trimToWidth(itemName, sideW - 55), sideX + 10, moveY + 18, 0xFFE0E7FF, false);
+                            extractor.text(this.font, "§7Slot 2: §d" + trimToWidth(nextStep.rightLabel, sideW - 55), sideX + 10, moveY + 30, 0xFFE0E7FF, false);
+                            extractor.text(this.font, LitnessI18n.t("cost_xp") + "§a" + nextStep.cost + LitnessI18n.t("levels") + " XP", sideX + 10, moveY + 42, 0xFF34D399, false);
                         } else {
-                            extractor.text(this.font, "Metti nello §eSlot 2§7:", sideX + 10, moveY + 18, 0xFFE0E7FF, false);
+                            extractor.text(this.font, "§7Slot 2 (Libro):", sideX + 10, moveY + 18, 0xFFE0E7FF, false);
                             String bName = trimToWidth("• " + nextStep.rightLabel, sideW - 20);
                             extractor.text(this.font, bName, sideX + 10, moveY + 30, 0xFF34D399, false);
-                            extractor.text(this.font, "Costo: §a" + nextStep.cost + " liv. XP", sideX + 10, moveY + 42, 0xFF34D399, false);
+                            extractor.text(this.font, LitnessI18n.t("cost_xp") + "§a" + nextStep.cost + LitnessI18n.t("levels") + " XP", sideX + 10, moveY + 42, 0xFF34D399, false);
                         }
                     }
                 } else {
                     maxability = com.litness.optimizer.calculator.MaxabilityAnalyzer.analyze(activeEquipment, cachedSlot0Enchants);
-                    extractor.fill(sideX + 6, moveY, sideX + sideW - 6, moveY + moveH, 0x301E293B);
-                    extractor.outline(sideX + 6, moveY, sideW - 12, moveH, 0xFF334155);
+                    LitnessOptimizerScreen.drawRoundedRect(extractor, sideX + 6, moveY, sideW - 12, moveH, 6, 0xFF131724);
+                    LitnessOptimizerScreen.drawRoundedOutline(extractor, sideX + 6, moveY, sideW - 12, moveH, 6, 0xFF1E2334);
 
                     if (maxability.status == com.litness.optimizer.calculator.MaxabilityAnalyzer.Status.SATURATED) {
                         extractor.text(this.font, "§c[!] TROPPO COSTOSO!", sideX + 10, moveY + 5, 0xFFEF4444, false);
                         extractor.text(this.font, "Penalità +" + penalty + " troppo alta,", sideX + 10, moveY + 18, 0xFFE2E8F0, false);
                         extractor.text(this.font, "l'incudine blocca i libri.", sideX + 10, moveY + 30, 0xFF94A3B8, false);
-                        extractor.text(this.font, "Premi [N] per spiegazione", sideX + 10, moveY + 43, 0xFF818CF8, false);
+                        extractor.text(this.font, "Premi [N] per spiegazione", sideX + 10, moveY + 43, 0xFF60A5FA, false);
                     } else if (maxability.status == com.litness.optimizer.calculator.MaxabilityAnalyzer.Status.PARTIALLY_MAXABLE) {
                         extractor.text(this.font, "§e[!] ATTENZIONE PENALITÀ", sideX + 10, moveY + 5, 0xFFF59E0B, false);
                         extractor.text(this.font, "Puoi aggiungere ancora", sideX + 10, moveY + 18, 0xFFE2E8F0, false);
                         extractor.text(this.font, "fino a §a+" + maxability.maxAddable + " incanti §7con guida.", sideX + 10, moveY + 30, 0xFFFFFFFF, false);
-                        extractor.text(this.font, "Premi [N] per simulare!", sideX + 10, moveY + 43, 0xFF818CF8, false);
+                        extractor.text(this.font, "Premi [N] per simulare!", sideX + 10, moveY + 43, 0xFF60A5FA, false);
                     } else {
                         extractor.text(this.font, "ENCHANT HELPER", sideX + 10, moveY + 5, 0xFF94A3B8, false);
                         extractor.text(this.font, "Nessun libro compatibile", sideX + 10, moveY + 18, 0xFFE2E8F0, false);
                         extractor.text(this.font, "trovato nell'inventario.", sideX + 10, moveY + 30, 0xFF94A3B8, false);
-                        extractor.text(this.font, "Premi [N] per simulare!", sideX + 10, moveY + 43, 0xFF818CF8, false);
+                        extractor.text(this.font, "Premi [N] per simulare!", sideX + 10, moveY + 43, 0xFF60A5FA, false);
                     }
                 }
 
@@ -348,12 +361,12 @@ public abstract class AnvilScreenMixin extends ItemCombinerScreen<AnvilMenu> {
                     long time = System.currentTimeMillis();
                     double wave = (Math.sin(time / 260.0) + 1.0) / 2.0;
                     int borderAlpha = (int)(0x60 + wave * 0x80);
-                    extractor.outline(slot0X - 1, slot0Y - 1, 18, 18, (borderAlpha << 24) | 0xF59E0B);
+                    LitnessOptimizerScreen.drawRoundedOutline(extractor, slot0X - 1, slot0Y - 1, 18, 18, 4, (borderAlpha << 24) | 0x3B82F6);
                     int bgAlpha = (int)(0x15 + wave * 0x25);
-                    extractor.fill(slot0X, slot0Y, slot0X + 16, slot0Y + 16, (bgAlpha << 24) | 0xF59E0B);
+                    LitnessOptimizerScreen.drawRoundedRect(extractor, slot0X, slot0Y, 16, 16, 3, (bgAlpha << 24) | 0x3B82F6);
                     extractor.fakeItem(ghostItem, slot0X, slot0Y);
                     int holoAlpha = (int)(0x40 + (1.0 - wave) * 0x40);
-                    extractor.fill(slot0X, slot0Y, slot0X + 16, slot0Y + 16, (holoAlpha << 24) | 0x0F172A);
+                    LitnessOptimizerScreen.drawRoundedRect(extractor, slot0X, slot0Y, 16, 16, 3, (holoAlpha << 24) | 0x090B10);
 
                     if (mouseX >= slot0X && mouseX < slot0X + 16 && mouseY >= slot0Y && mouseY < slot0Y + 16) {
                         com.litness.optimizer.gui.AnvilTooltipState.hoveredGhostSlotItemName = ghostName;
@@ -376,33 +389,33 @@ public abstract class AnvilScreenMixin extends ItemCombinerScreen<AnvilMenu> {
                 long time = System.currentTimeMillis();
                 double wave = (Math.sin(time / 260.0) + 1.0) / 2.0;
                 int borderAlpha = (int)(0x60 + wave * 0x80);
-                extractor.outline(slot0X - 1, slot0Y - 1, 18, 18, (borderAlpha << 24) | 0xF59E0B);
+                LitnessOptimizerScreen.drawRoundedOutline(extractor, slot0X - 1, slot0Y - 1, 18, 18, 4, (borderAlpha << 24) | 0x3B82F6);
                 int bgAlpha = (int)(0x15 + wave * 0x25);
-                extractor.fill(slot0X, slot0Y, slot0X + 16, slot0Y + 16, (bgAlpha << 24) | 0xF59E0B);
+                LitnessOptimizerScreen.drawRoundedRect(extractor, slot0X, slot0Y, 16, 16, 3, (bgAlpha << 24) | 0x3B82F6);
                 extractor.fakeItem(ghostItem, slot0X, slot0Y);
                 int holoAlpha = (int)(0x40 + (1.0 - wave) * 0x40);
-                extractor.fill(slot0X, slot0Y, slot0X + 16, slot0Y + 16, (holoAlpha << 24) | 0x0F172A);
+                LitnessOptimizerScreen.drawRoundedRect(extractor, slot0X, slot0Y, 16, 16, 3, (holoAlpha << 24) | 0x090B10);
 
                 if (mouseX >= slot0X && mouseX < slot0X + 16 && mouseY >= slot0Y && mouseY < slot0Y + 16) {
                     com.litness.optimizer.gui.AnvilTooltipState.hoveredGhostSlotItemName = ghostName;
                 }
 
-                int cardY = sideY + 20;
-                int cardH = sideH - 32;
-                extractor.fill(sideX + 6, cardY, sideX + sideW - 6, cardY + cardH, 0x40161826);
-                extractor.outline(sideX + 6, cardY, sideW - 12, cardH, 0xFF2A2D40);
+                int cardY = sideY + 23;
+                int cardH = sideH - 35;
+                LitnessOptimizerScreen.drawRoundedRect(extractor, sideX + 6, cardY, sideW - 12, cardH, 6, 0xFF131724);
+                LitnessOptimizerScreen.drawRoundedOutline(extractor, sideX + 6, cardY, sideW - 12, cardH, 6, 0xFF1E2334);
 
                 int midX = sideX + (sideW / 2);
                 extractor.fakeItem(ghostItem, midX - 8, cardY + 18);
                 extractor.centeredText(this.font, "Slot 1 vuoto", midX, cardY + 42, 0xFFFFFFFF);
-                extractor.centeredText(this.font, "Inserisci l'item", midX, cardY + 58, 0xFFFCD34D);
-                extractor.centeredText(this.font, "desiderato per", midX, cardY + 70, 0xFFFCD34D);
+                extractor.centeredText(this.font, "Inserisci l'item", midX, cardY + 58, 0xFF60A5FA);
+                extractor.centeredText(this.font, "desiderato per", midX, cardY + 70, 0xFF60A5FA);
                 extractor.centeredText(this.font, "iniziare la guida.", midX, cardY + 82, 0xFF9CA3AF);
 
                 int pillY = cardY + cardH - 22;
-                extractor.fill(sideX + 12, pillY, sideX + sideW - 12, pillY + 16, 0x406366F1);
-                extractor.outline(sideX + 12, pillY, sideW - 24, 16, 0x806366F1);
-                extractor.centeredText(this.font, "Premi [N] per il tool", midX, pillY + 4, 0xFFA5B4FC);
+                LitnessOptimizerScreen.drawRoundedRect(extractor, sideX + 12, pillY, sideW - 24, 16, 4, 0xFF1E2334);
+                LitnessOptimizerScreen.drawRoundedOutline(extractor, sideX + 12, pillY, sideW - 24, 16, 4, 0xFF3B82F6);
+                extractor.centeredText(this.font, "Premi [N] per il tool", midX, pillY + 4, 0xFF60A5FA);
             }
         } catch (Throwable t) {
             // Silenzia
@@ -416,7 +429,7 @@ public abstract class AnvilScreenMixin extends ItemCombinerScreen<AnvilMenu> {
         // 1. Corrispondenza esatta (stesso item e stessa penalità)
         for (int i = 0; i < size; i++) {
             ItemStack stack = inv.getItem(i);
-            if (stack.isEmpty()) continue;
+            if (stack.isEmpty() || ItemTypeHelper.isContainerOrShulker(stack)) continue;
             if (stack.getItem() == target.getItem()) {
                 int repTarget = target.getOrDefault(DataComponents.REPAIR_COST, 0);
                 int repStack = stack.getOrDefault(DataComponents.REPAIR_COST, 0);
@@ -428,9 +441,25 @@ public abstract class AnvilScreenMixin extends ItemCombinerScreen<AnvilMenu> {
         // 2. Corrispondenza per tipo arma o armatura
         for (int i = 0; i < size; i++) {
             ItemStack stack = inv.getItem(i);
-            if (stack.isEmpty()) continue;
+            if (stack.isEmpty() || ItemTypeHelper.isContainerOrShulker(stack)) continue;
             if (stack.getItem() == target.getItem() && ItemTypeHelper.isEnchantableWeaponOrArmor(stack)) {
                 return stack;
+            }
+        }
+        return ItemStack.EMPTY;
+    }
+
+    private ItemStack findEquipmentByKeyInInventory(String targetKey) {
+        if (targetKey == null || this.minecraft == null || this.minecraft.player == null) return ItemStack.EMPTY;
+        Inventory inv = this.minecraft.player.getInventory();
+        int size = inv.getContainerSize();
+        for (int i = 0; i < size; i++) {
+            ItemStack stack = inv.getItem(i);
+            if (!stack.isEmpty() && !ItemTypeHelper.isContainerOrShulker(stack) && ItemTypeHelper.isEnchantableWeaponOrArmor(stack)) {
+                String k = ItemTypeHelper.detectItemKey(stack);
+                if (k.equalsIgnoreCase(targetKey) && extractAllEnchantments(stack).size() < 12) {
+                    return stack;
+                }
             }
         }
         return ItemStack.EMPTY;
@@ -440,17 +469,17 @@ public abstract class AnvilScreenMixin extends ItemCombinerScreen<AnvilMenu> {
         if (this.minecraft == null || this.minecraft.player == null) return ItemStack.EMPTY;
         Inventory inv = this.minecraft.player.getInventory();
         int size = inv.getContainerSize();
-        // Priorità hotbar
+        // Priorità hotbar (solo item incantabili con meno di 12 incantesimi)
         for (int i = 0; i < 9; i++) {
             ItemStack stack = inv.getItem(i);
-            if (!stack.isEmpty() && ItemTypeHelper.isEnchantableWeaponOrArmor(stack)) {
+            if (!stack.isEmpty() && !ItemTypeHelper.isContainerOrShulker(stack) && ItemTypeHelper.isEnchantableWeaponOrArmor(stack) && extractAllEnchantments(stack).size() < 12) {
                 return stack;
             }
         }
         // Poi resto dell'inventario
         for (int i = 9; i < size; i++) {
             ItemStack stack = inv.getItem(i);
-            if (!stack.isEmpty() && ItemTypeHelper.isEnchantableWeaponOrArmor(stack)) {
+            if (!stack.isEmpty() && !ItemTypeHelper.isContainerOrShulker(stack) && ItemTypeHelper.isEnchantableWeaponOrArmor(stack) && extractAllEnchantments(stack).size() < 12) {
                 return stack;
             }
         }
@@ -468,12 +497,30 @@ public abstract class AnvilScreenMixin extends ItemCombinerScreen<AnvilMenu> {
             targetEquip.getOrDefault(DataComponents.STORED_ENCHANTMENTS, ItemEnchantments.EMPTY).hashCode()
         );
 
-        // Rileva tutti i libri dall'inventario
-        List<BookInput> books = new ArrayList<>();
-        int invHash = 0;
+        ItemStack s0 = this.menu.getSlot(0).getItem();
+        ItemStack s1 = this.menu.getSlot(1).getItem();
+
+        int quickInvHash = 0;
         int invSize = this.minecraft.player.getInventory().getContainerSize();
         for (int i = 0; i < invSize; i++) {
+            ItemStack st = this.minecraft.player.getInventory().getItem(i);
+            if (!st.isEmpty()) {
+                quickInvHash = 31 * quickInvHash + (st.getItem().hashCode() ^ st.getCount() ^ st.getOrDefault(DataComponents.REPAIR_COST, 0));
+            }
+        }
+        if (!s0.isEmpty()) quickInvHash = 31 * quickInvHash + (s0.getItem().hashCode() ^ s0.getCount() ^ s0.getOrDefault(DataComponents.REPAIR_COST, 0));
+        if (!s1.isEmpty()) quickInvHash = 31 * quickInvHash + (s1.getItem().hashCode() ^ s1.getCount() ^ s1.getOrDefault(DataComponents.REPAIR_COST, 0));
+
+        if (currentHash == lastSlot0Hash && quickInvHash == lastQuickInvHash && cachedSolution != null) {
+            return;
+        }
+        lastQuickInvHash = quickInvHash;
+
+        // Rileva tutti i libri dall'inventario e dall'incudine (SOLO libri sciolti, MAI shulker o contenitori!)
+        List<BookInput> books = new ArrayList<>();
+        for (int i = 0; i < invSize; i++) {
             ItemStack stack = this.minecraft.player.getInventory().getItem(i);
+            if (stack.isEmpty() || ItemTypeHelper.isContainerOrShulker(stack)) continue;
             if (stack.is(Items.ENCHANTED_BOOK) || stack.is(Items.BOOK)) {
                 int repCost = stack.getOrDefault(DataComponents.REPAIR_COST, 0);
                 int work = 0;
@@ -490,16 +537,11 @@ public abstract class AnvilScreenMixin extends ItemCombinerScreen<AnvilMenu> {
                 }
                 if (!book.enchantments.isEmpty()) {
                     books.add(book);
-                    invHash = 31 * invHash + Objects.hash(stack.getItem().toString(), repCost, loreCost, i);
-                    for (EnchantApplied ea : book.enchantments) {
-                        invHash = 31 * invHash + Objects.hash(ea.id, ea.level);
-                    }
                 }
             }
         }
 
         // Se lo slot 0 dell'incudine ha un libro (mentre si stanno unendo 2 libri), includilo nel pool dei libri!
-        ItemStack s0 = this.menu.getSlot(0).getItem();
         if (s0.is(Items.ENCHANTED_BOOK) || s0.is(Items.BOOK)) {
             int repCost = s0.getOrDefault(DataComponents.REPAIR_COST, 0);
             int work = 0;
@@ -515,16 +557,11 @@ public abstract class AnvilScreenMixin extends ItemCombinerScreen<AnvilMenu> {
                 }
             }
             if (!book.enchantments.isEmpty()) {
-                books.add(0, book);
-                invHash = 31 * invHash + Objects.hash(s0.getItem().toString(), repCost, loreCost, 8888);
-                for (EnchantApplied ea : book.enchantments) {
-                    invHash = 31 * invHash + Objects.hash(ea.id, ea.level);
-                }
+                books.add(book);
             }
         }
 
         // Se lo slot 1 dell'incudine ha un libro, aggiungi anche quello!
-        ItemStack s1 = this.menu.getSlot(1).getItem();
         if (s1.is(Items.ENCHANTED_BOOK) || s1.is(Items.BOOK)) {
             int repCost = s1.getOrDefault(DataComponents.REPAIR_COST, 0);
             int work = 0;
@@ -540,11 +577,30 @@ public abstract class AnvilScreenMixin extends ItemCombinerScreen<AnvilMenu> {
                 }
             }
             if (!book.enchantments.isEmpty()) {
-                books.add(0, book);
-                invHash = 31 * invHash + Objects.hash(s1.getItem().toString(), repCost, loreCost, 9999);
-                for (EnchantApplied ea : book.enchantments) {
-                    invHash = 31 * invHash + Objects.hash(ea.id, ea.level);
-                }
+                books.add(book);
+            }
+        }
+
+        // Ordinamento deterministico di tutti i libri disponibili (rende i calcoli stabili e non sensibili agli slot fisici)
+        books.sort((b1, b2) -> {
+            String id1 = b1.enchantments.isEmpty() ? "" : b1.enchantments.get(0).id;
+            String id2 = b2.enchantments.isEmpty() ? "" : b2.enchantments.get(0).id;
+            int c = id1.compareTo(id2);
+            if (c != 0) return c;
+            int lvl1 = b1.enchantments.isEmpty() ? 0 : b1.enchantments.get(0).level;
+            int lvl2 = b2.enchantments.isEmpty() ? 0 : b2.enchantments.get(0).level;
+            c = Integer.compare(lvl1, lvl2);
+            if (c != 0) return c;
+            c = Integer.compare(b1.works, b2.works);
+            if (c != 0) return c;
+            return Integer.compare(b1.explicitCost, b2.explicitCost);
+        });
+
+        int invHash = 0;
+        for (BookInput b : books) {
+            invHash = 31 * invHash + Objects.hash(b.works, b.explicitCost);
+            for (EnchantApplied ea : b.enchantments) {
+                invHash = 31 * invHash + Objects.hash(ea.id, ea.level);
             }
         }
 
@@ -578,10 +634,30 @@ public abstract class AnvilScreenMixin extends ItemCombinerScreen<AnvilMenu> {
                 applicableBooks = filterBooks(books, itemEntry, cachedSlot0Enchants, null);
             }
 
+            final int calcId = calcIdCounter.incrementAndGet();
+            if (currentCalcTask != null && !currentCalcTask.isDone()) {
+                currentCalcTask.cancel(true);
+            }
+
             if (!applicableBooks.isEmpty()) {
-                cachedSolution = AnvilOptimizer.optimize(applicableBooks, work, itemEntry, cachedSlot0Enchants);
+                final ItemEntry finalItemEntry = itemEntry;
+                final int finalWork = work;
+                final List<EnchantApplied> finalSlot0Enchants = new ArrayList<>(cachedSlot0Enchants);
+                final List<BookInput> finalApplicableBooks = applicableBooks;
+                currentCalcTask = CALC_EXECUTOR.submit(() -> {
+                    try {
+                        Solution sol = AnvilOptimizer.optimize(finalApplicableBooks, finalWork, finalItemEntry, finalSlot0Enchants);
+                        if (calcId == calcIdCounter.get()) {
+                            this.cachedSolution = sol;
+                            com.litness.optimizer.gui.AnvilTooltipState.cachedSolution = sol;
+                            com.litness.optimizer.gui.AnvilTooltipState.cachedItemKey = this.cachedItemKey;
+                        }
+                    } catch (Throwable ignored) {}
+                });
             } else {
-                cachedSolution = null;
+                this.cachedSolution = null;
+                com.litness.optimizer.gui.AnvilTooltipState.cachedSolution = null;
+                com.litness.optimizer.gui.AnvilTooltipState.cachedItemKey = this.cachedItemKey;
             }
         }
 
@@ -641,8 +717,21 @@ public abstract class AnvilScreenMixin extends ItemCombinerScreen<AnvilMenu> {
                         }
                     }
                     EnchantmentEntry eeExist = EnchantmentDatabase.getEnchantment(exist.id);
+                    if (ee.unique && eeExist != null && eeExist.unique) {
+                        conflictsWithItem = true;
+                        break;
+                    }
                     String existName = eeExist != null ? eeExist.name : exist.id;
-                    if (confs.contains(existName) || confs.contains(exist.id)) {
+                    String existBaseName = eeExist != null ? LitnessI18n.getBaseEnchantName(eeExist) : LitnessI18n.getBaseEnchantNameById(exist.id, exist.id);
+                    String existBaseId = LitnessI18n.getBaseId(exist.id);
+                    boolean hasConf = false;
+                    for (String c : confs) {
+                        if (c.equalsIgnoreCase(existBaseName) || c.equalsIgnoreCase(existName) || c.equalsIgnoreCase(existBaseId) || c.equalsIgnoreCase(exist.id)) {
+                            hasConf = true;
+                            break;
+                        }
+                    }
+                    if (hasConf) {
                         conflictsWithItem = true;
                         break;
                     }

@@ -40,7 +40,7 @@ public class EnchantmentThematicIconHelper {
         if (id.startsWith("bane_of_arthropods") || name.contains("flagello degli artropodi")) return new ItemStack(Items.FERMENTED_SPIDER_EYE);
         if (id.startsWith("knockback") || name.contains("contraccolpo")) return new ItemStack(Items.PISTON);
         if (id.startsWith("sweeping_edge") || name.contains("lama sferzante")) return new ItemStack(Items.IRON_SWORD);
-        if (id.startsWith("looting") || name.contains("saccheggio")) return new ItemStack(Items.EMERALD);
+        if (id.startsWith("looting") || name.contains("saccheggio")) return new ItemStack(Items.ENCHANTED_BOOK);
         if (id.startsWith("unbreaking") || name.contains("indistruttibilità") || name.contains("incrollabilità")) return new ItemStack(Items.OBSIDIAN);
         if (id.startsWith("fortune") || name.contains("fortuna")) return new ItemStack(Items.DIAMOND);
         if (id.startsWith("efficiency") || name.contains("efficienza")) return new ItemStack(Items.DIAMOND_PICKAXE);
@@ -67,8 +67,25 @@ public class EnchantmentThematicIconHelper {
         if (id.startsWith("swift_sneak") || name.contains("felpato")) return new ItemStack(Items.SCULK);
         if (id.startsWith("lure") || name.contains("esca")) return new ItemStack(Items.FISHING_ROD);
         if (id.startsWith("luck_of_the_sea") || name.contains("fortuna del mare")) return new ItemStack(Items.NAUTILUS_SHELL);
-        if (id.startsWith("curse_of_binding") || name.contains("legame")) return new ItemStack(Items.IRON_CHAIN);
+        if (id.startsWith("curse_of_binding") || name.contains("legame")) return new ItemStack(Items.IRON_BARS);
         if (id.startsWith("curse_of_vanishing") || name.contains("scomparsa")) return new ItemStack(Items.ENDER_EYE);
+
+        // Specific Custom Enchants
+        if (id.contains("shulker") || name.contains("shulker")) return new ItemStack(Items.SHULKER_SHELL);
+        if (id.contains("xray") || id.contains("x-ray") || name.contains("xray")) return new ItemStack(Items.SPYGLASS);
+        if (id.contains("bouncy") || name.contains("bouncy")) return new ItemStack(Items.SLIME_BALL);
+        if (id.contains("auger") || name.contains("auger")) return new ItemStack(Items.DIAMOND_SHOVEL);
+        if (id.contains("dynamite") || name.contains("dynamite")) return new ItemStack(Items.TNT);
+        if (id.contains("vein") || name.contains("vein")) return new ItemStack(Items.NETHERITE_PICKAXE);
+        if (id.contains("timber") || id.contains("lumber") || name.contains("timber")) return new ItemStack(Items.DIAMOND_AXE);
+        if (id.contains("armored") || name.contains("armored")) return new ItemStack(Items.IRON_CHESTPLATE);
+        if (id.contains("critical") || name.contains("critical")) return new ItemStack(Items.SPECTRAL_ARROW);
+        if (id.contains("berserk") || name.contains("berserk")) return new ItemStack(Items.NETHERITE_SWORD);
+        if (id.contains("permanence") || name.contains("permanence")) return new ItemStack(Items.ANVIL);
+        if (id.contains("misfortune") || name.contains("misfortune")) return new ItemStack(Items.POISONOUS_POTATO);
+        if (id.contains("harmlessness") || name.contains("harmlessness")) return new ItemStack(Items.WOODEN_SWORD);
+        if (id.contains("breaklessness") || name.contains("breaklessness")) return new ItemStack(Items.FLINT);
+        if (id.contains("hunger") || name.contains("hunger")) return new ItemStack(Items.ROTTEN_FLESH);
 
         // Keyword matches for Custom Enchants
         String combined = id + " " + name;

@@ -327,7 +327,8 @@ public class LitnessTooltipHandler {
         // PRIORITÀ 2: Match diretto su tutta la stringa (per incantesimi a parola singola o composta senza livello)
         EnchantmentEntry direct = lookup.get(norm);
         if (direct != null) {
-            int lvl = direct.maxLevel == 1 ? 1 : 0;
+            int lvl = extractLevelFromEnd(norm);
+            if (lvl == 0) lvl = direct.maxLevel;
             return new MatchedEnchantment(direct, lvl);
         }
 
@@ -349,6 +350,11 @@ public class LitnessTooltipHandler {
                 } else {
                     // Per incantesimi a più livelli, il suffisso DEVE essere un livello valido (non una parola qualunque!)
                     if (lvl > 0 && lvl <= matched.maxLevel + 5) {
+                        String vPlusId = EnchantmentDatabase.resolveVanillaPlusId(matched.id, lvl);
+                        if (vPlusId != null) {
+                            EnchantmentEntry vPlus = EnchantmentDatabase.getEnchantment(vPlusId);
+                            if (vPlus != null) matched = vPlus;
+                        }
                         return new MatchedEnchantment(matched, lvl);
                     }
                 }
@@ -361,6 +367,11 @@ public class LitnessTooltipHandler {
             String namePart = norm.replaceAll("(?:\\s*\\d+|\\s*[ivxlcdm]+)$", "").trim();
             EnchantmentEntry matched = lookup.get(namePart);
             if (matched != null && (matched.maxLevel == 1 || (suffixLvl > 0 && suffixLvl <= matched.maxLevel + 5))) {
+                String vPlusId = EnchantmentDatabase.resolveVanillaPlusId(matched.id, suffixLvl);
+                if (vPlusId != null) {
+                    EnchantmentEntry vPlus = EnchantmentDatabase.getEnchantment(vPlusId);
+                    if (vPlus != null) matched = vPlus;
+                }
                 return new MatchedEnchantment(matched, suffixLvl);
             }
         }
@@ -431,7 +442,11 @@ public class LitnessTooltipHandler {
         ItemEnchantments storedCheck = stack.getOrDefault(DataComponents.STORED_ENCHANTMENTS, ItemEnchantments.EMPTY);
         for (var entry : storedCheck.entrySet()) {
             String rawId = entry.getKey().unwrapKey().map(k -> k.identifier().getPath()).orElse("");
-            EnchantmentEntry ee = EnchantmentDatabase.getEnchantment(rawId);
+            int lvl = entry.getIntValue();
+            String vPlusId = EnchantmentDatabase.resolveVanillaPlusId(rawId, lvl);
+            String effectiveId = (vPlusId != null) ? vPlusId : rawId;
+            EnchantmentEntry ee = EnchantmentDatabase.getEnchantment(effectiveId);
+            if (ee == null) ee = EnchantmentDatabase.getEnchantment(rawId);
             if (ee != null) {
                 allEnchantIdsOnBook.add(ee.id);
             } else if (!rawId.isEmpty()) {
@@ -450,59 +465,47 @@ public class LitnessTooltipHandler {
         }
         final boolean multiEnchant = allEnchantIdsOnBook.size() > 1;
 
-        if (multiEnchant) {
-            // Se ci sono più incantesimi, rimuoviamo anche eventuali descrizioni preesistenti nel lore per non intasare lo schermo
-            lines.removeIf(line -> {
-                String norm = normalize(line.getString());
-                if (norm.length() < 6) return false;
-                for (String enchId : allEnchantIdsOnBook) {
-                    EnchantmentEntry e = EnchantmentDatabase.getEnchantment(enchId);
-                    if (e != null && e.description != null && !e.description.isEmpty()) {
-                        String descNorm = normalize(e.description);
-                        if (descNorm.contains(norm) || (norm.length() >= 12 && descNorm.contains(norm.substring(0, Math.min(25, norm.length()))))) {
-                            return true;
-                        }
-                    }
-                }
-                return false;
-            });
-        }
-
         List<EnchantmentEntry> matchedBookEntries = new ArrayList<>();
         Set<String> processedEnchantIds = new HashSet<>();
         int serverLoreCost = InventoryTracker.extractAnvilCostFromLore(stack);
         boolean hasServerCostLore = serverLoreCost > 0;
 
-        // PASSO A: Rilevamento prioritario e infallibile da DataComponents.STORED_ENCHANTMENTS (Vanilla)
+        // PASSO A: Rilevamento prioritario e infallibile da DataComponents.STORED_ENCHANTMENTS (Vanilla e Vanilla+)
         ItemEnchantments stored = stack.getOrDefault(DataComponents.STORED_ENCHANTMENTS, ItemEnchantments.EMPTY);
         for (var entry : stored.entrySet()) {
             String rawId = entry.getKey().unwrapKey().map(k -> k.identifier().getPath()).orElse("");
             int lvl = entry.getIntValue();
-            EnchantmentEntry ee = EnchantmentDatabase.getEnchantment(rawId);
+            String vPlusId = EnchantmentDatabase.resolveVanillaPlusId(rawId, lvl);
+            String effectiveId = (vPlusId != null) ? vPlusId : rawId;
+            EnchantmentEntry ee = EnchantmentDatabase.getEnchantment(effectiveId);
+            if (ee == null) ee = EnchantmentDatabase.getEnchantment(rawId);
             if (ee == null) continue;
 
             matchedBookEntries.add(ee);
             processedEnchantIds.add(ee.id);
+            if (vPlusId != null) processedEnchantIds.add(rawId);
 
             // Cerca nella lista lines la riga corrispondente (anche con localizzazioni diverse o NBSP)
             int targetLineIdx = -1;
             for (int i = 0; i < lines.size(); i++) {
                 String lineStr = lines.get(i).getString().replace('\u00A0', ' ').replace('\u2007', ' ').trim();
                 String normLine = normalize(lineStr);
-                if (normLine.contains(normalize(ee.name)) || normLine.contains(normalize(ee.id)) || normLine.contains(rawId.replace('_', ' '))) {
+                if (normLine.contains(normalize(ee.name)) || normLine.contains(normalize(ee.id)) || normLine.contains(rawId.replace('_', ' ')) || (vPlusId != null && normLine.contains(rawId.replace('_', ' ')))) {
                     targetLineIdx = i;
                     break;
                 }
             }
 
             boolean isCustom = "custom".equalsIgnoreCase(ee.category);
+            boolean isVanillaPlus = "vanilla_plus".equalsIgnoreCase(ee.category);
             boolean isMax = lvl >= ee.maxLevel;
             String maxRoman = AnvilOptimizer.toRoman(ee.maxLevel);
 
-            String maxTag = isMax ? " §8[§aMax " + maxRoman + "§8]" : " §8[§eMax " + maxRoman + "§8]";
-            String rarityBadge = (isCustom && ee.rarity != null && !ee.rarity.isEmpty())
-                    ? " " + getRarityColorCode(ee.rarity) + "[" + ee.rarity.toUpperCase() + "]"
-                    : "";
+            String maxTag = (ee.maxLevel <= 1) ? "" : (isMax ? " \u00A78[\u00A7aMax " + maxRoman + "\u00A78]" : " \u00A78[\u00A7eMax " + maxRoman + "\u00A78]");
+            String rarityBadge = "";
+            if (isCustom && ee.rarity != null && !ee.rarity.isEmpty()) {
+                rarityBadge = " " + getRarityColorCode(ee.rarity) + "[" + ee.rarity.toUpperCase() + "]";
+            }
 
             String icon = isCustom ? "§6• " : "§9• ";
             int insertOffset = 1;
@@ -510,10 +513,12 @@ public class LitnessTooltipHandler {
             if (targetLineIdx >= 0) {
                 String fullText = lines.get(targetLineIdx).getString().replace('\u00A0', ' ').trim();
                 String displayBase = fullText.replaceAll("^[§0-9a-fk-orx\\s]*[✦⚡•»►*#\\-◆★✧✨⚔⚜✪✯⚙☠🗡🛡🏹⛏]+\\s*", "").trim();
+                String localizedEnchantName = com.litness.optimizer.data.LitnessI18n.getEnchantName(ee);
+                displayBase = AnvilOptimizer.formatEnchantName(localizedEnchantName, lvl);
                 lines.set(targetLineIdx, Component.literal(icon + displayBase + maxTag + rarityBadge));
             } else {
                 targetLineIdx = Math.min(1, lines.size());
-                String displayName = AnvilOptimizer.formatEnchantName(ee.name, lvl);
+                String displayName = AnvilOptimizer.formatEnchantName(com.litness.optimizer.data.LitnessI18n.getEnchantName(ee), lvl);
                 lines.add(targetLineIdx, Component.literal(icon + displayName + maxTag + rarityBadge));
             }
 
@@ -521,7 +526,7 @@ public class LitnessTooltipHandler {
             if (isCustom && !hasServerCostLore) {
                 int costNum = ee.getAnvilCostNumeric();
                 if (costNum > 0) {
-                    lines.add(targetLineIdx + insertOffset, Component.literal("  §7Incudine: §6+" + costNum + " liv."));
+                    lines.add(targetLineIdx + insertOffset, Component.literal("  §7" + com.litness.optimizer.data.LitnessI18n.t("anvil_label") + costNum + " " + com.litness.optimizer.data.LitnessI18n.t("levels").trim()));
                     insertOffset++;
                 }
             }
@@ -531,7 +536,7 @@ public class LitnessTooltipHandler {
             if (!conflicts.isEmpty()) {
                 List<String> wrappedConflicts = wrapConflictLines(conflicts, 45);
                 if (!wrappedConflicts.isEmpty()) {
-                    lines.add(targetLineIdx + insertOffset, Component.literal("  §cConflitti: §f" + wrappedConflicts.get(0)));
+                    lines.add(targetLineIdx + insertOffset, Component.literal("  §c" + com.litness.optimizer.data.LitnessI18n.t("conflicts_label") + "§f" + wrappedConflicts.get(0)));
                     insertOffset++;
                     for (int w = 1; w < wrappedConflicts.size(); w++) {
                         lines.add(targetLineIdx + insertOffset, Component.literal("    §f" + wrappedConflicts.get(w)));
@@ -540,8 +545,8 @@ public class LitnessTooltipHandler {
                 }
             }
 
-            // Descrizione dell'incantesimo attivo ("Cosa fa") - Esclusa se ci sono più incantesimi sul libro
-            if (!multiEnchant && ee.description != null && !ee.description.isEmpty()) {
+            // Descrizione dell'incantesimo attivo ("Cosa fa")
+            if (ee.description != null && !ee.description.isEmpty()) {
                 boolean alreadyHasDesc = false;
                 for (int checkIdx = targetLineIdx + 1; checkIdx < Math.min(targetLineIdx + 4, lines.size()); checkIdx++) {
                     String checkLine = normalize(lines.get(checkIdx).getString());
@@ -592,7 +597,7 @@ public class LitnessTooltipHandler {
             String maxRoman = AnvilOptimizer.toRoman(ee.maxLevel);
 
             // Tag Max Enchant e Costo:
-            String maxTag = isMax ? " §8[§aMax " + maxRoman + "§8]" : " §8[§eMax " + maxRoman + "§8]";
+            String maxTag = (ee.maxLevel <= 1) ? "" : (isMax ? " \u00A78[\u00A7aMax " + maxRoman + "\u00A78]" : " \u00A78[\u00A7eMax " + maxRoman + "\u00A78]");
             String rarityBadge = (isCustom && ee.rarity != null && !ee.rarity.isEmpty())
                     ? " " + getRarityColorCode(ee.rarity) + "[" + ee.rarity.toUpperCase() + "]"
                     : "";
@@ -623,7 +628,7 @@ public class LitnessTooltipHandler {
             if (isCustom && !hasServerCostLore) {
                 int costNum = ee.getAnvilCostNumeric();
                 if (costNum > 0) {
-                    String infoLine = "  §7Incudine: §6+" + costNum + " liv.";
+                    String infoLine = "  §7" + com.litness.optimizer.data.LitnessI18n.t("anvil_label") + costNum + " " + com.litness.optimizer.data.LitnessI18n.t("levels").trim();
                     lines.add(targetIdx + insertOffset, Component.literal(infoLine));
                     insertOffset++;
                 }
@@ -634,7 +639,7 @@ public class LitnessTooltipHandler {
             if (!conflicts.isEmpty()) {
                 List<String> wrappedConflicts = wrapConflictLines(conflicts, 45);
                 if (!wrappedConflicts.isEmpty()) {
-                    lines.add(targetIdx + insertOffset, Component.literal("  §cConflitti: §f" + wrappedConflicts.get(0)));
+                    lines.add(targetIdx + insertOffset, Component.literal("  §c" + com.litness.optimizer.data.LitnessI18n.t("conflicts_label") + "§f" + wrappedConflicts.get(0)));
                     insertOffset++;
                     for (int w = 1; w < wrappedConflicts.size(); w++) {
                         lines.add(targetIdx + insertOffset, Component.literal("    §f" + wrappedConflicts.get(w)));
@@ -643,8 +648,8 @@ public class LitnessTooltipHandler {
                 }
             }
 
-            // Descrizione dell'incantesimo attivo ("Cosa fa") - Esclusa se ci sono più incantesimi sul libro
-            if (!multiEnchant && ee.description != null && !ee.description.isEmpty()) {
+            // Descrizione dell'incantesimo attivo ("Cosa fa")
+            if (ee.description != null && !ee.description.isEmpty()) {
                 boolean alreadyHasDesc = false;
                 for (int checkIdx = targetIdx + 1; checkIdx < Math.min(targetIdx + 4, lines.size()); checkIdx++) {
                     String checkLine = normalize(lines.get(checkIdx).getString());
@@ -730,16 +735,6 @@ public class LitnessTooltipHandler {
                 }
             }
         }
-        if (isServerGuiScreen()) {
-            if (lines != null) {
-                for (Component c : lines) {
-                    String s = c.getString().toLowerCase().replace('\u00A0', ' ').trim();
-                    if (s.contains("requisiti:") || s.contains("informazioni:") || s.contains("↑ livello max") || s.contains("si applica a:")) {
-                        return true;
-                    }
-                }
-            }
-        }
         return false;
     }
 
@@ -750,14 +745,6 @@ public class LitnessTooltipHandler {
             String s = c.getString().toLowerCase().replace('\u00A0', ' ').trim();
             if (s.contains("limite per oggetto") || s.contains("12 incantesimi in totale") || s.contains("1 unico, 1 incantesimo")) {
                 return true;
-            }
-        }
-        if (isServerGuiScreen()) {
-            for (Component c : lore.lines()) {
-                String s = c.getString().toLowerCase().replace('\u00A0', ' ').trim();
-                if (s.contains("requisiti:") || s.contains("informazioni:") || s.contains("↑ livello max") || s.contains("si applica a:")) {
-                    return true;
-                }
             }
         }
         return false;
@@ -925,10 +912,19 @@ public class LitnessTooltipHandler {
         List<String> result = new ArrayList<>();
         if (names == null || names.isEmpty()) return result;
 
+        // Deduplica assoluta senza numeri romani o livelli
+        Set<String> unique = new TreeSet<>(String.CASE_INSENSITIVE_ORDER);
+        for (String n : names) {
+            String stripped = com.litness.optimizer.data.LitnessI18n.stripLevelSuffix(n);
+            if (!stripped.isEmpty()) unique.add(stripped);
+        }
+        List<String> cleanNames = new ArrayList<>(unique);
+        if (cleanNames.isEmpty()) return result;
+
         StringBuilder sb = new StringBuilder();
-        for (int i = 0; i < names.size(); i++) {
-            String name = names.get(i);
-            String sep = (i == names.size() - 1) ? "" : ", ";
+        for (int i = 0; i < cleanNames.size(); i++) {
+            String name = cleanNames.get(i);
+            String sep = (i == cleanNames.size() - 1) ? "" : ", ";
             if (sb.length() > 0 && sb.length() + name.length() + sep.length() > maxCharsPerLine) {
                 result.add(sb.toString());
                 sb = new StringBuilder();
