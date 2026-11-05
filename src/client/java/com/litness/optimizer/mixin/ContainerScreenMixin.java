@@ -29,22 +29,17 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
 import net.minecraft.client.input.MouseButtonEvent;
 import net.minecraft.client.input.KeyEvent;
-import org.spongepowered.asm.mixin.gen.Invoker;
 
 import java.util.*;
 
 @Mixin(AbstractContainerScreen.class)
-public abstract class ContainerScreenMixin extends Screen implements ContainerScreenAccessor {
+public abstract class ContainerScreenMixin extends Screen {
 
     @Shadow protected int leftPos;
     @Shadow protected int topPos;
     @Shadow protected int imageWidth;
     @Shadow protected int imageHeight;
     @Shadow protected Slot hoveredSlot;
-
-    @Override
-    @Invoker("slotClicked")
-    public abstract void litness_invokeSlotClicked(Slot slot, int slotId, int mouseButton, net.minecraft.world.inventory.ContainerInput type);
 
     private static long lastTargetCheck = 0;
     private static Set<String> cachedTargetEnchants = Collections.emptySet();
@@ -53,21 +48,21 @@ public abstract class ContainerScreenMixin extends Screen implements ContainerSc
         super(title);
     }
 
-    @Inject(method = "init", at = @At("TAIL"))
+    @Inject(method = "init", at = @At("TAIL"), require = 0)
     private void litness_onContainerInit(CallbackInfo ci) {
         if (!(((Object) this) instanceof net.minecraft.client.gui.screens.inventory.AnvilScreen)) {
             com.litness.optimizer.gui.AhPriceManager.initSearchWidget((AbstractContainerScreen<?>) (Object) this, this::addWidget);
         }
     }
 
-    @Inject(method = "keyPressed", at = @At("HEAD"), cancellable = true)
+    @Inject(method = "keyPressed", at = @At("HEAD"), cancellable = true, require = 0)
     private void litness_onContainerKeyPressed(KeyEvent event, CallbackInfoReturnable<Boolean> cir) {
         if (com.litness.optimizer.gui.AhPriceManager.handleKeyPressed(event)) {
             cir.setReturnValue(true);
         }
     }
 
-    @Inject(method = "extractRenderState", at = @At("HEAD"))
+    @Inject(method = "extractRenderState", at = @At("HEAD"), require = 0)
     private void litness_preScanContainer(GuiGraphicsExtractor extractor, int mouseX, int mouseY, float delta, CallbackInfo ci) {
         if (!(((Object) this) instanceof net.minecraft.client.gui.screens.inventory.AnvilScreen)) {
             com.litness.optimizer.gui.AhPriceManager.scanCurrentContainer((AbstractContainerScreen<?>) (Object) this);
@@ -75,7 +70,7 @@ public abstract class ContainerScreenMixin extends Screen implements ContainerSc
         }
     }
 
-    @Inject(method = "extractRenderState", at = @At("TAIL"))
+    @Inject(method = "extractRenderState", at = @At("TAIL"), require = 0)
     private void litness_renderContainerTopLayer(GuiGraphicsExtractor extractor, int mouseX, int mouseY, float delta, CallbackInfo ci) {
         if (((Object) this) instanceof net.minecraft.client.gui.screens.inventory.AnvilScreen anvil) {
             com.litness.optimizer.gui.AnvilTooltipState.renderInventoryHighlightsAndBadges(extractor, anvil, this.leftPos, this.topPos, mouseX, mouseY);
@@ -85,7 +80,7 @@ public abstract class ContainerScreenMixin extends Screen implements ContainerSc
         }
     }
 
-    @Inject(method = "mouseClicked", at = @At("HEAD"), cancellable = true)
+    @Inject(method = "mouseClicked", at = @At("HEAD"), cancellable = true, require = 0)
     private void litness_onContainerMouseClicked(MouseButtonEvent event, boolean doubleClick, CallbackInfoReturnable<Boolean> cir) {
         if (com.litness.optimizer.gui.AhPriceManager.handleMouseClicked(this, event)) {
             cir.setReturnValue(true);
@@ -100,34 +95,34 @@ public abstract class ContainerScreenMixin extends Screen implements ContainerSc
         }
     }
 
-    @Inject(method = "mouseScrolled", at = @At("HEAD"), cancellable = true)
+    @Inject(method = "mouseScrolled", at = @At("HEAD"), cancellable = true, require = 0)
     private void litness_onContainerMouseScrolled(double mouseX, double mouseY, double horizontalAmount, double verticalAmount, CallbackInfoReturnable<Boolean> cir) {
         if (com.litness.optimizer.gui.AhPriceManager.handleMouseScrolled(this, mouseX, mouseY, horizontalAmount, verticalAmount)) {
             cir.setReturnValue(true);
         }
     }
 
-    @Inject(method = "mouseDragged", at = @At("HEAD"), cancellable = true)
+    @Inject(method = "mouseDragged", at = @At("HEAD"), cancellable = true, require = 0)
     private void litness_onContainerMouseDragged(MouseButtonEvent event, double dx, double dy, CallbackInfoReturnable<Boolean> cir) {
         if (com.litness.optimizer.gui.AhPriceManager.handleMouseDragged(this, event, dx, dy)) {
             cir.setReturnValue(true);
         }
     }
 
-    @Inject(method = "mouseReleased", at = @At("HEAD"), cancellable = true)
+    @Inject(method = "mouseReleased", at = @At("HEAD"), cancellable = true, require = 0)
     private void litness_onContainerMouseReleased(MouseButtonEvent event, CallbackInfoReturnable<Boolean> cir) {
         if (com.litness.optimizer.gui.AhPriceManager.handleMouseReleased(this, event)) {
             cir.setReturnValue(true);
         }
     }
 
-    @Inject(method = "removed", at = @At("HEAD"))
+    @Inject(method = "removed", at = @At("HEAD"), require = 0)
     private void litness_onContainerRemoved(CallbackInfo ci) {
         com.litness.optimizer.gui.AnvilTooltipState.clearHover();
         com.litness.optimizer.gui.AhPriceManager.onContainerClosed();
     }
 
-    @Inject(method = "extractSlot", at = @At("TAIL"))
+    @Inject(method = "extractSlot", at = @At("TAIL"), require = 0)
     private void litness_highlightSetSlots(GuiGraphicsExtractor extractor, Slot slot, int mouseX, int mouseY, CallbackInfo ci) {
         if (slot == null) return;
         Minecraft mc = Minecraft.getInstance();

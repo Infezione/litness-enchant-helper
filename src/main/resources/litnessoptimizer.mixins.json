@@ -5,6 +5,7 @@
   "client": [
     "AnvilScreenMixin",
     "ChatComponentMixin",
+    "ContainerScreenAccessor",
     "ContainerScreenMixin",
     "HudMixin",
     "ItemStackMixin"

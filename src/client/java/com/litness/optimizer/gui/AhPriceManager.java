@@ -506,7 +506,7 @@ public class AhPriceManager {
                 if (container.nonEmptyItemCopyStream().anyMatch(inner -> isCleanMatchingBook(inner, targetEnchants))) {
                     return true;
                 }
-            } catch (Exception ignored) {}
+            } catch (Throwable ignored) {}
         }
 
         // 3. Bundle (fagotto) con DataComponents.BUNDLE_CONTENTS
@@ -516,7 +516,16 @@ public class AhPriceManager {
                 if (bundle.itemCopies().anyMatch(inner -> isCleanMatchingBook(inner, targetEnchants))) {
                     return true;
                 }
-            } catch (Exception ignored) {}
+            } catch (Throwable t) {
+                try {
+                    java.lang.reflect.Method m = bundle.getClass().getMethod("itemCopyStream");
+                    @SuppressWarnings("unchecked")
+                    java.util.stream.Stream<ItemStack> stream = (java.util.stream.Stream<ItemStack>) m.invoke(bundle);
+                    if (stream.anyMatch(inner -> isCleanMatchingBook(inner, targetEnchants))) {
+                        return true;
+                    }
+                } catch (Throwable ignored) {}
+            }
         }
 
         return false;

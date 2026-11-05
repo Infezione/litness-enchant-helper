@@ -13,21 +13,21 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 @Mixin(ChatComponent.class)
 public class ChatComponentMixin {
 
-    @Inject(method = "addServerSystemMessage", at = @At("HEAD"))
+    @Inject(method = "addServerSystemMessage", at = @At("HEAD"), require = 0)
     private void litness_onServerChatMessage(Component message, CallbackInfo ci) {
         if (message != null) {
             AhPriceManager.onChatMessage(message.getString());
         }
     }
 
-    @Inject(method = "addClientSystemMessage", at = @At("HEAD"))
+    @Inject(method = "addClientSystemMessage", at = @At("HEAD"), require = 0)
     private void litness_onClientChatMessage(Component message, CallbackInfo ci) {
         if (message != null) {
             AhPriceManager.onChatMessage(message.getString());
         }
     }
 
-    @Inject(method = "addPlayerMessage", at = @At("HEAD"))
+    @Inject(method = "addPlayerMessage", at = @At("HEAD"), require = 0)
     private void litness_onPlayerChatMessage(Component message, MessageSignature headerSignature, GuiMessageTag tag, CallbackInfo ci) {
         if (message != null) {
             AhPriceManager.onChatMessage(message.getString());

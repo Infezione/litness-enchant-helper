@@ -14,14 +14,16 @@ import java.util.Optional;
 @Mixin(ItemStack.class)
 public abstract class ItemStackMixin {
 
-    @Inject(method = "getTooltipImage", at = @At("HEAD"), cancellable = true)
+    @Inject(method = "getTooltipImage", at = @At("HEAD"), cancellable = true, require = 0)
     private void litness_getEnchantedBookTooltipImage(CallbackInfoReturnable<Optional<TooltipComponent>> cir) {
-        ItemStack self = (ItemStack) (Object) this;
-        if (self.is(Items.ENCHANTED_BOOK)) {
-            Optional<TooltipComponent> component = LitnessTooltipHandler.getApplicableItemsTooltipData(self);
-            if (component.isPresent()) {
-                cir.setReturnValue(component);
+        try {
+            ItemStack self = (ItemStack) (Object) this;
+            if (self.is(Items.ENCHANTED_BOOK)) {
+                Optional<TooltipComponent> component = LitnessTooltipHandler.getApplicableItemsTooltipData(self);
+                if (component.isPresent()) {
+                    cir.setReturnValue(component);
+                }
             }
-        }
+        } catch (Throwable ignored) {}
     }
 }

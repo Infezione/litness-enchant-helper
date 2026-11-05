@@ -12,8 +12,10 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 @Mixin(Hud.class)
 public class HudMixin {
 
-    @Inject(method = "extractRenderState", at = @At("TAIL"))
+    @Inject(method = "extractRenderState", at = @At("TAIL"), require = 0)
     private void litness_renderPinnedHud(GuiGraphicsExtractor extractor, DeltaTracker deltaTracker, CallbackInfo ci) {
-        LitnessHudRenderer.render((Hud) (Object) this, extractor);
+        try {
+            LitnessHudRenderer.render((Hud) (Object) this, extractor);
+        } catch (Throwable ignored) {}
     }
 }

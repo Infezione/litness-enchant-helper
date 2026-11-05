@@ -92,7 +92,7 @@ public abstract class AnvilScreenMixin extends ItemCombinerScreen<AnvilMenu> {
         return s + "...";
     }
 
-    @Inject(method = "subInit", at = @At("TAIL"))
+    @Inject(method = "subInit", at = @At("TAIL"), require = 0)
     private void litness_addOptimizerButton(CallbackInfo ci) {
         int sideW = getSidebarWidth();
         int sideX = getSidebarX();
@@ -114,7 +114,7 @@ public abstract class AnvilScreenMixin extends ItemCombinerScreen<AnvilMenu> {
         }));
     }
 
-    @Inject(method = "keyPressed", at = @At("HEAD"), cancellable = true)
+    @Inject(method = "keyPressed", at = @At("HEAD"), cancellable = true, require = 0)
     private void litness_onKeyPressed(KeyEvent event, CallbackInfoReturnable<Boolean> cir) {
         if (event.key() == InputConstants.KEY_N && (name == null || !name.isFocused())) {
             openOptimizer();
@@ -122,7 +122,7 @@ public abstract class AnvilScreenMixin extends ItemCombinerScreen<AnvilMenu> {
         }
     }
 
-    @Inject(method = "extractBackground", at = @At("TAIL"))
+    @Inject(method = "extractBackground", at = @At("TAIL"), require = 0)
     private void litness_renderSidebar(GuiGraphicsExtractor extractor, int mouseX, int mouseY, float delta, CallbackInfo ci) {
         try {
             com.litness.optimizer.gui.AnvilTooltipState.clearHover();
