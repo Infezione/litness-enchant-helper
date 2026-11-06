@@ -23,7 +23,7 @@ Il suo obiettivo è eliminare per sempre qualsiasi spreco di livelli di esperien
 
 Sul server Litness, maxare un'arma o un pezzo d'armatura con 10–12 incantesimi (tra Vanilla e Custom) è quasi impossibile se non si conosce l'esatta combinazione matematica dell'incudine (*Prior Work Penalty*). Se i libri vengono uniti in sequenza lineare o nell'ordine sbagliato, l'incudine supererà rapidamente il limite di 39 livelli, bloccando l'oggetto per sempre.
 
-**Litness Enchant v1.3** implementa un avanzatissimo motore matematico ad **albero binario Pareto-ottimale (Detrix DP)** che calcola in tempo reale la sequenza ideale di combinazione tra libri, mantenendo i costi di ogni singola forgiatura a un picco tipico di soli **20–28 livelli XP**, consentendo a chiunque di maxare oggetti al **100% (12/12 incantesimi)** senza mai rischiare il blocco!
+**Litness Enchant v1.3** implementa un avanzatissimo motore matematico ad **albero binario Pareto-ottimale (Dynamic Programming)** che calcola in tempo reale la sequenza ideale di combinazione tra libri, mantenendo i costi di ogni singola forgiatura a un picco tipico di soli **20–28 livelli XP**, consentendo a chiunque di maxare oggetti al **100% (12/12 incantesimi)** senza mai rischiare il blocco!
 
 ---
 
@@ -55,7 +55,7 @@ Sul server Litness, maxare un'arma o un pezzo d'armatura con 10–12 incantesimi
 
 ---
 
-### 3. 🌳 Simulatore Fusione Pareto-Ottimale Detrix DP
+### 3. 🌳 Simulatore Fusione Pareto-Ottimale ad Albero Binario
 ![Guida Forgiatura Incudine](docs/images/preview_guide.png)
 - **Albero Binario Perfetto**: algoritmi di programmazione dinamica che combinano i libri tra loro prima di applicarli all'oggetto, riducendo drasticamente il costo cumulativo di XP.
 - **Zero Lag / Calcolo Istantaneo**: esecuzione asincrona in thread pool dedicato; la guida compare all'istante senza causare alcun calo di FPS nel gioco.
@@ -113,7 +113,7 @@ Sul server Litness, maxare un'arma o un pezzo d'armatura con 10–12 incantesimi
 
 - 🚀 **Rilascio Ufficiale "Litness Enchant v1.3 | By Waaxey"**:
   - Nuova interfaccia grafica Studio con branding ufficiale e stabilità completa.
-- 🌳 **Integrazione Motore Pareto-Ottimale Detrix DP**:
+- 🌳 **Integrazione Motore Pareto-Ottimale ad Albero Binario (Dynamic Programming)**:
   - Sostituito il vecchio sistema di calcolo con il potente algoritmo DP ad albero binario: combina fino a 12 incanti con picchi di soli 20-28 livelli XP.
 - ⚡ **Fix Matematico Maxabilità su Incudine**:
   - Eliminato il falso allarme "Troppo Costoso" per gli oggetti a lavoro 2 (penalità +3); ora tutti gli oggetti con penalità +0, +1 e +3 vengono correttamente riconosciuti come **100% Maxabili (12/12)**.

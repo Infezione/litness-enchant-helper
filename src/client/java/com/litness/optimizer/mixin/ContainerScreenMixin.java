@@ -82,9 +82,17 @@ public abstract class ContainerScreenMixin extends Screen {
 
     @Inject(method = "mouseClicked", at = @At("HEAD"), cancellable = true, require = 0)
     private void litness_onContainerMouseClicked(MouseButtonEvent event, boolean doubleClick, CallbackInfoReturnable<Boolean> cir) {
-        if (com.litness.optimizer.gui.AhPriceManager.handleMouseClicked(this, event)) {
-            cir.setReturnValue(true);
-            return;
+        double mouseX = event.x();
+        double mouseY = event.y();
+        boolean insideContainer = (mouseX >= this.leftPos && mouseX <= this.leftPos + this.imageWidth
+                && mouseY >= this.topPos && mouseY <= this.topPos + this.imageHeight);
+
+        // Se il cursore si trova all'interno della schermata/cassa, non intercettare mai per consentire il click dei libri
+        if (!insideContainer) {
+            if (com.litness.optimizer.gui.AhPriceManager.handleMouseClicked(this, event)) {
+                cir.setReturnValue(true);
+                return;
+            }
         }
 
         if (this.hoveredSlot != null) {

@@ -887,26 +887,11 @@ public class AhPriceManager {
         Minecraft mc = Minecraft.getInstance();
         if (mc.player == null) return;
 
-        Set<String> searchEnchants = getEffectiveSearchEnchants();
-        if (searchEnchants == null || searchEnchants.isEmpty()) {
-            currentScreenMinPrices.clear();
-            return;
-        }
-
-        // Se l'utente ha cambiato i filtri di ricerca, azzera la cache
-        if (!searchEnchants.equals(lastKnownSearchEnchants)) {
-            clearCache();
-            lastKnownSearchEnchants = new HashSet<>(searchEnchants);
-        }
-
         List<Slot> slots = screen.getMenu().slots;
-        Map<String, Long> minPriceOnScreen = new HashMap<>();
-        List<EnchantFilter> filters = getEffectiveFilters();
-
         int currentPage = detectPageNumber(screen);
         Set<String> currentFoundKeys = new HashSet<>();
 
-        // Scansiona solo gli slot delle inserzioni (fino a 45 per chest a 6 righe)
+        // Scansiona tutti i libri lisci (1 incantesimo) presenti nella pagina corrente di /ah
         int maxAuctionSlot = Math.min(45, slots.size());
         for (int i = 0; i < maxAuctionSlot; i++) {
             Slot slot = slots.get(i);
@@ -922,8 +907,6 @@ public class AhPriceManager {
             String singleId = distinct.iterator().next();
             int level = extractLevel(stack, singleId);
 
-            if (!matchesAnyFilter(singleId, level, filters)) continue;
-
             EnchantmentEntry ee = EnchantmentDatabase.getEnchantment(singleId);
             String eName = (ee != null) ? com.litness.optimizer.data.LitnessI18n.getEnchantName(ee) : com.litness.optimizer.data.LitnessI18n.translateEnchantName(singleId);
 
@@ -934,16 +917,6 @@ public class AhPriceManager {
                 cachedListings.put(listing.key, listing);
                 pageToListings.computeIfAbsent(listing.page, k -> new HashSet<>()).add(listing.key);
                 currentFoundKeys.add(listing.key);
-
-                String matchKey = singleId + ":" + level;
-                long currentMin = minPriceOnScreen.getOrDefault(matchKey, Long.MAX_VALUE);
-                if (info.price < currentMin) {
-                    minPriceOnScreen.put(matchKey, info.price);
-                }
-                long generalMin = minPriceOnScreen.getOrDefault(singleId, Long.MAX_VALUE);
-                if (info.price < generalMin) {
-                    minPriceOnScreen.put(singleId, info.price);
-                }
             }
         }
 
@@ -1259,7 +1232,8 @@ public class AhPriceManager {
                 }
                 currentSuggestions.clear();
                 hoveredSuggestionIndex = -1;
-                clearCache();
+                scrollOffset = 0;
+                maxScroll = 0;
                 Minecraft mc = Minecraft.getInstance();
                 if (mc.player != null) {
                     mc.player.sendOverlayMessage(Component.literal("§a• Filtro attivato: " + s.displayName));
@@ -1283,7 +1257,8 @@ public class AhPriceManager {
             }
             currentSuggestions.clear();
             hoveredSuggestionIndex = -1;
-            clearCache();
+            scrollOffset = 0;
+            maxScroll = 0;
             Minecraft mc = Minecraft.getInstance();
             if (mc.player != null) {
                 mc.player.sendOverlayMessage(Component.literal("§c• Ricerca azzerata"));
@@ -1613,15 +1588,18 @@ public class AhPriceManager {
         Minecraft mc = Minecraft.getInstance();
         Font font = mc.font;
 
-        // Larghezza ottimizzata adattiva (186px default per far entrare bene nomi e venditori)
+        // Calcolo posizione e larghezza adattiva senza MAI sovrapporre la cassa / container
         int availableLeft = leftPos - 8;
-        int sideW = Math.min(190, Math.max(165, availableLeft));
+        int sideW = Math.min(190, Math.max(120, availableLeft));
         int sideX = leftPos - sideW - 6;
-        if (sideX < 2 && (screen.width - (leftPos + imageWidth)) >= 170) {
-            sideX = leftPos + imageWidth + 6;
-            sideW = Math.min(190, screen.width - sideX - 4);
+        if (sideX < 2 && (screen.width - (leftPos + imageWidth)) >= 140) {
+            int rightStart = leftPos + imageWidth + 6;
+            sideW = Math.min(190, screen.width - rightStart - 4);
+            sideX = rightStart;
+        } else if (sideX < 2) {
+            sideX = 2;
+            sideW = Math.max(110, leftPos - sideX - 6);
         }
-        sideX = Math.max(2, sideX);
         int sideY = topPos;
         int sideH = imageHeight;
 
@@ -1639,6 +1617,9 @@ public class AhPriceManager {
         extractor.text(font, "MERCATO AH", sideX + 16, sideY + 9, 0xFFFFFFFF, false);
 
         Set<String> searchEnchants = getEffectiveSearchEnchants();
+        String rawQuery = (searchBox != null) ? searchBox.getValue().trim() : "";
+        boolean hasQuery = !rawQuery.isEmpty();
+        boolean hasFilter = searchEnchants != null && !searchEnchants.isEmpty();
 
         // Tasto [Azzera]
         btnClearW = 34;
@@ -1683,7 +1664,7 @@ public class AhPriceManager {
 
         int curY = searchBoxY + searchBoxH + 5;
 
-        if (searchEnchants == null || searchEnchants.isEmpty()) {
+        if (!hasQuery && !hasFilter) {
             scrollOffset = 0;
             maxScroll = 0;
             // Stato vuoto: Nessun incanto cercato
@@ -1704,32 +1685,59 @@ public class AhPriceManager {
             return;
         }
 
-        // Filtra e ordina i listing per prezzo crescente
+        // Filtra e ordina i listing per prezzo crescente in tempo reale
         List<AhListing> matchingListings = new ArrayList<>();
         List<EnchantFilter> filters = getEffectiveFilters();
+
+        String q = rawQuery.toLowerCase();
+        int queryLevel = 0;
+        String queryBase = q;
+        Matcher numMatcher = Pattern.compile("^(.*?)\\s+([0-9ivx]+)$").matcher(q);
+        if (numMatcher.find()) {
+            queryBase = numMatcher.group(1).trim();
+            queryLevel = LitnessTooltipHandler.parseRomanOrInt(numMatcher.group(2).trim());
+        }
+
         for (AhListing l : cachedListings.values()) {
-            if (matchesAnyFilter(l.enchantId, l.level, filters)) {
-                matchingListings.add(l);
+            if (hasQuery) {
+                String nameLower = l.enchantName.toLowerCase();
+                String idLower = l.enchantId.toLowerCase();
+                boolean match = nameLower.contains(queryBase) || idLower.contains(queryBase);
+                if (!match) {
+                    String translated = com.litness.optimizer.data.LitnessI18n.translateEnchantName(l.enchantId).toLowerCase();
+                    if (translated.contains(queryBase)) match = true;
+                }
+                if (match) {
+                    if (queryLevel > 0) {
+                        if (l.level == queryLevel) matchingListings.add(l);
+                    } else {
+                        matchingListings.add(l);
+                    }
+                }
+            } else if (hasFilter) {
+                if (matchesAnyFilter(l.enchantId, l.level, filters)) {
+                    matchingListings.add(l);
+                }
             }
         }
         Collections.sort(matchingListings);
 
         // Header info filtro
-        int filterCount = filters.size();
-        String filterInfo;
-        if (filterCount == 1) {
-            EnchantFilter first = filters.get(0);
-            EnchantmentEntry fe = EnchantmentDatabase.getEnchantment(first.enchantId);
-            String baseName = fe != null ? com.litness.optimizer.data.LitnessI18n.getEnchantName(fe) : com.litness.optimizer.data.LitnessI18n.translateEnchantName(first.enchantId);
-            if (first.targetLevel > 0) {
-                filterInfo = AnvilOptimizer.formatEnchantName(baseName, first.targetLevel);
-            } else {
-                filterInfo = baseName;
-            }
+        if (hasQuery) {
+            extractor.text(font, "§7Cerca: §f\"" + trimToWidth(font, rawQuery, sideW - 70) + "\"", sideX + 8, curY, 0xFFFFFFFF, false);
         } else {
-            filterInfo = filterCount + " incanti cercati";
+            int filterCount = filters.size();
+            String filterInfo;
+            if (filterCount == 1) {
+                EnchantFilter first = filters.get(0);
+                EnchantmentEntry fe = EnchantmentDatabase.getEnchantment(first.enchantId);
+                String baseName = fe != null ? com.litness.optimizer.data.LitnessI18n.getEnchantName(fe) : com.litness.optimizer.data.LitnessI18n.translateEnchantName(first.enchantId);
+                filterInfo = (first.targetLevel > 0) ? AnvilOptimizer.formatEnchantName(baseName, first.targetLevel) : baseName;
+            } else {
+                filterInfo = filterCount + " incanti cercati";
+            }
+            extractor.text(font, "§7Cerca: §f" + trimToWidth(font, filterInfo, sideW - 65), sideX + 8, curY, 0xFFFFFFFF, false);
         }
-        extractor.text(font, "§7Cerca: §f" + trimToWidth(font, filterInfo, sideW - 65), sideX + 8, curY, 0xFFFFFFFF, false);
         curY += 10;
         extractor.text(font, "§9• §7Libri lisci (1 incanto)", sideX + 8, curY, 0xFF9CA3AF, false);
         curY += 12;
@@ -1744,10 +1752,17 @@ public class AhPriceManager {
             LitnessOptimizerScreen.drawRoundedOutline(extractor, sideX + 6, boxY, sideW - 12, boxH, 6, 0xFF1E2334);
 
             extractor.fakeItem(new ItemStack(Items.ENCHANTED_BOOK), sideX + (sideW / 2) - 8, boxY + 8);
-            extractor.centeredText(font, "0 libri lisci finora", sideX + (sideW / 2), boxY + 28, 0xFF60A5FA);
-            extractor.centeredText(font, "Sfoglia le pagine", sideX + (sideW / 2), boxY + 44, 0xFFE2E8F0);
-            extractor.centeredText(font, "di /ah per leggere", sideX + (sideW / 2), boxY + 54, 0xFFE2E8F0);
-            extractor.centeredText(font, "in automatico i prezzi!", sideX + (sideW / 2), boxY + 64, 0xFFE2E8F0);
+            if (cachedListings.isEmpty()) {
+                extractor.centeredText(font, "0 libri scansionati", sideX + (sideW / 2), boxY + 28, 0xFF60A5FA);
+                extractor.centeredText(font, "Sfoglia le pagine", sideX + (sideW / 2), boxY + 44, 0xFFE2E8F0);
+                extractor.centeredText(font, "di /ah o premi [⚡ Sfoglia]", sideX + (sideW / 2), boxY + 54, 0xFFE2E8F0);
+                extractor.centeredText(font, "per leggere i prezzi!", sideX + (sideW / 2), boxY + 64, 0xFFE2E8F0);
+            } else {
+                extractor.centeredText(font, "0 offerte trovate", sideX + (sideW / 2), boxY + 28, 0xFF60A5FA);
+                extractor.centeredText(font, "Nessun venditore per", sideX + (sideW / 2), boxY + 44, 0xFFE2E8F0);
+                extractor.centeredText(font, hasQuery ? "\"" + trimToWidth(font, rawQuery, sideW - 24) + "\"" : "questi incantesimi", sideX + (sideW / 2), boxY + 54, 0xFFFBBF24);
+                extractor.centeredText(font, "nelle pagine lette", sideX + (sideW / 2), boxY + 64, 0xFF9CA3AF);
+            }
 
             extractor.centeredText(font, "Solo libri lisci", sideX + (sideW / 2), boxY + boxH - 14, 0xFF6B7280);
 
@@ -1759,18 +1774,31 @@ public class AhPriceManager {
         // Trova il miglior listing per ciascun incantesimo cercato
         Map<String, AhListing> bestPerEnchant = new LinkedHashMap<>();
         Set<String> bestKeys = new HashSet<>();
-        for (EnchantFilter f : filters) {
-            AhListing bestForThis = null;
+        if (hasQuery) {
             for (AhListing l : matchingListings) {
-                if (matchesFilter(l.enchantId, l.level, f)) {
-                    if (bestForThis == null || l.price < bestForThis.price) {
-                        bestForThis = l;
-                    }
+                String groupKey = l.enchantId + ":" + l.level;
+                AhListing curBest = bestPerEnchant.get(groupKey);
+                if (curBest == null || l.price < curBest.price) {
+                    bestPerEnchant.put(groupKey, l);
                 }
             }
-            if (bestForThis != null) {
-                bestPerEnchant.put(f.original, bestForThis);
-                bestKeys.add(bestForThis.key);
+            for (AhListing b : bestPerEnchant.values()) {
+                bestKeys.add(b.key);
+            }
+        } else {
+            for (EnchantFilter f : filters) {
+                AhListing bestForThis = null;
+                for (AhListing l : matchingListings) {
+                    if (matchesFilter(l.enchantId, l.level, f)) {
+                        if (bestForThis == null || l.price < bestForThis.price) {
+                            bestForThis = l;
+                        }
+                    }
+                }
+                if (bestForThis != null) {
+                    bestPerEnchant.put(f.original, bestForThis);
+                    bestKeys.add(bestForThis.key);
+                }
             }
         }
 
