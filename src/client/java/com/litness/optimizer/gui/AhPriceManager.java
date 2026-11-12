@@ -1836,20 +1836,9 @@ public class AhPriceManager {
         Minecraft mc = Minecraft.getInstance();
         long now = System.currentTimeMillis();
 
-        // 1. Scansione automatica all'apertura di /ah (sezione solo libri)
-        if (!hasAutoScannedThisSession && !isAutoScanning && autoNavListing == null) {
-            if (screen.getMenu() != null && screen.getMenu().slots.size() >= 54) {
-                isAutoScanning = true;
-                hasSelectedBooksCategory = false;
-                autoScanPageCount = 0;
-                lastAutoScanClick = 0;
-                currentAhPage = 1;
-            }
-        }
-
-        // Scansione controllata di tutte le pagine della sezione Libri
+        // Scansione controllata: attivata SOLO se l'utente clicca [⚡ Sfoglia] nella sidebar
         if (isAutoScanning) {
-            if (now - lastAutoScanClick < 380) return; // Pausa per sincronizzazione della cassa
+            if (now - lastAutoScanClick < 400) return; // Pausa per sincronizzazione della cassa
 
             // Passo 1: se la categoria libri non è stata selezionata, clicca prima sullo slot del libro (Slot 7)
             if (!hasSelectedBooksCategory) {
@@ -1869,7 +1858,7 @@ public class AhPriceManager {
 
             // Passo 2: Sfoglia le pagine in avanti
             int nextSlot = findNextPageSlot(screen);
-            if (nextSlot >= 0 && autoScanPageCount < 20) {
+            if (nextSlot >= 0 && autoScanPageCount < 15) {
                 autoScanPageCount++;
                 lastAutoScanClick = now;
                 Slot s = screen.getMenu().slots.get(nextSlot);
@@ -1878,22 +1867,13 @@ public class AhPriceManager {
                     mc.player.sendOverlayMessage(Component.literal("§e✦ Scansione /ah pagina " + currentAhPage + " (" + cachedListings.size() + " offerte)..."));
                 }
             } else {
-                // Passo 3: Raggiunta la fine o il limite: concludi la scansione e torna a pagina 1 dei libri
+                // Passo 3: Raggiunta la fine o il limite: concludi la scansione e FERMATI in modo pulito
                 isAutoScanning = false;
-                hasAutoScannedThisSession = true;
                 int totalScanned = autoScanPageCount + 1;
                 autoScanPageCount = 0;
 
-                // Clicca nuovamente il libro per tornare istantaneamente a pagina 1 dei libri
-                int bookSlot = findBookCategorySlot(screen);
-                if (bookSlot >= 0 && bookSlot < screen.getMenu().slots.size()) {
-                    currentAhPage = 1;
-                    Slot sBook = screen.getMenu().slots.get(bookSlot);
-                    clickSlot(screen, sBook);
-                }
-
                 if (mc.player != null) {
-                    mc.player.sendOverlayMessage(Component.literal("§a✔ Scansione completata: " + cachedListings.size() + " offerte su " + totalScanned + " pagine!"));
+                    mc.player.sendOverlayMessage(Component.literal("§a✔ Scansione completata: " + cachedListings.size() + " offerte in memoria!"));
                 }
             }
             return;
