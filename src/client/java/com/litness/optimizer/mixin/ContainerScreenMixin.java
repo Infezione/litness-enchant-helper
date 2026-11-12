@@ -194,12 +194,14 @@ public abstract class ContainerScreenMixin extends Screen {
         if (badge != null) {
             String badgeText = badge.getDisplayText();
             if (!badgeText.isEmpty()) {
-                extractor.pose().pushMatrix();
-                extractor.pose().translate(x, y + 9);
-                extractor.pose().scale(0.5f, 0.5f);
-
                 int textW = mc.font.width(badgeText);
-                int targetX = (32 - textW) / 2;
+                float s = (textW > 28) ? (14.0f / textW) : 0.5f;
+                extractor.pose().pushMatrix();
+                extractor.pose().translate(x, y + 10);
+                extractor.pose().scale(s, s);
+
+                int scaledSlotW = (int) (16.0f / s);
+                int targetX = (scaledSlotW - textW) / 2;
                 int bgPad = 2;
 
                 int pillBg = badge.isMatching ? (badge.isCheapest ? 0xEA7C2D12 : 0xEA052E16) : 0xEA0F172A;

@@ -439,9 +439,9 @@ public class AhPriceManager {
 
     public static boolean isBook(ItemStack stack) {
         if (stack == null || stack.isEmpty()) return false;
-        if (stack.is(Items.ENCHANTED_BOOK) || stack.is(Items.BOOK)) return true;
-        String name = stack.getHoverName().getString().toLowerCase();
-        return name.contains("libro") || name.contains("book");
+        if (stack.is(Items.ENCHANTED_BOOK) || stack.is(Items.BOOK) || stack.is(Items.WRITTEN_BOOK) || stack.is(Items.WRITABLE_BOOK) || stack.is(Items.KNOWLEDGE_BOOK)) return true;
+        String name = stack.getHoverName().getString().toLowerCase(Locale.ROOT);
+        return name.contains("libr") || name.contains("book");
     }
 
     /**
@@ -1741,11 +1741,14 @@ public class AhPriceManager {
                 if (!hasSelectedBooksCategory && screen.getMenu().slots.size() >= 54) {
                     Slot slot7 = screen.getMenu().slots.get(7);
                     ItemStack s7 = slot7.getItem();
-                    if (isBook(s7)) {
-                        hasSelectedBooksCategory = true;
-                        lastAutoScanClick = now;
-                        clickSlot(screen, slot7);
-                        return; // Attende che il server carichi i soli libri incantati
+                    if (!s7.isEmpty() && !s7.is(Items.AIR)) {
+                        String n7 = s7.getHoverName().getString().toLowerCase(Locale.ROOT);
+                        if (isBook(s7) || n7.contains("libr") || n7.contains("book") || n7.contains("incant") || n7.contains("enchant")) {
+                            hasSelectedBooksCategory = true;
+                            lastAutoScanClick = now;
+                            clickSlot(screen, slot7);
+                            return; // Attende che il server carichi i soli libri incantati
+                        }
                     }
                 }
 
