@@ -125,6 +125,7 @@ public class LitnessOptimizerScreen extends Screen {
     // Tasti set salvati
     private final List<Button> savedSetButtons = new ArrayList<>();
     private String savedSetsFilterCategory = "ALL";
+    private int savedSetsPage = 0;
 
     // Calcolatore / Simulatore
     private static final java.util.concurrent.ExecutorService CALC_POOL = java.util.concurrent.Executors.newSingleThreadExecutor(r -> {
@@ -871,6 +872,7 @@ public class LitnessOptimizerScreen extends Screen {
             int bw = Math.max(46, this.font.width(catLabels[i]) + 14);
             SoftwareButton bCat = new SoftwareButton(fx, startY + 1, bw, 20, Component.literal(catLabels[i]), b -> {
                 savedSetsFilterCategory = c;
+                savedSetsPage = 0;
                 this.clearWidgets();
                 this.init();
             }).setTabActive(c.equalsIgnoreCase(savedSetsFilterCategory));
@@ -881,19 +883,9 @@ public class LitnessOptimizerScreen extends Screen {
         refreshSavedSetButtons(startY + 28, startX, panelWidth);
     }
 
-    private void refreshSavedSetButtons(int startY, int startX, int panelWidth) {
-        for (Button b : savedSetButtons) {
-            this.removeWidget(b);
-        }
-        savedSetButtons.clear();
-
-        List<CustomSet> sets = SavedSetsManager.getSavedSets();
-        if (sets.isEmpty()) return;
-
-        int rowH = 26;
-        int curY = startY;
-
-        for (CustomSet set : sets) {
+    private List<CustomSet> getFilteredSavedSets() {
+        List<CustomSet> list = new ArrayList<>();
+        for (CustomSet set : SavedSetsManager.getSavedSets()) {
             if (!"ALL".equalsIgnoreCase(savedSetsFilterCategory)) {
                 try {
                     int targetCat = Integer.parseInt(savedSetsFilterCategory);
@@ -907,8 +899,37 @@ public class LitnessOptimizerScreen extends Screen {
                     if (getCategoryForItem(itemIdx) != targetCat) continue;
                 } catch (Exception ignored) {}
             }
+            list.add(set);
+        }
+        return list;
+    }
 
-            int by = curY;
+    private void refreshSavedSetButtons(int startY, int startX, int panelWidth) {
+        for (Button b : savedSetButtons) {
+            this.removeWidget(b);
+        }
+        savedSetButtons.clear();
+
+        List<CustomSet> sets = getFilteredSavedSets();
+        if (sets.isEmpty()) {
+            savedSetsPage = 0;
+            return;
+        }
+
+        int availableH = (getWinY() + getWinH() - 32) - startY;
+        int setsPerPage = Math.max(1, availableH / 28);
+        int totalPages = Math.max(1, (int) Math.ceil((double) sets.size() / setsPerPage));
+        if (savedSetsPage >= totalPages) savedSetsPage = totalPages - 1;
+        if (savedSetsPage < 0) savedSetsPage = 0;
+
+        int startIdx = savedSetsPage * setsPerPage;
+        int endIdx = Math.min(sets.size(), startIdx + setsPerPage);
+
+        for (int i = startIdx; i < endIdx; i++) {
+            CustomSet set = sets.get(i);
+            int rowIdx = i - startIdx;
+            int by = startY + (rowIdx * 28);
+
             // Tasto Carica / Guida
             SoftwareButton btnGuide = new SoftwareButton(startX + panelWidth - 210, by + 2, 52, 20,
                     Component.literal(LitnessI18n.t("guide_btn")), b -> loadSavedSetIntoSimulator(set)).setPrimary(true);
@@ -945,12 +966,31 @@ public class LitnessOptimizerScreen extends Screen {
             }).setDanger(true);
             this.addRenderableWidget(btnDel);
             savedSetButtons.add(btnDel);
+        }
 
-            curY += rowH + 4;
-            if (curY > getWinY() + getWinH() - 30) break;
+        // Tasti di navigazione pagina se ci sono piu' pagine di set
+        if (totalPages > 1) {
+            int navY = getWinY() + getWinH() - 24;
+            SoftwareButton prev = new SoftwareButton(startX + panelWidth / 2 - 60, navY, 26, 18, Component.literal("\u25C0"), b -> {
+                if (savedSetsPage > 0) {
+                    savedSetsPage--;
+                    this.clearWidgets();
+                    this.init();
+                }
+            });
+            SoftwareButton next = new SoftwareButton(startX + panelWidth / 2 + 34, navY, 26, 18, Component.literal("\u25B6"), b -> {
+                if (savedSetsPage < totalPages - 1) {
+                    savedSetsPage++;
+                    this.clearWidgets();
+                    this.init();
+                }
+            });
+            this.addRenderableWidget(prev);
+            this.addRenderableWidget(next);
+            savedSetButtons.add(prev);
+            savedSetButtons.add(next);
         }
     }
-
     private void initSetCreatorWidgets(int startX, int startY, int panelWidth, int panelHeight) {
         int studioW = Math.max(132, (int)(panelWidth * 0.32));
         int libX = startX + studioW + 8;
@@ -1693,47 +1733,49 @@ public class LitnessOptimizerScreen extends Screen {
     private void renderSavedSetsTab(GuiGraphicsExtractor extractor, int startX, int startY, int panelWidth, int panelHeight, int mouseX, int mouseY) {
         if (isCreatingSet) {
             renderSetCreatorOverlay(extractor, startX, startY, panelWidth, panelHeight, mouseX, mouseY);
-        } else {
-            List<CustomSet> sets = SavedSetsManager.getSavedSets();
-            if (sets.isEmpty()) {
-                extractor.centeredText(this.font, LitnessI18n.t("empty_sets"), startX + panelWidth / 2, startY + 60, 0xFF6B7280);
-                return;
-            }
+            return;
+        }
 
-            int curY = startY + 28;
-            for (CustomSet set : sets) {
-                if (!"ALL".equalsIgnoreCase(savedSetsFilterCategory)) {
-                    try {
-                        int targetCat = Integer.parseInt(savedSetsFilterCategory);
-                        int itemIdx = 0;
-                        for (int k = 0; k < ITEM_KEYS.length; k++) {
-                            if (ITEM_KEYS[k].equalsIgnoreCase(set.itemKey)) {
-                                itemIdx = k;
-                                break;
-                            }
-                        }
-                        if (getCategoryForItem(itemIdx) != targetCat) continue;
-                    } catch (Exception ignored) {}
-                }
+        List<CustomSet> sets = getFilteredSavedSets();
+        if (sets.isEmpty()) {
+            extractor.centeredText(this.font, LitnessI18n.t("empty_sets"), startX + panelWidth / 2, startY + 60, 0xFF6B7280);
+            return;
+        }
 
-                // Card Set Salvato
-                boolean isPinned = ActiveSessionManager.isSetPinned(set.id);
-                int cardBg = isPinned ? 0xFF151A2E : 0xFF121422;
-                int cardBorder = isPinned ? 0xFF6366F1 : 0xFF222538;
+        int availableH = (getWinY() + getWinH() - 32) - (startY + 28);
+        int setsPerPage = Math.max(1, availableH / 28);
+        int totalPages = Math.max(1, (int) Math.ceil((double) sets.size() / setsPerPage));
+        if (savedSetsPage >= totalPages) savedSetsPage = totalPages - 1;
+        if (savedSetsPage < 0) savedSetsPage = 0;
 
-                extractor.fill(startX, curY, startX + panelWidth, curY + 24, cardBg);
-                extractor.outline(startX, curY, panelWidth, 24, cardBorder);
+        int startIdx = savedSetsPage * setsPerPage;
+        int endIdx = Math.min(sets.size(), startIdx + setsPerPage);
 
-                ItemStack pieceStack = getItemStackForType(set.itemKey);
-                extractor.fakeItem(pieceStack, startX + 4, curY + 4);
+        for (int i = startIdx; i < endIdx; i++) {
+            CustomSet set = sets.get(i);
+            int rowIdx = i - startIdx;
+            int curY = startY + 28 + (rowIdx * 28);
 
-                String pinBadge = isPinned ? "\u00A76[\u2605 PIN] \u00A7r" : "";
-                String title = pinBadge + "\u00A7f" + set.name + " \u00A78(" + set.enchantments.size() + "/12)";
-                extractor.text(this.font, title, startX + 24, curY + 8, 0xFFFFFFFF, false);
+            // Card Set Salvato
+            boolean isPinned = ActiveSessionManager.isSetPinned(set.id);
+            int cardBg = isPinned ? 0xFF151A2E : 0xFF121422;
+            int cardBorder = isPinned ? 0xFF6366F1 : 0xFF222538;
 
-                curY += 28;
-                if (curY > getWinY() + getWinH() - 32) break;
-            }
+            extractor.fill(startX, curY, startX + panelWidth, curY + 24, cardBg);
+            extractor.outline(startX, curY, panelWidth, 24, cardBorder);
+
+            ItemStack pieceStack = getItemStackForType(set.itemKey);
+            extractor.fakeItem(pieceStack, startX + 4, curY + 4);
+
+            String pinBadge = isPinned ? "\u00A76[\u2605 PIN] \u00A7r" : "";
+            String title = pinBadge + "\u00A7f" + set.name + " \u00A78(" + set.enchantments.size() + "/12)";
+            extractor.text(this.font, title, startX + 24, curY + 8, 0xFFFFFFFF, false);
+        }
+
+        if (totalPages > 1) {
+            int navY = getWinY() + getWinH() - 20;
+            String pageStr = (savedSetsPage + 1) + " / " + totalPages + " (" + sets.size() + " set)";
+            extractor.centeredText(this.font, pageStr, startX + panelWidth / 2, navY, 0xFF9CA3AF);
         }
     }
 
@@ -2216,6 +2258,23 @@ public class LitnessOptimizerScreen extends Screen {
                 return true;
             } else if (verticalAmount < 0 && catalogPage < totalPages - 1) {
                 catalogPage++;
+                this.clearWidgets();
+                this.init();
+                return true;
+            }
+        } else if (this.currentTab == Tab.SETS && !isCreatingSet) {
+            List<CustomSet> sets = getFilteredSavedSets();
+            int startY = getWinY() + HEADER_H + 4;
+            int availableH = (getWinY() + getWinH() - 32) - (startY + 28);
+            int setsPerPage = Math.max(1, availableH / 28);
+            int totalPages = Math.max(1, (int) Math.ceil((double) sets.size() / setsPerPage));
+            if (verticalAmount > 0 && savedSetsPage > 0) {
+                savedSetsPage--;
+                this.clearWidgets();
+                this.init();
+                return true;
+            } else if (verticalAmount < 0 && savedSetsPage < totalPages - 1) {
+                savedSetsPage++;
                 this.clearWidgets();
                 this.init();
                 return true;

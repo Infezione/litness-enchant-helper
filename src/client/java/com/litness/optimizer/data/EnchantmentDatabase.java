@@ -151,6 +151,7 @@ public class EnchantmentDatabase {
             JsonArray enchantmentsArray = root.getAsJsonArray("enchantments");
             for (JsonElement el : enchantmentsArray) {
                 EnchantmentEntry ench = gson.fromJson(el, EnchantmentEntry.class);
+                ench.maxLevel = getServerMaxLevel(ench.id, ench.maxLevel);
                 enchantmentsById.put(ench.id, ench);
                 allEnchantments.add(ench);
             }
@@ -424,6 +425,38 @@ public class EnchantmentDatabase {
         if ("protection".equals(id) && level >= 5) return "protection_5";
         if ("power".equals(id) && level >= 6) return "power_6";
         return null;
+    }
+
+    public static int getServerMaxLevel(String baseId, int fallback) {
+        if (baseId == null) return fallback;
+        String id = baseId.toLowerCase().trim();
+        if (id.startsWith("minecraft:")) id = id.substring(10);
+        switch (id) {
+            case "efficiency":
+            case "efficiency_6":
+            case "sharpness":
+            case "sharpness_6":
+            case "power":
+            case "power_6":
+                return 6;
+            case "protection":
+            case "protection_5":
+            case "feather_falling":
+            case "feather_falling_5":
+            case "unbreaking":
+            case "unbreaking_4":
+            case "unbreaking_5":
+                return 5;
+            case "looting":
+            case "looting_4":
+            case "respiration":
+            case "respiration_4":
+            case "depth_strider":
+            case "depth_strider_4":
+                return 4;
+            default:
+                return fallback;
+        }
     }
 
     public static int getEnchantmentCost(EnchantmentEntry ench, int level) {

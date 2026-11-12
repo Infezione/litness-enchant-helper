@@ -160,25 +160,32 @@ public abstract class ContainerScreenMixin extends Screen {
             int x = slot.x;
             int y = slot.y;
             boolean isCheapest = com.litness.optimizer.gui.AhPriceManager.isCheapestOnScreen(stack);
+            boolean isCleanBook = com.litness.optimizer.gui.AhPriceManager.isCleanMatchingBook(stack, cachedTargetEnchants);
 
             if (isCheapest) {
-                // Evidenziazione ARANCIONE VIVIDO per il prezzo più basso assoluto
+                // Evidenziazione ARANCIONE VIVIDO per il prezzo piu' basso assoluto
                 extractor.fill(x, y, x + 16, y + 16, 0x65FF9900);
                 extractor.fill(x - 1, y - 1, x + 17, y, 0xFFFF9900);
                 extractor.fill(x - 1, y + 16, x + 17, y + 17, 0xFFFF9900);
                 extractor.fill(x - 1, y, x, y + 16, 0xFFFF9900);
                 extractor.fill(x + 16, y, x + 17, y + 16, 0xFFFF9900);
-            } else {
-                // Evidenziazione VERDE SMERALDO per gli altri libri lisci corrispondenti
+            } else if (isCleanBook) {
+                // Evidenziazione VERDE SMERALDO per i libri lisci corrispondenti
                 extractor.fill(x, y, x + 16, y + 16, 0x4000FF66);
                 extractor.fill(x - 1, y - 1, x + 17, y, 0xFF00FF66);
                 extractor.fill(x - 1, y + 16, x + 17, y + 17, 0xFF00FF66);
                 extractor.fill(x - 1, y, x, y + 16, 0xFF00FF66);
                 extractor.fill(x + 16, y, x + 17, y + 16, 0xFF00FF66);
+            } else {
+                // Evidenziazione CIANO BRILLANTE per armature, armi, attrezzi e oggetti con l'incantesimo
+                extractor.fill(x, y, x + 16, y + 16, 0x4000E5FF);
+                extractor.fill(x - 1, y - 1, x + 17, y, 0xFF00E5FF);
+                extractor.fill(x - 1, y + 16, x + 17, y + 17, 0xFF00E5FF);
+                extractor.fill(x - 1, y, x, y + 16, 0xFF00E5FF);
+                extractor.fill(x + 16, y, x + 17, y + 16, 0xFF00E5FF);
             }
         }
     }
-
     private boolean isSupportedStorageContainer() {
         AbstractContainerScreen<?> screen = (AbstractContainerScreen<?>) (Object) this;
         AbstractContainerMenu m = screen.getMenu();
@@ -230,6 +237,6 @@ public abstract class ContainerScreenMixin extends Screen {
     }
 
     private static boolean matchesAnyTargetEnchant(ItemStack stack, Set<String> targetEnchants) {
-        return com.litness.optimizer.gui.AhPriceManager.containsMatchingCleanBook(stack, targetEnchants);
+        return com.litness.optimizer.gui.AhPriceManager.containsMatchingTargetItem(stack, targetEnchants);
     }
 }

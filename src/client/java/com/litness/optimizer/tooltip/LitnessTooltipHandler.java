@@ -498,10 +498,11 @@ public class LitnessTooltipHandler {
 
             boolean isCustom = "custom".equalsIgnoreCase(ee.category);
             boolean isVanillaPlus = "vanilla_plus".equalsIgnoreCase(ee.category);
-            boolean isMax = lvl >= ee.maxLevel;
-            String maxRoman = AnvilOptimizer.toRoman(ee.maxLevel);
+            int effectiveMax = EnchantmentDatabase.getServerMaxLevel(ee.id, ee.maxLevel);
+            boolean isMax = lvl >= effectiveMax;
+            String maxRoman = AnvilOptimizer.toRoman(effectiveMax);
 
-            String maxTag = (ee.maxLevel <= 1) ? "" : (isMax ? " \u00A78[\u00A7aMax " + maxRoman + "\u00A78]" : " \u00A78[\u00A7eMax " + maxRoman + "\u00A78]");
+            String maxTag = (effectiveMax <= 1) ? "" : (isMax ? " \u00A78[\u00A7aMax " + maxRoman + "\u00A78]" : " \u00A78[\u00A7eMax " + maxRoman + "\u00A78]");
             String rarityBadge = "";
             if (isCustom && ee.rarity != null && !ee.rarity.isEmpty()) {
                 rarityBadge = " " + getRarityColorCode(ee.rarity) + "[" + ee.rarity.toUpperCase() + "]";
@@ -593,11 +594,12 @@ public class LitnessTooltipHandler {
             }
 
             boolean isCustom = "custom".equalsIgnoreCase(ee.category);
-            boolean isMax = currentLvl >= ee.maxLevel;
-            String maxRoman = AnvilOptimizer.toRoman(ee.maxLevel);
+            int effectiveMax = EnchantmentDatabase.getServerMaxLevel(ee.id, ee.maxLevel);
+            boolean isMax = currentLvl >= effectiveMax;
+            String maxRoman = AnvilOptimizer.toRoman(effectiveMax);
 
             // Tag Max Enchant e Costo:
-            String maxTag = (ee.maxLevel <= 1) ? "" : (isMax ? " \u00A78[\u00A7aMax " + maxRoman + "\u00A78]" : " \u00A78[\u00A7eMax " + maxRoman + "\u00A78]");
+            String maxTag = (effectiveMax <= 1) ? "" : (isMax ? " \u00A78[\u00A7aMax " + maxRoman + "\u00A78]" : " \u00A78[\u00A7eMax " + maxRoman + "\u00A78]");
             String rarityBadge = (isCustom && ee.rarity != null && !ee.rarity.isEmpty())
                     ? " " + getRarityColorCode(ee.rarity) + "[" + ee.rarity.toUpperCase() + "]"
                     : "";
@@ -901,7 +903,7 @@ public class LitnessTooltipHandler {
         };
     }
 
-    private static String normalize(String s) {
+    public static String normalize(String s) {
         if (s == null) return "";
         s = s.replace('\u00A0', ' ').replace('\u2007', ' ').replace('\u202F', ' ');
         String norm = Normalizer.normalize(s, Normalizer.Form.NFD).replaceAll("\\p{M}", "");

@@ -137,9 +137,21 @@ public class AhPriceManager {
 
     // Scansione automatica di tutte le pagine di /ah
     private static boolean isAutoScanning = false;
+    private static boolean hasAutoScannedThisSession = false;
     private static long lastAutoScanClick = 0;
     private static int autoScanPageCount = 0;
     private static boolean autoScanReturning = false;
+
+    public static class ClickableListingRect {
+        public final int y1, y2;
+        public final AhListing listing;
+        public ClickableListingRect(int y1, int y2, AhListing listing) {
+            this.y1 = y1;
+            this.y2 = y2;
+            this.listing = listing;
+        }
+    }
+    private static final List<ClickableListingRect> currentClickableRects = new ArrayList<>();
 
     // Coordinate tasto [⚡ Sfoglia]
     private static int btnScanX = -9999;
@@ -212,6 +224,7 @@ public class AhPriceManager {
         autoNavListing = null;
         autoNavAttempts = 0;
         isAutoScanning = false;
+        hasAutoScannedThisSession = false;
         autoScanReturning = false;
         autoScanPageCount = 0;
         scrollOffset = 0;
@@ -522,6 +535,104 @@ public class AhPriceManager {
                     @SuppressWarnings("unchecked")
                     java.util.stream.Stream<ItemStack> stream = (java.util.stream.Stream<ItemStack>) m.invoke(bundle);
                     if (stream.anyMatch(inner -> isCleanMatchingBook(inner, targetEnchants))) {
+                        return true;
+                    }
+                } catch (Throwable ignored) {}
+            }
+        }
+
+        return false;
+    }
+
+    /**
+     * Verifica universale per evidenziare qualsiasi oggetto (libri, armature, armi, attrezzi, shulker)
+     * che possiede l'incantesimo cercato scritto nei componenti o nella lore.
+     */
+    public static boolean containsMatchingTargetItem(ItemStack stack, Set<String> targetEnchants) {
+        if (stack == null || stack.isEmpty() || targetEnchants == null || targetEnchants.isEmpty()) return false;
+
+        // 1. Libro liscio diretto
+        if (isCleanMatchingBook(stack, targetEnchants)) {
+            return true;
+        }
+
+        List<EnchantFilter> filters = new ArrayList<>();
+        for (String t : targetEnchants) {
+            EnchantFilter f = parseFilter(t);
+            if (f != null) filters.add(f);
+        }
+        if (filters.isEmpty()) return false;
+
+        // 2. Componente ENCHANTMENTS (armi, armature, attrezzi incantati)
+        ItemEnchantments enchs = stack.getOrDefault(DataComponents.ENCHANTMENTS, ItemEnchantments.EMPTY);
+        for (var entry : enchs.entrySet()) {
+            String rawId = entry.getKey().unwrapKey().map(k -> k.identifier().getPath()).orElse("");
+            int lvl = entry.getIntValue();
+            if (matchesAnyFilter(rawId, lvl, filters)) {
+                return true;
+            }
+        }
+
+        // 3. Componente STORED_ENCHANTMENTS (libri incantati con 1 o piu' incantesimi)
+        ItemEnchantments stored = stack.getOrDefault(DataComponents.STORED_ENCHANTMENTS, ItemEnchantments.EMPTY);
+        for (var entry : stored.entrySet()) {
+            String rawId = entry.getKey().unwrapKey().map(k -> k.identifier().getPath()).orElse("");
+            int lvl = entry.getIntValue();
+            if (matchesAnyFilter(rawId, lvl, filters)) {
+                return true;
+            }
+        }
+
+        // 4. Scansione Lore dell'oggetto (per incantesimi Custom del server Litness scritti in lore)
+        ItemLore lore = stack.getOrDefault(DataComponents.LORE, ItemLore.EMPTY);
+        for (Component c : lore.lines()) {
+            String rawLine = c.getString().replace('\u00A0', ' ').trim();
+            if (rawLine.isEmpty()) continue;
+
+            LitnessTooltipHandler.MatchedEnchantment match = LitnessTooltipHandler.matchEnchantment(rawLine);
+            if (match != null && match.entry != null) {
+                if (matchesAnyFilter(match.entry.id, match.level, filters)) {
+                    return true;
+                }
+            }
+
+            // Match testuale diretto sul nome dell'incantesimo cercato
+            String normLine = LitnessTooltipHandler.normalize(rawLine);
+            for (EnchantFilter f : filters) {
+                EnchantmentEntry ee = EnchantmentDatabase.getEnchantment(f.enchantId);
+                if (ee != null) {
+                    String normName = LitnessTooltipHandler.normalize(ee.name);
+                    String normLocal = LitnessTooltipHandler.normalize(com.litness.optimizer.data.LitnessI18n.getEnchantName(ee));
+                    if ((normName.length() >= 3 && normLine.contains(normName)) || (normLocal.length() >= 3 && normLine.contains(normLocal))) {
+                        return true;
+                    }
+                }
+            }
+        }
+
+        // 5. Scatole di Shulker / Casse contenitori (DataComponents.CONTAINER)
+        ItemContainerContents container = stack.getOrDefault(DataComponents.CONTAINER, ItemContainerContents.EMPTY);
+        if (container != ItemContainerContents.EMPTY) {
+            try {
+                if (container.nonEmptyItemCopyStream().anyMatch(inner -> containsMatchingTargetItem(inner, targetEnchants))) {
+                    return true;
+                }
+            } catch (Throwable ignored) {}
+        }
+
+        // 6. Bundle (fagotto) con DataComponents.BUNDLE_CONTENTS
+        BundleContents bundle = stack.getOrDefault(DataComponents.BUNDLE_CONTENTS, null);
+        if (bundle != null) {
+            try {
+                if (bundle.itemCopies().anyMatch(inner -> containsMatchingTargetItem(inner, targetEnchants))) {
+                    return true;
+                }
+            } catch (Throwable t) {
+                try {
+                    java.lang.reflect.Method m = bundle.getClass().getMethod("itemCopyStream");
+                    @SuppressWarnings("unchecked")
+                    java.util.stream.Stream<ItemStack> stream = (java.util.stream.Stream<ItemStack>) m.invoke(bundle);
+                    if (stream.anyMatch(inner -> containsMatchingTargetItem(inner, targetEnchants))) {
                         return true;
                     }
                 } catch (Throwable ignored) {}
@@ -939,23 +1050,41 @@ public class AhPriceManager {
         Minecraft mc = Minecraft.getInstance();
         if (mc.player == null) return -1;
         List<Slot> slots = screen.getMenu().slots;
-        int maxAuctionSlot = Math.min(54, slots.size());
+        int maxAuctionSlot = Math.min(45, slots.size());
         for (int i = 0; i < maxAuctionSlot; i++) {
             Slot slot = slots.get(i);
             if (slot.container == mc.player.getInventory()) continue;
             ItemStack stack = slot.getItem();
-            if (stack.isEmpty() || !isBook(stack)) continue;
+            if (stack.isEmpty()) continue;
+
             Set<String> distinct = extractDistinctEnchantments(stack);
-            if (distinct.size() != 1) continue;
-            String singleId = distinct.iterator().next();
-            int level = extractLevel(stack, singleId);
-            if (!isIdMatching(singleId, listing.enchantId)) continue;
-            if (listing.level > 0 && level != listing.level) continue;
+            boolean enchantMatch = false;
+            for (String singleId : distinct) {
+                if (isIdMatching(singleId, listing.enchantId)) {
+                    int level = extractLevel(stack, singleId);
+                    if (listing.level <= 0 || level == listing.level) {
+                        enchantMatch = true;
+                        break;
+                    }
+                }
+            }
+            if (!enchantMatch) {
+                ItemLore lore = stack.getOrDefault(DataComponents.LORE, ItemLore.EMPTY);
+                for (Component c : lore.lines()) {
+                    LitnessTooltipHandler.MatchedEnchantment m = LitnessTooltipHandler.matchEnchantment(c.getString());
+                    if (m != null && m.entry != null && isIdMatching(m.entry.id, listing.enchantId)) {
+                        if (listing.level <= 0 || m.level == listing.level) {
+                            enchantMatch = true;
+                            break;
+                        }
+                    }
+                }
+            }
+            if (!enchantMatch) continue;
+
             ParsedInfo info = parseSellerAndPrice(stack);
             if (info.price == listing.price) {
-                if (listing.seller == null || listing.seller.equalsIgnoreCase("Sconosciuto") || info.seller.equalsIgnoreCase(listing.seller)) {
-                    return i;
-                }
+                return i;
             }
         }
         return -1;
@@ -1080,6 +1209,7 @@ public class AhPriceManager {
         autoNavListing = null;
         autoNavAttempts = 0;
         isAutoScanning = false;
+        hasAutoScannedThisSession = false;
         autoScanReturning = false;
         autoScanPageCount = 0;
         // Non cancelliamo cachedListings così quando l'utente sfoglia le pagine di /ah
@@ -1339,24 +1469,38 @@ public class AhPriceManager {
 
         // 5. Click su un'offerta nella lista (Left-click: Acquisto / Apertura menu, Right-click: Rimuovi)
         boolean isRightClick = (button == 1 || button == InputConstants.MOUSE_BUTTON_RIGHT);
-        if (lastHoveredListing != null) {
+        AhListing clickedListing = null;
+        if (mouseY >= scrollAreaY && mouseY <= scrollAreaY + scrollAreaH) {
+            for (ClickableListingRect r : currentClickableRects) {
+                if (mouseY >= r.y1 && mouseY <= r.y2) {
+                    clickedListing = r.listing;
+                    break;
+                }
+            }
+        }
+        if (clickedListing == null) {
+            clickedListing = lastHoveredListing;
+        }
+
+        if (clickedListing != null) {
+            AhListing targetListing = clickedListing;
             if (isLeftClick) {
-                int slotIdx = findSlotForListing(containerScreen, lastHoveredListing);
+                int slotIdx = findSlotForListing(containerScreen, targetListing);
                 Minecraft mc = Minecraft.getInstance();
                 if (slotIdx >= 0) {
-                    // L'oggetto è sulla pagina corrente! Clicca direttamente lo slot per aprire il menu di conferma acquisto
+                    // L'oggetto e' sulla pagina corrente! Clicca direttamente lo slot per aprire il menu di conferma acquisto
                     Slot targetSlot = containerScreen.getMenu().slots.get(slotIdx);
-                    pendingBuyKey = lastHoveredListing.key;
-                    pendingBuyPrice = lastHoveredListing.price;
+                    pendingBuyKey = targetListing.key;
+                    pendingBuyPrice = targetListing.price;
                     pendingBuyTime = System.currentTimeMillis();
                     clickSlot(containerScreen, targetSlot);
                     if (mc.player != null) {
-                        mc.player.sendOverlayMessage(Component.literal("§a✔ Apertura menu acquisto per " + lastHoveredListing.getDisplayNameWithLevel()));
+                        mc.player.sendOverlayMessage(Component.literal("Â§aâœ” Apertura menu acquisto per " + targetListing.getDisplayNameWithLevel()));
                     }
                     return true;
                 } else {
                     // L'oggetto NON si trova sulla pagina corrente: avvia auto-navigazione automatica!
-                    autoNavListing = lastHoveredListing;
+                    autoNavListing = targetListing;
                     autoNavAttempts = 0;
                     autoNavLastClick = System.currentTimeMillis();
 
@@ -1365,7 +1509,7 @@ public class AhPriceManager {
                         Slot s = containerScreen.getMenu().slots.get(nextSlot);
                         clickSlot(containerScreen, s);
                         if (mc.player != null) {
-                            mc.player.sendOverlayMessage(Component.literal("§e✦ Sfoglio /ah per trovare " + lastHoveredListing.getDisplayNameWithLevel() + "..."));
+                            mc.player.sendOverlayMessage(Component.literal("Â§eâœ¦ Sfoglio /ah per trovare " + targetListing.getDisplayNameWithLevel() + "..."));
                         }
                     } else {
                         int prevSlot = findPrevPageSlot(containerScreen);
@@ -1373,11 +1517,11 @@ public class AhPriceManager {
                             Slot s = containerScreen.getMenu().slots.get(prevSlot);
                             clickSlot(containerScreen, s);
                             if (mc.player != null) {
-                                mc.player.sendOverlayMessage(Component.literal("§e✦ Sfoglio indietro per trovare " + lastHoveredListing.getDisplayNameWithLevel() + "..."));
+                                mc.player.sendOverlayMessage(Component.literal("Â§eâœ¦ Sfoglio indietro per trovare " + targetListing.getDisplayNameWithLevel() + "..."));
                             }
                         } else {
                             if (mc.player != null) {
-                                mc.player.sendOverlayMessage(Component.literal("§c• Impossibile sfogliare: tasto pagina non trovato"));
+                                mc.player.sendOverlayMessage(Component.literal("Â§câ€¢ Impossibile sfogliare: tasto pagina non trovato"));
                             }
                             autoNavListing = null;
                         }
@@ -1385,15 +1529,15 @@ public class AhPriceManager {
                     return true;
                 }
             } else if (isRightClick) {
-                cachedListings.remove(lastHoveredListing.key);
+                cachedListings.remove(targetListing.key);
                 for (Set<String> pageSet : pageToListings.values()) {
-                    pageSet.remove(lastHoveredListing.key);
+                    pageSet.remove(targetListing.key);
                 }
-                lastScreenListingKeys.remove(lastHoveredListing.key);
+                lastScreenListingKeys.remove(targetListing.key);
                 recalculateMinPrices();
                 Minecraft mc = Minecraft.getInstance();
                 if (mc.player != null) {
-                    mc.player.sendOverlayMessage(Component.literal("§c• Offerta rimossa: " + lastHoveredListing.getDisplayNameWithLevel()));
+                    mc.player.sendOverlayMessage(Component.literal("Â§câ€¢ Offerta rimossa: " + targetListing.getDisplayNameWithLevel()));
                 }
                 return true;
             }
@@ -1456,6 +1600,25 @@ public class AhPriceManager {
 
         Minecraft mc = Minecraft.getInstance();
         long now = System.currentTimeMillis();
+
+        // Avvio scansione autonoma all'apertura di /ah se non ancora eseguita
+        if (!hasAutoScannedThisSession && !isAutoScanning && autoNavListing == null) {
+            if (now - lastAutoScanClick > 600) {
+                hasAutoScannedThisSession = true;
+                isAutoScanning = true;
+                autoScanReturning = false;
+                autoScanPageCount = 0;
+                lastAutoScanClick = now;
+                int nextSlot = findNextPageSlot(screen);
+                if (nextSlot >= 0) {
+                    Slot s = screen.getMenu().slots.get(nextSlot);
+                    clickSlot(screen, s);
+                    if (mc.player != null) {
+                        mc.player.sendOverlayMessage(Component.literal("Â§eâœ¦ Scansione autonoma /ah avviata..."));
+                    }
+                }
+            }
+        }
 
         // 1. SCANSIONE AUTOMATICA COMPLETA DI TUTTE LE PAGINE DI /AH
         if (isAutoScanning) {
@@ -1841,6 +2004,7 @@ public class AhPriceManager {
         boolean hoveredIsBest = false;
         int hoveredRank = 1;
 
+        currentClickableRects.clear();
         int drawY = scrollAreaY - scrollOffset;
         boolean isMouseInScrollArea = (mouseX >= sideX + 5 && mouseX <= sideX + 5 + cardWidth 
                 && mouseY >= scrollAreaY && mouseY <= scrollAreaY + scrollAreaH);
@@ -1852,6 +2016,7 @@ public class AhPriceManager {
             int bestBoxH = 43;
             if (bestBoxY >= scrollAreaY - 4 && bestBoxY + bestBoxH <= scrollAreaY + scrollAreaH + 4) {
                 boolean isBestHovered = isMouseInScrollArea && (mouseY >= bestBoxY && mouseY <= bestBoxY + bestBoxH);
+                currentClickableRects.add(new ClickableListingRect(bestBoxY, bestBoxY + bestBoxH, best));
                 if (isBestHovered) {
                     hoveredListing = best;
                     hoveredIsBest = true;
@@ -1889,6 +2054,7 @@ public class AhPriceManager {
             for (AhListing best : bestPerEnchant.values()) {
                 if (drawY >= scrollAreaY - 4 && drawY + cardH <= scrollAreaY + scrollAreaH + 4) {
                     boolean isCardHovered = isMouseInScrollArea && (mouseY >= drawY && mouseY <= drawY + cardH);
+                    currentClickableRects.add(new ClickableListingRect(drawY, drawY + cardH, best));
                     if (isCardHovered) {
                         hoveredListing = best;
                         hoveredIsBest = true;
@@ -1931,6 +2097,7 @@ public class AhPriceManager {
             int itemY = drawY + i * rowH;
             if (itemY >= scrollAreaY - 2 && itemY + rowH <= scrollAreaY + scrollAreaH + 2) {
                 boolean isRowHovered = isMouseInScrollArea && (mouseY >= itemY && mouseY <= itemY + rowH - 1);
+                currentClickableRects.add(new ClickableListingRect(itemY, itemY + rowH - 1, l));
                 if (isRowHovered) {
                     hoveredListing = l;
                     hoveredIsBest = isTop;
