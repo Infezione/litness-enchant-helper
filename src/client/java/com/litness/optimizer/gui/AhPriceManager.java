@@ -1052,7 +1052,9 @@ public class AhPriceManager {
         }
 
         // 3. Fallback per indice di slot se il server non espone testo
-        if (slotIndex == 49) {
+        if (slotIndex == 48) {
+            currentAhPage = Math.max(1, currentAhPage - 1);
+        } else if (slotIndex == 49) {
             if (currentAhPage <= 1) {
                 // A pagina 1 lo slot 49 è la freccia gialla per andare avanti (pagina 2)
                 currentAhPage = 2;
@@ -1364,7 +1366,7 @@ public class AhPriceManager {
             if (l.contains("prima pagina") || l.contains("nessuna pagina")) return false;
             if (isPrevPageText(l)) return true;
         }
-        if ((stack.is(Items.POTION) || stack.is(Items.SPLASH_POTION) || stack.is(Items.GLASS_BOTTLE)) && !isNextPageText(name)) {
+        if (stack.is(Items.ARROW) && !isNextPageText(name)) {
             return true;
         }
         return false;
