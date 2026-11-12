@@ -134,6 +134,7 @@ public class AhPriceManager {
     // Auto-navigazione pagine per acquisto rapido
     private static AhListing autoNavListing = null;
     private static int autoNavAttempts = 0;
+    private static int autoNavWaitRetries = 0;
     private static long autoNavLastClick = 0;
 
     // Scansione automatica di tutte le pagine di /ah
@@ -306,8 +307,8 @@ public class AhPriceManager {
     private static int footerBtnW = 0;
     private static int footerBtnH = 0;
 
-    private static final Pattern PAGE_REGEX_1 = Pattern.compile("(?i)(?:pagina|page|pag\\.|p\\.)\\s*#?\\s*(\\d+)");
-    private static final Pattern PAGE_REGEX_2 = Pattern.compile("(\\d+)\\s*/\\s*(\\d+)");
+    private static final Pattern PAGE_REGEX_1 = Pattern.compile("(?i)(?:pagina|page|pag\\.|p\\.)\\s*[:#\\-]?\\s*(\\d+)");
+    private static final Pattern PAGE_REGEX_2 = Pattern.compile("(\\d+)\\s*(?:/|di|of)\\s*(\\d+)");
 
     // Barra di ricerca rapida nella sidebar AH
     public static EditBox searchBox = null;
@@ -363,6 +364,7 @@ public class AhPriceManager {
         pendingBuyPrice = -1;
         autoNavListing = null;
         autoNavAttempts = 0;
+        autoNavWaitRetries = 0;
         isAutoScanning = false;
         hasAutoScannedThisSession = false;
         hasSelectedBooksCategory = false;
@@ -925,47 +927,40 @@ public class AhPriceManager {
         List<Slot> slots = screen.getMenu().slots;
         int maxSlot = Math.min(54, slots.size());
 
-        // 2. Cerca esplicito "Pagina X / Y" o "Pagina X di Y" nella barra di navigazione inferiore
-        for (int i = 45; i < maxSlot; i++) {
-            ItemStack stack = slots.get(i).getItem();
-            if (stack.isEmpty()) continue;
-
-            ItemLore lore = stack.getOrDefault(DataComponents.LORE, ItemLore.EMPTY);
-            for (Component c : lore.lines()) {
-                Matcher m = Pattern.compile("(?i)(?:pagina|page|pag\\.)?\\s*(\\d+)\\s*(?:/|di|of)\\s*(\\d+)").matcher(c.getString());
-                if (m.find()) {
-                    try { return Integer.parseInt(m.group(1)); } catch (Exception ignored) {}
-                }
-            }
-
-            Matcher mName = Pattern.compile("(?i)(?:pagina|page|pag\\.)?\\s*(\\d+)\\s*(?:/|di|of)\\s*(\\d+)").matcher(stack.getHoverName().getString());
-            if (mName.find()) {
-                try { return Integer.parseInt(mName.group(1)); } catch (Exception ignored) {}
+        // 2. Controlla specificamente lo slot centrale 49 (bottiglia/icona info pagina)
+        if (49 < maxSlot) {
+            ItemStack stack49 = slots.get(49).getItem();
+            if (!stack49.isEmpty()) {
+                int p = parsePageFromItem(stack49);
+                if (p > 0) return p;
             }
         }
 
-        // 3. Cerca "Pagina X" generico (escludendo frecce che indicano "Pagina successiva: X")
-        for (int i = 45; i < maxSlot; i++) {
-            ItemStack stack = slots.get(i).getItem();
-            if (stack.isEmpty()) continue;
-            String hoverName = stack.getHoverName().getString();
-            String lower = hoverName.toLowerCase();
-            if (!lower.contains("succ") && !lower.contains("next") && !lower.contains("avanti") && !lower.contains("prossim")
-                    && !lower.contains("prec") && !lower.contains("prev") && !lower.contains("indietro")) {
-                int p = parsePageFromString(hoverName);
-                if (p > 0) return p;
-            }
-
-            ItemLore lore = stack.getOrDefault(DataComponents.LORE, ItemLore.EMPTY);
-            for (Component c : lore.lines()) {
-                String line = c.getString();
-                String lineLower = line.toLowerCase();
-                if (!lineLower.contains("succ") && !lineLower.contains("next") && !lineLower.contains("avanti") && !lineLower.contains("prossim")
-                        && !lineLower.contains("prec") && !lineLower.contains("prev") && !lineLower.contains("indietro")) {
-                    int p = parsePageFromString(line);
-                    if (p > 0) return p;
+        // 3. Fallback: calcolo intelligente dalle frecce 48 e 50
+        // Se slot 48 è vuoto/air (siamo sicuramente a pagina 1) e slot 50 ha una freccia
+        if (48 < maxSlot && 50 < maxSlot) {
+            ItemStack s48 = slots.get(48).getItem();
+            ItemStack s50 = slots.get(50).getItem();
+            if (s48.isEmpty() || s48.is(Items.AIR)) {
+                if (!s50.isEmpty() && !s50.is(Items.AIR)) {
+                    return 1;
                 }
             }
+        }
+
+        return -1;
+    }
+
+    private static int parsePageFromItem(ItemStack stack) {
+        if (stack == null || stack.isEmpty()) return -1;
+        String hoverName = stack.getHoverName().getString();
+        int p = parsePageFromString(hoverName);
+        if (p > 0) return p;
+
+        ItemLore lore = stack.getOrDefault(DataComponents.LORE, ItemLore.EMPTY);
+        for (Component c : lore.lines()) {
+            p = parsePageFromString(c.getString());
+            if (p > 0) return p;
         }
         return -1;
     }
@@ -988,30 +983,33 @@ public class AhPriceManager {
         List<Slot> slots = screen.getMenu().slots;
         if (slots.size() <= 8) return 7;
 
-        // 1. Controlla prima lo slot 7 (0-based per l'8° slot della prima riga)
+        // 1. Controlla prima lo slot 7 (0-based per l'8° slot visivo della prima riga)
         Slot s7 = slots.get(7);
         ItemStack st7 = s7.getItem();
         if (!st7.isEmpty()) {
             String name7 = st7.getHoverName().getString().toLowerCase(Locale.ROOT);
-            if (isBook(st7) || st7.is(Items.BOOK) || st7.is(Items.ENCHANTED_BOOK)
-                    || name7.contains("libr") || name7.contains("incant") || name7.contains("book")) {
-                return 7;
+            if (!name7.contains("varie") && !name7.contains("altri")) {
+                if (isBook(st7) || st7.is(Items.BOOK) || st7.is(Items.ENCHANTED_BOOK)
+                        || name7.contains("libr") || name7.contains("incant") || name7.contains("book")) {
+                    return 7;
+                }
             }
         }
 
-        // 2. Fallback: scansiona la prima riga (slot 0..8) cercando il libro
+        // 2. Fallback: scansiona la prima riga (slot 0..8) cercando il libro (escludendo categoricamente slot 8 se è 'varie')
         for (int i = 0; i < Math.min(9, slots.size()); i++) {
             Slot s = slots.get(i);
             ItemStack st = s.getItem();
             if (st.isEmpty()) continue;
             String name = st.getHoverName().getString().toLowerCase(Locale.ROOT);
+            if (name.contains("varie") || name.contains("altri")) continue; // Non prendere mai la busta Varie!
             if (isBook(st) || st.is(Items.BOOK) || st.is(Items.ENCHANTED_BOOK)
                     || name.contains("libr") || name.contains("incant") || name.contains("book")) {
                 return i;
             }
         }
 
-        return 7; // Default slot 7 (0-based)
+        return 7; // Default slot 7 (0-based per la sezione Libri)
     }
 
     private static void updateAhNavigationState(AbstractContainerScreen<?> screen, int slotIndex, ItemStack stack) {
@@ -1022,7 +1020,8 @@ public class AhPriceManager {
         if (slotIndex >= 0 && slotIndex <= 8) {
             String name = (stack != null && !stack.isEmpty()) ? stack.getHoverName().getString().toLowerCase(Locale.ROOT) : "";
             boolean isBookCategory = (slotIndex == bookSlot || slotIndex == 7)
-                    || (stack != null && !stack.isEmpty() && (isBook(stack) || stack.is(Items.BOOK) || stack.is(Items.ENCHANTED_BOOK) || name.contains("libr") || name.contains("incant")));
+                    || (stack != null && !stack.isEmpty() && !name.contains("varie") && !name.contains("altri")
+                        && (isBook(stack) || stack.is(Items.BOOK) || stack.is(Items.ENCHANTED_BOOK) || name.contains("libr") || name.contains("incant")));
 
             if (isBookCategory) {
                 currentAhPage = 1;
@@ -1045,24 +1044,16 @@ public class AhPriceManager {
             if (stack.is(Items.HOPPER) || stack.is(Items.CLOCK) || stack.is(Items.GLASS_BOTTLE) || stack.is(Items.POTION)) {
                 return;
             }
-
-            if (isNextPageItem(stack)) {
-                currentAhPage++;
-                return;
-            }
-            if (isPrevPageItem(stack)) {
-                currentAhPage = Math.max(1, currentAhPage - 1);
-                return;
-            }
         }
 
-        // 3. Fallback esatto per slot di Litness /ah:
-        // Slot 50: Freccia Gialla Avanti (a destra della bottiglia 49)
-        // Slot 48: Freccia Indietro (a sinistra della bottiglia 49)
-        if (slotIndex == 50) {
+        // 3. Slot 50 (Next) e Slot 48 (Prev)
+        if (slotIndex == 50 || (stack != null && isNextPageItem(stack))) {
             currentAhPage++;
-        } else if (slotIndex == 48) {
+            return;
+        }
+        if (slotIndex == 48 || (stack != null && isPrevPageItem(stack))) {
             currentAhPage = Math.max(1, currentAhPage - 1);
+            return;
         }
     }
 
@@ -1385,7 +1376,10 @@ public class AhPriceManager {
             if (50 < slots.size()) {
                 ItemStack s50 = slots.get(50).getItem();
                 if (!s50.isEmpty() && !s50.is(Items.AIR) && !s50.is(Items.BARRIER)) {
-                    return 50;
+                    String name = s50.getHoverName().getString().toLowerCase(Locale.ROOT);
+                    if (!name.contains("fine") && !name.contains("nessun") && !name.contains("ultima")) {
+                        return 50;
+                    }
                 }
             }
         }
@@ -1421,10 +1415,13 @@ public class AhPriceManager {
 
         if (isAuctionHouse(screen)) {
             // Su Litness /ah lo Slot 48 è la freccia precedente (a sinistra della bottiglia 49)
-            if (currentAhPage > 1 && 48 < slots.size()) {
+            if (48 < slots.size()) {
                 ItemStack s48 = slots.get(48).getItem();
                 if (!s48.isEmpty() && !s48.is(Items.AIR) && !s48.is(Items.BARRIER)) {
-                    return 48;
+                    String name = s48.getHoverName().getString().toLowerCase(Locale.ROOT);
+                    if (!name.contains("inizio") && !name.contains("nessun") && !name.contains("prima pagina")) {
+                        return 48;
+                    }
                 }
             }
         }
@@ -1449,8 +1446,10 @@ public class AhPriceManager {
         cachedIsAh = false;
         currentAhPage = 1;
         hasSelectedBooksCategory = false;
+        hasAutoScannedThisSession = false;
         autoNavListing = null;
         autoNavAttempts = 0;
+        autoNavWaitRetries = 0;
         isAutoScanning = false;
         autoScanPageCount = 0;
         scrollOffset = 0;
@@ -1660,21 +1659,14 @@ public class AhPriceManager {
                 }
             } else {
                 isAutoScanning = true;
+                hasSelectedBooksCategory = false;
+                hasAutoScannedThisSession = false;
                 autoScanReturning = false;
                 autoScanPageCount = 0;
-                lastAutoScanClick = System.currentTimeMillis();
-                int nextSlot = findNextPageSlot(containerScreen);
-                if (nextSlot >= 0) {
-                    Slot s = containerScreen.getMenu().slots.get(nextSlot);
-                    clickSlot(containerScreen, s);
-                    if (mc.player != null) {
-                        mc.player.sendOverlayMessage(Component.literal("§e✦ Avvio scansione completa di tutte le pagine /ah..."));
-                    }
-                } else {
-                    isAutoScanning = false;
-                    if (mc.player != null) {
-                        mc.player.sendOverlayMessage(Component.literal("§a✔ Sei già all'unica pagina disponibile"));
-                    }
+                lastAutoScanClick = 0;
+                currentAhPage = 1;
+                if (mc.player != null) {
+                    mc.player.sendOverlayMessage(Component.literal("§e✦ Avvio scansione completa sezione Libri..."));
                 }
             }
             return true;
@@ -1758,6 +1750,7 @@ public class AhPriceManager {
                         clickSlot(containerScreen, targetSlot);
                         autoNavListing = null;
                         autoNavAttempts = 0;
+                        autoNavWaitRetries = 0;
                         if (mc.player != null) {
                             mc.player.sendOverlayMessage(Component.literal("§a✔ Apertura menu acquisto per " + targetListing.getDisplayNameWithLevel()));
                         }
@@ -1765,29 +1758,13 @@ public class AhPriceManager {
                     }
                 }
 
-                // 2. L'oggetto si trova su un'altra pagina: avvia navigazione diretta verso targetListing.page!
+                // 2. L'oggetto si trova su un'altra pagina: avvia navigazione automatica controllata verso targetListing.page!
                 autoNavListing = targetListing;
                 autoNavAttempts = 0;
-                autoNavLastClick = System.currentTimeMillis();
-
-                if (currentAhPage < targetListing.page) {
-                    int nextSlot = findNextPageSlot(containerScreen);
-                    if (nextSlot >= 0) {
-                        Slot s = containerScreen.getMenu().slots.get(nextSlot);
-                        clickSlot(containerScreen, s);
-                        if (mc.player != null) {
-                            mc.player.sendOverlayMessage(Component.literal("§e✦ Vado a pagina " + targetListing.page + " per " + targetListing.getDisplayNameWithLevel() + "..."));
-                        }
-                    }
-                } else if (currentAhPage > targetListing.page) {
-                    int prevSlot = findPrevPageSlot(containerScreen);
-                    if (prevSlot >= 0) {
-                        Slot s = containerScreen.getMenu().slots.get(prevSlot);
-                        clickSlot(containerScreen, s);
-                        if (mc.player != null) {
-                            mc.player.sendOverlayMessage(Component.literal("§e✦ Torno a pagina " + targetListing.page + " per " + targetListing.getDisplayNameWithLevel() + "..."));
-                        }
-                    }
+                autoNavWaitRetries = 0;
+                autoNavLastClick = 0; // Trigger immediato al prossimo tick
+                if (mc.player != null) {
+                    mc.player.sendOverlayMessage(Component.literal("§e✦ Navigazione a pagina " + targetListing.page + " per " + targetListing.getDisplayNameWithLevel() + "..."));
                 }
                 return true;
             } else if (isRightClick) {
@@ -1854,6 +1831,8 @@ public class AhPriceManager {
     public static void tickAutoNavigation(AbstractContainerScreen<?> screen) {
         if (screen == null || !isAuctionHouse(screen)) {
             autoNavListing = null;
+            autoNavAttempts = 0;
+            autoNavWaitRetries = 0;
             isAutoScanning = false;
             autoScanReturning = false;
             autoScanPageCount = 0;
@@ -1863,34 +1842,64 @@ public class AhPriceManager {
         Minecraft mc = Minecraft.getInstance();
         long now = System.currentTimeMillis();
 
-        // Scansione controllata: attivata SOLO se l'utente clicca esplicitamente [⚡ Sfoglia] nella sidebar
+        // 1. Scansione automatica all'apertura di /ah (sezione solo libri)
+        if (!hasAutoScannedThisSession && !isAutoScanning && autoNavListing == null) {
+            if (screen.getMenu() != null && screen.getMenu().slots.size() >= 54) {
+                isAutoScanning = true;
+                hasSelectedBooksCategory = false;
+                autoScanPageCount = 0;
+                lastAutoScanClick = 0;
+                currentAhPage = 1;
+            }
+        }
+
+        // Scansione controllata di tutte le pagine della sezione Libri
         if (isAutoScanning) {
             if (now - lastAutoScanClick < 380) return; // Pausa per sincronizzazione della cassa
 
-            // Prima di sfogliare, se la categoria libri non è stata selezionata, clicca il libro (slot 7)
+            // Passo 1: se la categoria libri non è stata selezionata, clicca prima sullo slot del libro (Slot 7)
             if (!hasSelectedBooksCategory) {
                 int bookSlot = findBookCategorySlot(screen);
                 if (bookSlot >= 0 && bookSlot < screen.getMenu().slots.size()) {
                     lastAutoScanClick = now;
                     hasSelectedBooksCategory = true;
+                    currentAhPage = 1;
                     Slot sBook = screen.getMenu().slots.get(bookSlot);
                     clickSlot(screen, sBook);
+                    if (mc.player != null) {
+                        mc.player.sendOverlayMessage(Component.literal("§e✦ Selezione sezione Libri..."));
+                    }
                     return;
                 }
             }
 
+            // Passo 2: Sfoglia le pagine in avanti
             int nextSlot = findNextPageSlot(screen);
-            if (nextSlot >= 0 && autoScanPageCount < 15) {
+            if (nextSlot >= 0 && autoScanPageCount < 20) {
                 autoScanPageCount++;
                 lastAutoScanClick = now;
                 Slot s = screen.getMenu().slots.get(nextSlot);
                 clickSlot(screen, s);
-            } else {
-                // Raggiunta la fine o il limite: STOP pulito
-                isAutoScanning = false;
-                autoScanPageCount = 0;
                 if (mc.player != null) {
-                    mc.player.sendOverlayMessage(Component.literal("§a✔ Scansione terminata: " + cachedListings.size() + " offerte in memoria"));
+                    mc.player.sendOverlayMessage(Component.literal("§e✦ Scansione /ah pagina " + currentAhPage + " (" + cachedListings.size() + " offerte)..."));
+                }
+            } else {
+                // Passo 3: Raggiunta la fine o il limite: concludi la scansione e torna a pagina 1 dei libri
+                isAutoScanning = false;
+                hasAutoScannedThisSession = true;
+                int totalScanned = autoScanPageCount + 1;
+                autoScanPageCount = 0;
+
+                // Clicca nuovamente il libro per tornare istantaneamente a pagina 1 dei libri
+                int bookSlot = findBookCategorySlot(screen);
+                if (bookSlot >= 0 && bookSlot < screen.getMenu().slots.size()) {
+                    currentAhPage = 1;
+                    Slot sBook = screen.getMenu().slots.get(bookSlot);
+                    clickSlot(screen, sBook);
+                }
+
+                if (mc.player != null) {
+                    mc.player.sendOverlayMessage(Component.literal("§a✔ Scansione completata: " + cachedListings.size() + " offerte su " + totalScanned + " pagine!"));
                 }
             }
             return;
@@ -1928,8 +1937,14 @@ public class AhPriceManager {
                     }
                     autoNavListing = null;
                     autoNavAttempts = 0;
+                    autoNavWaitRetries = 0;
                     return;
                 } else {
+                    autoNavWaitRetries++;
+                    if (autoNavWaitRetries < 4) {
+                        autoNavLastClick = now; // Aspetta sincronizzazione pacchetti server
+                        return;
+                    }
                     cachedListings.remove(autoNavListing.key);
                     recalculateMinPrices();
                     if (mc.player != null) {
@@ -1937,14 +1952,16 @@ public class AhPriceManager {
                     }
                     autoNavListing = null;
                     autoNavAttempts = 0;
+                    autoNavWaitRetries = 0;
                     return;
                 }
             }
 
             autoNavAttempts++;
-            if (autoNavAttempts >= 18) {
+            if (autoNavAttempts >= 20) {
                 autoNavListing = null;
                 autoNavAttempts = 0;
+                autoNavWaitRetries = 0;
                 return;
             }
 

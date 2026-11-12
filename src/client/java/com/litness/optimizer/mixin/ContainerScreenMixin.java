@@ -121,6 +121,7 @@ public abstract class ContainerScreenMixin extends Screen {
     private void litness_onContainerRemoved(CallbackInfo ci) {
         com.litness.optimizer.gui.AnvilTooltipState.clearHover();
         com.litness.optimizer.gui.AhPriceManager.onContainerRemoved();
+        com.litness.optimizer.gui.AhPriceManager.onContainerClosed();
     }
 
     @Inject(method = "extractSlot", at = @At("TAIL"), require = 0)
