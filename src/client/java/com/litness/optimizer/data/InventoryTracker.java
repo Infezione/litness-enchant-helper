@@ -261,7 +261,7 @@ public class InventoryTracker {
         for (Component c : lore.lines()) {
             LitnessTooltipHandler.MatchedEnchantment match = LitnessTooltipHandler.matchEnchantment(c.getString());
             if (match != null && match.entry != null) {
-                int lvl = match.level > 0 ? match.level : match.entry.maxLevel;
+                int lvl = match.level > 0 ? match.level : 1;
                 map.merge(match.entry.id, lvl, Math::max);
                 String baseId = LitnessI18n.getBaseId(match.entry.id);
                 if (!baseId.isEmpty()) {
