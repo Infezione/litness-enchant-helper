@@ -545,15 +545,14 @@ public class AhPriceManager {
                 lvl = Integer.parseInt(t.substring(colon + 1).trim());
             } catch (Exception ignored) {}
             if (lvl <= 0) {
-                EnchantmentEntry ee = EnchantmentDatabase.getEnchantment(id);
-                lvl = (ee != null && ee.maxLevel > 1) ? ee.maxLevel : 1;
+                lvl = com.litness.optimizer.data.InventoryTracker.getRequiredLevel(id);
             }
             return new EnchantFilter(t, id, lvl);
         } else {
             String id = t.toLowerCase();
-            EnchantmentEntry ee = EnchantmentDatabase.getEnchantment(id);
-            int lvl = (ee != null && ee.maxLevel > 1) ? ee.maxLevel : 1;
-            return new EnchantFilter(t, id, lvl);
+            int lvl = com.litness.optimizer.data.InventoryTracker.getRequiredLevel(id);
+            String baseId = com.litness.optimizer.data.LitnessI18n.getBaseId(id);
+            return new EnchantFilter(t, baseId.isEmpty() ? id : baseId, lvl);
         }
     }
 
@@ -564,19 +563,28 @@ public class AhPriceManager {
         if (a.equals(b)) return true;
         if (a.replace('-', '_').equals(b.replace('-', '_'))) return true;
         if (a.replace("defense", "defence").equals(b.replace("defense", "defence"))) return true;
+        String baseA = com.litness.optimizer.data.LitnessI18n.getBaseId(a);
+        String baseB = com.litness.optimizer.data.LitnessI18n.getBaseId(b);
+        if (!baseA.isEmpty() && baseA.equals(baseB)) return true;
         EnchantmentEntry targetEe = EnchantmentDatabase.getEnchantment(b);
         if (targetEe != null) {
             if (targetEe.id.equalsIgnoreCase(a)) return true;
             if (a.replace('-', '_').equalsIgnoreCase(targetEe.id.replace('-', '_'))) return true;
+            String baseEe = com.litness.optimizer.data.LitnessI18n.getBaseId(targetEe.id);
+            if (!baseA.isEmpty() && baseA.equalsIgnoreCase(baseEe)) return true;
         }
         return false;
     }
 
     public static boolean matchesFilter(String bookEnchantId, int bookLevel, EnchantFilter filter) {
         if (filter == null || bookEnchantId == null) return false;
-        if (!isIdMatching(bookEnchantId, filter.enchantId)) return false;
+        String cleanBook = com.litness.optimizer.data.LitnessI18n.getBaseId(bookEnchantId);
+        String cleanFilter = com.litness.optimizer.data.LitnessI18n.getBaseId(filter.enchantId);
+        if (!isIdMatching(cleanBook, cleanFilter) && !isIdMatching(bookEnchantId, filter.enchantId)) {
+            return false;
+        }
         if (filter.targetLevel > 0 && bookLevel > 0) {
-            return bookLevel == filter.targetLevel;
+            return bookLevel >= filter.targetLevel;
         }
         return true;
     }
@@ -728,12 +736,17 @@ public class AhPriceManager {
 
             // Match testuale diretto sul nome dell'incantesimo cercato
             String normLine = LitnessTooltipHandler.normalize(rawLine);
+            int lineLvl = LitnessTooltipHandler.extractLevelFromEnd(normLine);
             for (EnchantFilter f : filters) {
                 EnchantmentEntry ee = EnchantmentDatabase.getEnchantment(f.enchantId);
                 if (ee != null) {
                     String normName = LitnessTooltipHandler.normalize(ee.name);
                     String normLocal = LitnessTooltipHandler.normalize(com.litness.optimizer.data.LitnessI18n.getEnchantName(ee));
-                    if ((normName.length() >= 3 && normLine.contains(normName)) || (normLocal.length() >= 3 && normLine.contains(normLocal))) {
+                    boolean nameMatches = (normName.length() >= 3 && normLine.contains(normName)) || (normLocal.length() >= 3 && normLine.contains(normLocal));
+                    if (nameMatches) {
+                        if (f.targetLevel > 0 && lineLvl > 0 && lineLvl < f.targetLevel) {
+                            continue;
+                        }
                         return true;
                     }
                 }
@@ -838,14 +851,14 @@ public class AhPriceManager {
             String rawId = entry.getKey().unwrapKey().map(k -> k.identifier().getPath()).orElse("");
             int lvl = entry.getIntValue();
             String vPlusId = EnchantmentDatabase.resolveVanillaPlusId(rawId, lvl);
-            if (vPlusId != null && vPlusId.equalsIgnoreCase(enchantId)) {
+            if (vPlusId != null && (vPlusId.equalsIgnoreCase(enchantId) || isIdMatching(vPlusId, enchantId))) {
                 return lvl;
             }
-            if (rawId.equalsIgnoreCase(enchantId)) {
+            if (rawId.equalsIgnoreCase(enchantId) || isIdMatching(rawId, enchantId)) {
                 return lvl;
             }
             EnchantmentEntry ee = EnchantmentDatabase.getEnchantment(rawId);
-            if (ee != null && ee.id.equalsIgnoreCase(enchantId)) {
+            if (ee != null && (ee.id.equalsIgnoreCase(enchantId) || isIdMatching(ee.id, enchantId))) {
                 return lvl;
             }
         }
@@ -855,7 +868,7 @@ public class AhPriceManager {
         for (Component c : lore.lines()) {
             String text = c.getString().replaceAll("\\[[^\\]]*\\]", "").trim();
             LitnessTooltipHandler.MatchedEnchantment match = LitnessTooltipHandler.matchEnchantment(text);
-            if (match != null && match.entry != null && match.entry.id.equalsIgnoreCase(enchantId)) {
+            if (match != null && match.entry != null && (match.entry.id.equalsIgnoreCase(enchantId) || isIdMatching(match.entry.id, enchantId))) {
                 if (match.level > 0) return match.level;
             }
         }
@@ -863,7 +876,7 @@ public class AhPriceManager {
         // 3. Hover Name
         String hoverName = stack.getHoverName().getString().replaceAll("\\[[^\\]]*\\]", "").trim();
         LitnessTooltipHandler.MatchedEnchantment matchName = LitnessTooltipHandler.matchEnchantment(hoverName);
-        if (matchName != null && matchName.entry != null && matchName.entry.id.equalsIgnoreCase(enchantId)) {
+        if (matchName != null && matchName.entry != null && (matchName.entry.id.equalsIgnoreCase(enchantId) || isIdMatching(matchName.entry.id, enchantId))) {
             if (matchName.level > 0) return matchName.level;
         }
 

@@ -105,7 +105,8 @@ public class LitnessHudRenderer {
         for (String enchId : set.enchantments) {
             EnchantmentEntry ee = EnchantmentDatabase.getEnchantment(enchId);
             String name = (ee != null ? com.litness.optimizer.data.LitnessI18n.getEnchantName(ee) : com.litness.optimizer.data.LitnessI18n.translateEnchantName(enchId));
-            String base = AnvilOptimizer.formatEnchantName(name, (ee != null && ee.maxLevel > 1) ? ee.maxLevel : 0);
+            int reqLvl = InventoryTracker.getRequiredLevel(enchId);
+            String base = AnvilOptimizer.formatEnchantName(name, reqLvl > 1 ? reqLvl : ((ee != null && ee.maxLevel > 1) ? ee.maxLevel : 0));
 
             boolean isApplied = InventoryTracker.matchesApplied(enchId, applied);
             if (isApplied) {

@@ -43,14 +43,64 @@ public class InventoryTracker {
         return map;
     }
 
+    public static int getRequiredLevel(String enchantId) {
+        if (enchantId == null || enchantId.trim().isEmpty()) return 1;
+        String clean = enchantId.trim().toLowerCase();
+        int colon = clean.indexOf(':');
+        if (colon > 0) {
+            try {
+                int parsed = Integer.parseInt(clean.substring(colon + 1).trim());
+                if (parsed > 0) return parsed;
+            } catch (Exception ignored) {}
+        }
+        if (clean.matches(".*_[0-9]+$")) {
+            try {
+                int parsed = Integer.parseInt(clean.substring(clean.lastIndexOf('_') + 1));
+                if (parsed > 0) return parsed;
+            } catch (Exception ignored) {}
+        }
+        if (clean.matches(".*-[0-9]+$")) {
+            try {
+                int parsed = Integer.parseInt(clean.substring(clean.lastIndexOf('-') + 1));
+                if (parsed > 0) return parsed;
+            } catch (Exception ignored) {}
+        }
+        EnchantmentDatabase.EnchantmentEntry ee = EnchantmentDatabase.getEnchantment(clean);
+        return (ee != null && ee.maxLevel > 0) ? ee.maxLevel : 1;
+    }
+
     public static boolean matchesEnchant(String enchantId, Map<String, Integer> bookMap) {
         if (enchantId == null || bookMap == null || bookMap.isEmpty()) return false;
         String clean = enchantId.trim().toLowerCase();
-        if (bookMap.containsKey(clean)) return true;
-        if (clean.contains("defense") && bookMap.containsKey(clean.replace("defense", "defence"))) return true;
-        if (clean.contains("defence") && bookMap.containsKey(clean.replace("defence", "defense"))) return true;
-        if (bookMap.containsKey(clean.replace('-', '_'))) return true;
-        if (bookMap.containsKey(clean.replace('_', '-'))) return true;
+        int reqLevel = getRequiredLevel(enchantId);
+
+        // 1. Controllo esatto sull'ID
+        Integer lvl = bookMap.get(clean);
+        if (lvl != null && lvl >= reqLevel) return true;
+
+        // 2. Controllo varianti trattino/underscore
+        lvl = bookMap.get(clean.replace('-', '_'));
+        if (lvl != null && lvl >= reqLevel) return true;
+        lvl = bookMap.get(clean.replace('_', '-'));
+        if (lvl != null && lvl >= reqLevel) return true;
+
+        // 3. Controllo varianti defense/defence
+        if (clean.contains("defense")) {
+            lvl = bookMap.get(clean.replace("defense", "defence"));
+            if (lvl != null && lvl >= reqLevel) return true;
+        }
+        if (clean.contains("defence")) {
+            lvl = bookMap.get(clean.replace("defence", "defense"));
+            if (lvl != null && lvl >= reqLevel) return true;
+        }
+
+        // 4. Controllo su base ID (es. unbreaking da unbreaking_5)
+        String baseId = LitnessI18n.getBaseId(clean);
+        if (!baseId.isEmpty() && !baseId.equalsIgnoreCase(clean)) {
+            Integer baseLvl = bookMap.get(baseId);
+            if (baseLvl != null && baseLvl >= reqLevel) return true;
+        }
+
         return false;
     }
 
@@ -193,11 +243,15 @@ public class InventoryTracker {
             String vPlusId = EnchantmentDatabase.resolveVanillaPlusId(rawId, lvl);
             if (vPlusId != null) {
                 map.merge(vPlusId, lvl, Math::max);
-            } else {
-                EnchantmentDatabase.EnchantmentEntry ee = EnchantmentDatabase.getEnchantment(rawId);
-                if (ee != null) {
-                    map.merge(ee.id, lvl, Math::max);
-                }
+                map.merge(vPlusId.replace('_', '-'), lvl, Math::max);
+            }
+            EnchantmentDatabase.EnchantmentEntry ee = EnchantmentDatabase.getEnchantment(rawId);
+            String canonId = ee != null ? ee.id : rawId;
+            map.merge(rawId, lvl, Math::max);
+            map.merge(canonId, lvl, Math::max);
+            String baseId = LitnessI18n.getBaseId(canonId);
+            if (!baseId.isEmpty()) {
+                map.merge(baseId, lvl, Math::max);
             }
         }
 
@@ -209,6 +263,10 @@ public class InventoryTracker {
             if (match != null && match.entry != null) {
                 int lvl = match.level > 0 ? match.level : match.entry.maxLevel;
                 map.merge(match.entry.id, lvl, Math::max);
+                String baseId = LitnessI18n.getBaseId(match.entry.id);
+                if (!baseId.isEmpty()) {
+                    map.merge(baseId, lvl, Math::max);
+                }
                 if (loreCost > 0) {
                     EnchantmentDatabase.updateAnvilCost(match.entry.id, loreCost);
                 }
@@ -227,12 +285,15 @@ public class InventoryTracker {
             String vPlusId = EnchantmentDatabase.resolveVanillaPlusId(rawId, lvl);
             if (vPlusId != null) {
                 set.add(vPlusId);
-            } else {
-                EnchantmentDatabase.EnchantmentEntry ee = EnchantmentDatabase.getEnchantment(rawId);
-                String id = ee != null ? ee.id : rawId;
-                if (!id.isEmpty()) {
-                    set.add(id.toLowerCase().trim());
-                }
+                set.add(vPlusId.replace('_', '-'));
+            }
+            EnchantmentDatabase.EnchantmentEntry ee = EnchantmentDatabase.getEnchantment(rawId);
+            String canonId = ee != null ? ee.id : rawId;
+            set.add(rawId.toLowerCase().trim());
+            set.add(canonId.toLowerCase().trim());
+            if (lvl >= getRequiredLevel(canonId)) {
+                String baseId = LitnessI18n.getBaseId(canonId);
+                if (!baseId.isEmpty()) set.add(baseId.toLowerCase().trim());
             }
         }
 
@@ -242,6 +303,8 @@ public class InventoryTracker {
             LitnessTooltipHandler.MatchedEnchantment match = LitnessTooltipHandler.matchEnchantment(c.getString());
             if (match != null && match.entry != null) {
                 set.add(match.entry.id.toLowerCase().trim());
+                String baseId = LitnessI18n.getBaseId(match.entry.id);
+                if (!baseId.isEmpty()) set.add(baseId.toLowerCase().trim());
             }
         }
     }

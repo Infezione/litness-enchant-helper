@@ -379,7 +379,7 @@ public class LitnessTooltipHandler {
         return null;
     }
 
-    private static int extractLevelFromEnd(String s) {
+    public static int extractLevelFromEnd(String s) {
         if (s == null || s.isEmpty()) return 0;
         int lastSpace = s.lastIndexOf(' ');
         if (lastSpace >= 0) {
