@@ -160,10 +160,8 @@ public class AhPriceManager {
 
         public String getDisplayText() {
             if (shortName == null || shortName.isEmpty()) return "";
-            if (level > 1) {
-                return shortName + " " + level;
-            } else if (level == 1) {
-                return shortName + " 1";
+            if (level > 0) {
+                return shortName + " " + com.litness.optimizer.calculator.AnvilOptimizer.toRoman(level);
             }
             return shortName;
         }
@@ -264,12 +262,12 @@ public class AhPriceManager {
             default:
                 EnchantmentEntry ee = EnchantmentDatabase.getEnchantment(id);
                 if (ee != null && ee.name != null && !ee.name.isEmpty()) {
-                    String cleanName = ee.name.replaceAll("[^a-zA-Z0-9]", "").trim();
-                    if (cleanName.length() <= 5) return cleanName;
-                    return cleanName.substring(0, 5);
+                    String cleanName = ee.name.replaceAll("[^a-zA-Z0-9 ]", "").trim();
+                    if (cleanName.length() <= 7) return cleanName;
+                    return cleanName.substring(0, 6);
                 }
-                if (id.length() <= 5) return id;
-                return id.substring(0, 5);
+                if (id.length() <= 7) return id;
+                return id.substring(0, 6);
         }
     }
 
@@ -1114,14 +1112,16 @@ public class AhPriceManager {
     public static void clickSlot(AbstractContainerScreen<?> screen, Slot s) {
         if (screen == null || s == null) return;
         Minecraft mc = Minecraft.getInstance();
+        int slotIndex = (screen.getMenu() != null) ? screen.getMenu().slots.indexOf(s) : s.index;
+        if (slotIndex < 0) slotIndex = s.index;
         try {
             if ((Object) screen instanceof com.litness.optimizer.mixin.ContainerScreenAccessor accessor) {
-                accessor.litness_invokeSlotClicked(s, s.index, 0, net.minecraft.world.inventory.ContainerInput.PICKUP);
+                accessor.litness_invokeSlotClicked(s, slotIndex, 0, net.minecraft.world.inventory.ContainerInput.PICKUP);
                 return;
             }
         } catch (Throwable ignored) {}
         if (mc.gameMode != null && mc.player != null) {
-            mc.gameMode.handleContainerInput(screen.getMenu().containerId, s.index, 0, net.minecraft.world.inventory.ContainerInput.PICKUP, mc.player);
+            mc.gameMode.handleContainerInput(screen.getMenu().containerId, slotIndex, 0, net.minecraft.world.inventory.ContainerInput.PICKUP, mc.player);
         }
     }
 
@@ -1222,56 +1222,108 @@ public class AhPriceManager {
         return -1;
     }
 
+    public static boolean isNextPageItem(ItemStack stack) {
+        if (stack == null || stack.isEmpty()) return false;
+        if (stack.is(Items.AIR) || stack.is(Items.BARRIER)) return false;
+        if (stack.is(Items.HOPPER) || stack.is(Items.CLOCK) || stack.is(Items.COMPASS)
+                || stack.is(Items.POTION) || stack.is(Items.SPLASH_POTION) || stack.is(Items.LINGERING_POTION)
+                || stack.is(Items.GLASS_BOTTLE)) {
+            return false;
+        }
+        String name = stack.getHoverName().getString().toLowerCase(Locale.ROOT);
+        if (isPrevPageText(name)) return false;
+        if (name.contains("filtri") || name.contains("ordina") || name.contains("le tue aste") || name.contains("informazion")) {
+            return false;
+        }
+        if (name.contains("nessun") || name.contains("ultima") || name.contains("fine") || name.contains("blocc")) {
+            return false;
+        }
+        if (isNextPageText(name)) return true;
+
+        ItemLore lore = stack.getOrDefault(DataComponents.LORE, ItemLore.EMPTY);
+        for (Component c : lore.lines()) {
+            String l = c.getString().toLowerCase(Locale.ROOT);
+            if (isPrevPageText(l)) return false;
+            if (l.contains("nessuna altra pagina") || l.contains("ultima pagina") || l.contains("fine delle pagine")) return false;
+            if (isNextPageText(l)) return true;
+        }
+        return false;
+    }
+
+    public static boolean isPrevPageItem(ItemStack stack) {
+        if (stack == null || stack.isEmpty()) return false;
+        if (stack.is(Items.AIR) || stack.is(Items.BARRIER)) return false;
+        if (stack.is(Items.HOPPER) || stack.is(Items.CLOCK) || stack.is(Items.COMPASS)
+                || stack.is(Items.POTION) || stack.is(Items.SPLASH_POTION) || stack.is(Items.LINGERING_POTION)
+                || stack.is(Items.GLASS_BOTTLE)) {
+            return false;
+        }
+        String name = stack.getHoverName().getString().toLowerCase(Locale.ROOT);
+        if (isNextPageText(name)) return false;
+        if (name.contains("filtri") || name.contains("ordina") || name.contains("le tue aste") || name.contains("informazion")) {
+            return false;
+        }
+        if (name.contains("nessun") || name.contains("prima") || name.contains("inizio") || name.contains("blocc")) {
+            return false;
+        }
+        if (isPrevPageText(name)) return true;
+
+        ItemLore lore = stack.getOrDefault(DataComponents.LORE, ItemLore.EMPTY);
+        for (Component c : lore.lines()) {
+            String l = c.getString().toLowerCase(Locale.ROOT);
+            if (isNextPageText(l)) return false;
+            if (l.contains("prima pagina") || l.contains("nessuna pagina")) return false;
+            if (isPrevPageText(l)) return true;
+        }
+        return false;
+    }
+
     public static int findNextPageSlot(AbstractContainerScreen<?> screen) {
         if (screen == null || screen.getMenu() == null) return -1;
         List<Slot> slots = screen.getMenu().slots;
         if (slots.size() < 50) return -1;
 
-        if (isAuctionHouse(screen)) {
-            // Su Litness /ah: la freccia successiva e' prioritariamente lo slot 51 (con fallback a 50, 49)
-            int[] candNext = new int[]{51, 50, 49};
-            for (int idx : candNext) {
-                if (idx < slots.size()) {
-                    ItemStack s = slots.get(idx).getItem();
-                    if (!s.isEmpty() && !s.is(Items.AIR) && !s.is(Items.BARRIER)) {
-                        String n = s.getHoverName().getString().toLowerCase(Locale.ROOT);
-                        boolean blocked = n.contains("nessun") || n.contains("ultima") || n.contains("fine") || n.contains("blocc");
-                        ItemLore lore = s.getOrDefault(DataComponents.LORE, ItemLore.EMPTY);
-                        for (Component c : lore.lines()) {
-                            String cl = c.getString().toLowerCase(Locale.ROOT);
-                            if (cl.contains("nessuna altra pagina") || cl.contains("ultima pagina") || cl.contains("fine delle pagine")) {
-                                blocked = true;
-                                break;
-                            }
-                        }
-                        if (!blocked) return idx;
-                    }
-                }
+        // 1. Cerca prima negli slot di navigazione prioritari (51 su pag 2+, 49 su pag 1)
+        int[] candNext = new int[]{51, 49, 50, 52, 53};
+        for (int idx : candNext) {
+            if (idx < slots.size()) {
+                ItemStack s = slots.get(idx).getItem();
+                if (isNextPageItem(s)) return idx;
             }
-            return -1;
         }
 
+        // 2. Cerca in tutta la riga inferiore (45-53) per corrispondenza di testo
         for (int i = 45; i < Math.min(54, slots.size()); i++) {
             ItemStack stack = slots.get(i).getItem();
-            if (stack.isEmpty()) continue;
-            String name = stack.getHoverName().getString();
-            if (isNextPageText(name)) return i;
-            ItemLore lore = stack.getOrDefault(DataComponents.LORE, ItemLore.EMPTY);
-            for (Component c : lore.lines()) {
-                if (isNextPageText(c.getString())) return i;
+            if (isNextPageItem(stack)) return i;
+        }
+
+        // 3. Fallback per /ah: escludi sempre tramogge e controlli
+        if (isAuctionHouse(screen)) {
+            if (51 < slots.size()) {
+                ItemStack s = slots.get(51).getItem();
+                if (!s.isEmpty() && !s.is(Items.AIR) && !s.is(Items.BARRIER) && !s.is(Items.HOPPER) && !s.is(Items.CLOCK) && !isPrevPageItem(s)) {
+                    return 51;
+                }
+            }
+            if (49 < slots.size()) {
+                ItemStack s = slots.get(49).getItem();
+                if (!s.isEmpty() && !s.is(Items.AIR) && !s.is(Items.BARRIER) && !s.is(Items.HOPPER) && !s.is(Items.CLOCK) && !isPrevPageItem(s)) {
+                    return 49;
+                }
             }
         }
         return -1;
     }
 
-    private static boolean isNextPageText(String text) {
+    public static boolean isNextPageText(String text) {
         if (text == null) return false;
         String t = text.toLowerCase(Locale.ROOT);
         return t.contains("succ") || t.contains("next") || t.contains("avanti") || t.contains("prossim")
                 || t.contains("forward") || t.contains(">") || t.contains("\u00BB") || t.contains("\u2192") || t.contains("\u25B6");
     }
 
-    private static boolean isPrevPageText(String text) {
+    public static boolean isPrevPageText(String text) {
         if (text == null) return false;
         String t = text.toLowerCase(Locale.ROOT);
         return t.contains("prec") || t.contains("prev") || t.contains("indietro") || t.contains("back")
@@ -1286,30 +1338,30 @@ public class AhPriceManager {
         if (isAuctionHouse(screen)) {
             int page = detectPageNumber(screen);
             if (page == 1) return -1;
-
-            // Su Litness /ah: la freccia precedente e' prioritariamente lo slot 49 (con fallback a 48, 47)
-            int[] candPrev = new int[]{49, 48, 47};
-            for (int idx : candPrev) {
-                if (idx < slots.size()) {
-                    ItemStack s = slots.get(idx).getItem();
-                    if (!s.isEmpty() && !s.is(Items.AIR) && !s.is(Items.BARRIER)) {
-                        String n = s.getHoverName().getString().toLowerCase(Locale.ROOT);
-                        boolean blocked = n.contains("nessun") || n.contains("prima") || n.contains("inizio");
-                        if (!blocked) return idx;
-                    }
-                }
-            }
-            return -1;
         }
 
+        // 1. Cerca negli slot candidati: 49, 48, 47, 45, 46
+        int[] candPrev = new int[]{49, 48, 47, 45, 46};
+        for (int idx : candPrev) {
+            if (idx < slots.size()) {
+                ItemStack s = slots.get(idx).getItem();
+                if (isPrevPageItem(s)) return idx;
+            }
+        }
+
+        // 2. Cerca in tutta la riga inferiore (45-53)
         for (int i = 45; i < Math.min(54, slots.size()); i++) {
             ItemStack stack = slots.get(i).getItem();
-            if (stack.isEmpty()) continue;
-            String name = stack.getHoverName().getString();
-            if (isPrevPageText(name)) return i;
-            ItemLore lore = stack.getOrDefault(DataComponents.LORE, ItemLore.EMPTY);
-            for (Component c : lore.lines()) {
-                if (isPrevPageText(c.getString())) return i;
+            if (isPrevPageItem(stack)) return i;
+        }
+
+        // 3. Fallback per /ah se siamo oltre pagina 1
+        if (isAuctionHouse(screen)) {
+            if (49 < slots.size()) {
+                ItemStack s = slots.get(49).getItem();
+                if (!s.isEmpty() && !s.is(Items.AIR) && !s.is(Items.BARRIER) && !s.is(Items.HOPPER) && !s.is(Items.CLOCK) && !isNextPageItem(s)) {
+                    return 49;
+                }
             }
         }
         return -1;

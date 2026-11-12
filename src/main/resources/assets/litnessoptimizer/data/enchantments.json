@@ -227,7 +227,7 @@
       "name": "Passo anfibio",
       "category": "vanilla",
       "description": "Aumenta la velocità di movimento sott'acqua.",
-      "maxLevel": 4,
+      "maxLevel": 3,
       "applicableTo": [
         "boots"
       ],
@@ -239,7 +239,7 @@
       "name": "Efficienza",
       "category": "vanilla",
       "description": "Aumenta la velocità di estrazione e di alcune azioni degli attrezzi.",
-      "maxLevel": 6,
+      "maxLevel": 5,
       "applicableTo": [
         "pick",
         "shovel",
@@ -255,7 +255,7 @@
       "name": "Atterraggio morbido",
       "category": "vanilla",
       "description": "Riduce i danni da caduta.",
-      "maxLevel": 5,
+      "maxLevel": 4,
       "applicableTo": [
         "boots"
       ],
@@ -370,7 +370,7 @@
       "name": "Saccheggio",
       "category": "vanilla",
       "description": "Aumenta il bottino lasciato dai mob.",
-      "maxLevel": 4,
+      "maxLevel": 3,
       "applicableTo": [
         "sword"
       ],
@@ -471,7 +471,7 @@
       "name": "Potenza",
       "category": "vanilla",
       "description": "Aumenta i danni inflitti dalle frecce.",
-      "maxLevel": 6,
+      "maxLevel": 5,
       "applicableTo": [
         "bow"
       ],
@@ -498,7 +498,7 @@
       "name": "Protezione",
       "category": "vanilla",
       "description": "Riduce la maggior parte dei danni subiti.",
-      "maxLevel": 5,
+      "maxLevel": 4,
       "applicableTo": [
         "helmet",
         "chest",
@@ -537,7 +537,7 @@
       "name": "Respirazione",
       "category": "vanilla",
       "description": "Aumenta il tempo che puoi trascorrere sott'acqua prima di annegare.",
-      "maxLevel": 4,
+      "maxLevel": 3,
       "applicableTo": [
         "helmet"
       ],
@@ -561,7 +561,7 @@
       "name": "Affilatezza",
       "category": "vanilla",
       "description": "Aumenta i danni inflitti in mischia.",
-      "maxLevel": 6,
+      "maxLevel": 5,
       "applicableTo": [
         "sword",
         "axe"
@@ -654,7 +654,7 @@
       "name": "Indistruttibilità",
       "category": "vanilla",
       "description": "Riduce la probabilità che l'oggetto perda durabilità quando viene usato.",
-      "maxLevel": 5,
+      "maxLevel": 3,
       "applicableTo": [
         "helmet",
         "chest",

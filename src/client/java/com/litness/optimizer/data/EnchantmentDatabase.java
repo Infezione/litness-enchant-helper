@@ -151,7 +151,7 @@ public class EnchantmentDatabase {
             JsonArray enchantmentsArray = root.getAsJsonArray("enchantments");
             for (JsonElement el : enchantmentsArray) {
                 EnchantmentEntry ench = gson.fromJson(el, EnchantmentEntry.class);
-                ench.maxLevel = getServerMaxLevel(ench.id, ench.maxLevel);
+                // Keep each entry's own maxLevel (vanilla base tiers are 3/4/5, vanilla+ are extended)
                 enchantmentsById.put(ench.id, ench);
                 allEnchantments.add(ench);
             }

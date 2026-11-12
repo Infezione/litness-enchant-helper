@@ -194,23 +194,22 @@ public abstract class ContainerScreenMixin extends Screen {
                 String badgeText = badge.getDisplayText();
                 if (!badgeText.isEmpty()) {
                     int textW = mc.font.width(badgeText);
-                    float s = (textW > 28) ? (14.0f / textW) : 0.5f;
+                    float s = 0.80f;
                     extractor.pose().pushMatrix();
-                    // Posizionato SOPRA lo slot (y - 5) fluttuante come una piccola lore
-                    extractor.pose().translate(x, y - 5);
+                    // Posizionato SOPRA lo slot (y - 8), centrato orizzontalmente rispetto allo slot (x + 8)
+                    extractor.pose().translate(x + 8, y - 8);
                     extractor.pose().scale(s, s);
 
-                    int scaledSlotW = (int) (16.0f / s);
-                    int targetX = (scaledSlotW - textW) / 2;
-                    int bgPad = 2;
+                    int targetX = -textW / 2;
+                    int bgPad = 3;
 
                     int pillBg = isCheapest ? 0xFA7C2D12 : 0xFA052E16;
                     int pillBorder = isCheapest ? 0xFFFF9900 : 0xFF00FF66;
                     int textColor = isCheapest ? 0xFFFFCC00 : 0xFF34D399;
 
-                    extractor.fill(targetX - bgPad, -1, targetX + textW + bgPad, 9, pillBg);
-                    extractor.outline(targetX - bgPad, -1, textW + (bgPad * 2), 10, pillBorder);
-                    extractor.text(mc.font, badgeText, targetX, 0, textColor, false);
+                    extractor.fill(targetX - bgPad, -2, targetX + textW + bgPad, 10, pillBg);
+                    extractor.outline(targetX - bgPad, -2, textW + (bgPad * 2), 12, pillBorder);
+                    extractor.text(mc.font, badgeText, targetX, 0, textColor, true);
 
                     extractor.pose().popMatrix();
                 }
