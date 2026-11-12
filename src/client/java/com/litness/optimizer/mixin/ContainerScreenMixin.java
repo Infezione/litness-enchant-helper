@@ -160,7 +160,7 @@ public abstract class ContainerScreenMixin extends Screen {
         boolean hasTargets = (cachedTargetEnchants != null && !cachedTargetEnchants.isEmpty());
         boolean isMatching = hasTargets && matchesAnyTargetEnchant(stack, cachedTargetEnchants);
 
-        // 1. Evidenziazione bordo colorato (Oro / Verde / Ciano) se combacia con la ricerca
+        // Mostra evidenziazione e piccola lore badge SOLO per gli oggetti che si stanno cercando!
         if (isMatching) {
             boolean isCheapest = com.litness.optimizer.gui.AhPriceManager.isCheapestOnScreen(stack);
             boolean isCleanBook = com.litness.optimizer.gui.AhPriceManager.isCleanMatchingBook(stack, cachedTargetEnchants);
@@ -180,39 +180,40 @@ public abstract class ContainerScreenMixin extends Screen {
                 extractor.fill(x - 1, y, x, y + 16, 0xFF00FF66);
                 extractor.fill(x + 16, y, x + 17, y + 16, 0xFF00FF66);
             } else {
-                // Evidenziazione CIANO BRILLANTE per armature, armi, attrezzi e oggetti con l'incantesimo
+                // Evidenziazione CIANO BRILLANTE per armature, armi, attrezzi
                 extractor.fill(x, y, x + 16, y + 16, 0x4000E5FF);
                 extractor.fill(x - 1, y - 1, x + 17, y, 0xFF00E5FF);
                 extractor.fill(x - 1, y + 16, x + 17, y + 17, 0xFF00E5FF);
                 extractor.fill(x - 1, y, x, y + 16, 0xFF00E5FF);
                 extractor.fill(x + 16, y, x + 17, y + 16, 0xFF00E5FF);
             }
-        }
 
-        // 2. Mostra SEMPRE il nome dell'incantesimo sul libro (anche senza passarci sopra col cursore!)
-        com.litness.optimizer.gui.AhPriceManager.EnchantBadgeInfo badge = com.litness.optimizer.gui.AhPriceManager.getEnchantBadgeInfo(stack, cachedTargetEnchants);
-        if (badge != null) {
-            String badgeText = badge.getDisplayText();
-            if (!badgeText.isEmpty()) {
-                int textW = mc.font.width(badgeText);
-                float s = (textW > 28) ? (14.0f / textW) : 0.5f;
-                extractor.pose().pushMatrix();
-                extractor.pose().translate(x, y + 10);
-                extractor.pose().scale(s, s);
+            // 2. Piccola Lore Badge fluttuante SOPRA lo slot (come una piccola lore)
+            com.litness.optimizer.gui.AhPriceManager.EnchantBadgeInfo badge = com.litness.optimizer.gui.AhPriceManager.getEnchantBadgeInfo(stack, cachedTargetEnchants);
+            if (badge != null) {
+                String badgeText = badge.getDisplayText();
+                if (!badgeText.isEmpty()) {
+                    int textW = mc.font.width(badgeText);
+                    float s = (textW > 28) ? (14.0f / textW) : 0.5f;
+                    extractor.pose().pushMatrix();
+                    // Posizionato SOPRA lo slot (y - 5) fluttuante come una piccola lore
+                    extractor.pose().translate(x, y - 5);
+                    extractor.pose().scale(s, s);
 
-                int scaledSlotW = (int) (16.0f / s);
-                int targetX = (scaledSlotW - textW) / 2;
-                int bgPad = 2;
+                    int scaledSlotW = (int) (16.0f / s);
+                    int targetX = (scaledSlotW - textW) / 2;
+                    int bgPad = 2;
 
-                int pillBg = badge.isMatching ? (badge.isCheapest ? 0xEA7C2D12 : 0xEA052E16) : 0xEA0F172A;
-                int pillBorder = badge.isMatching ? (badge.isCheapest ? 0xFFFF9900 : 0xFF00FF66) : 0xFF38BDF8;
-                int textColor = badge.isMatching ? (badge.isCheapest ? 0xFFFFCC00 : 0xFF34D399) : 0xFFF1F5F9;
+                    int pillBg = isCheapest ? 0xFA7C2D12 : 0xFA052E16;
+                    int pillBorder = isCheapest ? 0xFFFF9900 : 0xFF00FF66;
+                    int textColor = isCheapest ? 0xFFFFCC00 : 0xFF34D399;
 
-                extractor.fill(targetX - bgPad, -1, targetX + textW + bgPad, 9, pillBg);
-                extractor.outline(targetX - bgPad, -1, textW + (bgPad * 2), 10, pillBorder);
-                extractor.text(mc.font, badgeText, targetX, 0, textColor, false);
+                    extractor.fill(targetX - bgPad, -1, targetX + textW + bgPad, 9, pillBg);
+                    extractor.outline(targetX - bgPad, -1, textW + (bgPad * 2), 10, pillBorder);
+                    extractor.text(mc.font, badgeText, targetX, 0, textColor, false);
 
-                extractor.pose().popMatrix();
+                    extractor.pose().popMatrix();
+                }
             }
         }
     }
