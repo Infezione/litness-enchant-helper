@@ -138,11 +138,142 @@ public class AhPriceManager {
     // Scansione automatica di tutte le pagine di /ah
     private static boolean isAutoScanning = false;
     private static boolean hasAutoScannedThisSession = false;
+    private static boolean hasSelectedBooksCategory = false;
     private static long lastAutoScanClick = 0;
     private static int autoScanPageCount = 0;
     private static boolean autoScanReturning = false;
 
-    public static class ClickableListingRect {
+    public static class EnchantBadgeInfo {
+        public final String shortName;
+        public final int level;
+        public final boolean isMatching;
+        public final boolean isCheapest;
+        public final boolean isClean;
+
+        public EnchantBadgeInfo(String shortName, int level, boolean isMatching, boolean isCheapest, boolean isClean) {
+            this.shortName = shortName;
+            this.level = level;
+            this.isMatching = isMatching;
+            this.isCheapest = isCheapest;
+            this.isClean = isClean;
+        }
+
+        public String getDisplayText() {
+            if (shortName == null || shortName.isEmpty()) return "";
+            if (level > 1) {
+                return shortName + " " + level;
+            } else if (level == 1) {
+                return shortName + " 1";
+            }
+            return shortName;
+        }
+    }
+
+    public static EnchantBadgeInfo getEnchantBadgeInfo(ItemStack stack, Set<String> targetEnchants) {
+        if (stack == null || stack.isEmpty()) return null;
+
+        boolean isMatching = (targetEnchants != null && !targetEnchants.isEmpty()) && containsMatchingTargetItem(stack, targetEnchants);
+        boolean isCheapest = isMatching && isCheapestOnScreen(stack);
+        boolean isClean = isMatching && isCleanMatchingBook(stack, targetEnchants);
+
+        // 1. Se e' un libro, ricava l'incantesimo principale da mostrare
+        if (isBook(stack)) {
+            Set<String> distinct = extractDistinctEnchantments(stack);
+            if (!distinct.isEmpty()) {
+                String singleId = null;
+                // Se combacia con uno dei target cercati, dagli priorita'
+                if (isMatching && targetEnchants != null) {
+                    for (String t : targetEnchants) {
+                        EnchantFilter f = parseFilter(t);
+                        if (f != null) {
+                            for (String dId : distinct) {
+                                if (isIdMatching(dId, f.enchantId)) {
+                                    singleId = dId;
+                                    break;
+                                }
+                            }
+                        }
+                        if (singleId != null) break;
+                    }
+                }
+                if (singleId == null) {
+                    singleId = distinct.iterator().next();
+                }
+
+                int level = extractLevel(stack, singleId);
+                String shortName = getAbbreviatedEnchantName(singleId);
+                return new EnchantBadgeInfo(shortName, level, isMatching, isCheapest, isClean);
+            }
+        }
+
+        // 2. Se e' un altro item (arma, armatura, attrezzo) che combacia con un target cercato:
+        if (isMatching && targetEnchants != null) {
+            for (String t : targetEnchants) {
+                EnchantFilter f = parseFilter(t);
+                if (f != null) {
+                    String shortName = getAbbreviatedEnchantName(f.enchantId);
+                    return new EnchantBadgeInfo(shortName, f.targetLevel, true, false, false);
+                }
+            }
+        }
+
+        return null;
+    }
+
+    public static String getAbbreviatedEnchantName(String enchantId) {
+        if (enchantId == null || enchantId.isEmpty()) return "";
+        String id = enchantId.toLowerCase(Locale.ROOT).trim();
+        switch (id) {
+            case "efficiency": return "Eff";
+            case "sharpness": return "Sharp";
+            case "protection": return "Prot";
+            case "feather_falling": return "Feath";
+            case "unbreaking": return "Unbr";
+            case "power": return "Power";
+            case "looting": return "Loot";
+            case "fortune": return "Fort";
+            case "mending": return "Mend";
+            case "respiration": return "Resp";
+            case "depth_strider": return "Depth";
+            case "fire_aspect": return "Fire";
+            case "flame": return "Flame";
+            case "infinity": return "Infin";
+            case "punch": return "Punch";
+            case "knockback": return "Knock";
+            case "sweeping_edge": case "sweeping": return "Sweep";
+            case "silk_touch": return "Silk";
+            case "thorns": return "Thorn";
+            case "aqua_affinity": return "Aqua";
+            case "swift_sneak": return "Sneak";
+            case "soul_speed": return "Soul";
+            case "frost_walker": return "Frost";
+            case "blast_protection": return "Blast";
+            case "projectile_protection": return "Proj";
+            case "fire_protection": return "FProt";
+            case "smite": return "Smite";
+            case "bane_of_arthropods": return "Bane";
+            case "multishot": return "Multi";
+            case "piercing": return "Pierc";
+            case "quick_charge": return "Quick";
+            case "riptide": return "Ript";
+            case "channeling": return "Chan";
+            case "loyalty": return "Loyal";
+            case "impaling": return "Impal";
+            case "luck_of_the_sea": return "Luck";
+            case "lure": return "Lure";
+            default:
+                EnchantmentEntry ee = EnchantmentDatabase.getEnchantment(id);
+                if (ee != null && ee.name != null && !ee.name.isEmpty()) {
+                    String cleanName = ee.name.replaceAll("[^a-zA-Z0-9]", "").trim();
+                    if (cleanName.length() <= 5) return cleanName;
+                    return cleanName.substring(0, 5);
+                }
+                if (id.length() <= 5) return id;
+                return id.substring(0, 5);
+        }
+    }
+
+        public static class ClickableListingRect {
         public final int y1, y2;
         public final AhListing listing;
         public ClickableListingRect(int y1, int y2, AhListing listing) {
@@ -225,6 +356,7 @@ public class AhPriceManager {
         autoNavAttempts = 0;
         isAutoScanning = false;
         hasAutoScannedThisSession = false;
+        hasSelectedBooksCategory = false;
         autoScanReturning = false;
         autoScanPageCount = 0;
         scrollOffset = 0;
@@ -1093,10 +1225,32 @@ public class AhPriceManager {
     public static int findNextPageSlot(AbstractContainerScreen<?> screen) {
         if (screen == null || screen.getMenu() == null) return -1;
         List<Slot> slots = screen.getMenu().slots;
-        int maxSlot = Math.min(54, slots.size());
+        if (slots.size() < 50) return -1;
 
-        // 1. Cerca per nome o lore esplicita
-        for (int i = 45; i < maxSlot; i++) {
+        if (isAuctionHouse(screen)) {
+            // In /ah, slot 49 e' TASSATIVAMENTE la freccia gialla per voltare pagina!
+            // Lo slot 48 e' l'indicatore/tasto prima della freccia e non deve MAI essere cliccato!
+            ItemStack s49 = slots.get(49).getItem();
+            if (!s49.isEmpty() && !s49.is(Items.AIR) && !s49.is(Items.BARRIER)) {
+                String n49 = s49.getHoverName().getString().toLowerCase(Locale.ROOT);
+                ItemLore lore49 = s49.getOrDefault(DataComponents.LORE, ItemLore.EMPTY);
+                boolean blocked = n49.contains("nessun") || n49.contains("ultima") || n49.contains("fine") || n49.contains("blocc");
+                for (Component c : lore49.lines()) {
+                    String cl = c.getString().toLowerCase(Locale.ROOT);
+                    if (cl.contains("nessuna altra pagina") || cl.contains("ultima pagina") || cl.contains("fine delle pagine")) {
+                        blocked = true;
+                        break;
+                    }
+                }
+                if (!blocked) {
+                    return 49;
+                }
+            }
+            return -1;
+        }
+
+        // Generic fallback per altri container
+        for (int i = 45; i < Math.min(54, slots.size()); i++) {
             ItemStack stack = slots.get(i).getItem();
             if (stack.isEmpty()) continue;
             String name = stack.getHoverName().getString();
@@ -1107,26 +1261,6 @@ public class AhPriceManager {
                 if (isNextPageText(c.getString())) return i;
             }
         }
-
-        // 2. Euristica di fallback: se lo slot 49 o 50 contiene una freccia / icona avanti
-        if (slots.size() >= 50) {
-            ItemStack s49 = slots.get(49).getItem();
-            if (!s49.isEmpty()) {
-                String n = s49.getHoverName().getString();
-                if (s49.is(Items.ARROW) || s49.is(Items.SPECTRAL_ARROW) || n.contains("↗") || n.contains("→") || n.contains(">")) {
-                    return 49;
-                }
-            }
-        }
-        if (slots.size() >= 51) {
-            ItemStack s50 = slots.get(50).getItem();
-            if (!s50.isEmpty()) {
-                String n = s50.getHoverName().getString();
-                if (s50.is(Items.ARROW) || s50.is(Items.SPECTRAL_ARROW) || n.contains("↗") || n.contains("→") || n.contains(">")) {
-                    return 50;
-                }
-            }
-        }
         return -1;
     }
 
@@ -1134,17 +1268,35 @@ public class AhPriceManager {
         if (text == null) return false;
         String t = text.toLowerCase(Locale.ROOT);
         return t.contains("succ") || t.contains("next") || t.contains("avanti") || t.contains("prossim")
-                || t.contains("forward") || t.contains("▶") || t.contains("►") || t.contains(">")
-                || t.contains("»") || t.contains("→") || t.contains("↗") || t.contains("🡲") || t.contains("➜");
+                || t.contains("forward") || t.contains("â–¶") || t.contains("â–º") || t.contains(">")
+                || t.contains("Â»") || t.contains("â†’") || t.contains("â†—") || t.contains("ðŸ¡²") || t.contains("âžœ");
     }
 
     public static int findPrevPageSlot(AbstractContainerScreen<?> screen) {
         if (screen == null || screen.getMenu() == null) return -1;
         List<Slot> slots = screen.getMenu().slots;
-        int maxSlot = Math.min(54, slots.size());
+        if (slots.size() < 49) return -1;
 
-        // 1. Cerca per nome o lore esplicita
-        for (int i = 45; i < maxSlot; i++) {
+        if (isAuctionHouse(screen)) {
+            int page = detectPageNumber(screen);
+            if (page == 1) return -1; // Siamo gia' alla pagina 1!
+
+            // A pagina 2+, slot 48 diventa la freccia indietro
+            ItemStack s48 = slots.get(48).getItem();
+            if (!s48.isEmpty() && !s48.is(Items.AIR) && !s48.is(Items.BARRIER)) {
+                return 48;
+            }
+            ItemStack s47 = slots.get(47).getItem();
+            if (!s47.isEmpty() && !s47.is(Items.AIR) && !s47.is(Items.BARRIER)) {
+                String n47 = s47.getHoverName().getString().toLowerCase(Locale.ROOT);
+                if (n47.contains("prec") || n47.contains("indietro") || n47.contains("back")) {
+                    return 47;
+                }
+            }
+            return -1;
+        }
+
+        for (int i = 45; i < Math.min(54, slots.size()); i++) {
             ItemStack stack = slots.get(i).getItem();
             if (stack.isEmpty()) continue;
             String name = stack.getHoverName().getString();
@@ -1155,38 +1307,18 @@ public class AhPriceManager {
                 if (isPrevPageText(c.getString())) return i;
             }
         }
-
-        // 2. Euristica di fallback: se lo slot 48 o 47 contiene una freccia indietro
-        if (slots.size() >= 49) {
-            ItemStack s48 = slots.get(48).getItem();
-            if (!s48.isEmpty()) {
-                String n = s48.getHoverName().getString();
-                if (s48.is(Items.ARROW) || s48.is(Items.SPECTRAL_ARROW) || n.contains("↙") || n.contains("←") || n.contains("<")) {
-                    return 48;
-                }
-            }
-        }
-        if (slots.size() >= 48) {
-            ItemStack s47 = slots.get(47).getItem();
-            if (!s47.isEmpty()) {
-                String n = s47.getHoverName().getString();
-                if (s47.is(Items.ARROW) || s47.is(Items.SPECTRAL_ARROW) || n.contains("↙") || n.contains("←") || n.contains("<")) {
-                    return 47;
-                }
-            }
-        }
         return -1;
     }
 
     private static boolean isPrevPageText(String text) {
         if (text == null) return false;
         String t = text.toLowerCase(Locale.ROOT);
-        return t.contains("prec") || t.contains("prev") || t.contains("indietro") || t.contains("back")
-                || t.contains("previous") || t.contains("◀") || t.contains("◄") || t.contains("<")
-                || t.contains("«") || t.contains("←") || t.contains("↙") || t.contains("🡰") || t.contains("⬅");
+        return t.contains("prec") || t.contains("prev") || t.contains("indietro")
+                || t.contains("back") || t.contains("â—€") || t.contains("â—„") || t.contains("<")
+                || t.contains("Â«") || t.contains("â†") || t.contains("â†™") || t.contains("ðŸ¡°") || t.contains("â¬…");
     }
 
-    public static void initSearchWidget(AbstractContainerScreen<?> screen, Consumer<EditBox> widgetAdder) {
+        public static void initSearchWidget(AbstractContainerScreen<?> screen, Consumer<EditBox> widgetAdder) {
         Minecraft mc = Minecraft.getInstance();
         searchBox = new EditBox(mc.font, -9999, -9999, 100, 16, Component.literal(""));
         searchBox.setHint(Component.literal("Cerca incanto..."));
@@ -1210,6 +1342,7 @@ public class AhPriceManager {
         autoNavAttempts = 0;
         isAutoScanning = false;
         hasAutoScannedThisSession = false;
+        hasSelectedBooksCategory = false;
         autoScanReturning = false;
         autoScanPageCount = 0;
         // Non cancelliamo cachedListings così quando l'utente sfoglia le pagine di /ah
@@ -1603,7 +1736,19 @@ public class AhPriceManager {
 
         // Avvio scansione autonoma all'apertura di /ah se non ancora eseguita
         if (!hasAutoScannedThisSession && !isAutoScanning && autoNavListing == null) {
-            if (now - lastAutoScanClick > 600) {
+            if (now - lastAutoScanClick > 450) {
+                // 1. Clicca sulla categoria "Libri incantati" in alto a destra (slot 7) se non ancora selezionata!
+                if (!hasSelectedBooksCategory && screen.getMenu().slots.size() >= 54) {
+                    Slot slot7 = screen.getMenu().slots.get(7);
+                    ItemStack s7 = slot7.getItem();
+                    if (isBook(s7)) {
+                        hasSelectedBooksCategory = true;
+                        lastAutoScanClick = now;
+                        clickSlot(screen, slot7);
+                        return; // Attende che il server carichi i soli libri incantati
+                    }
+                }
+
                 hasAutoScannedThisSession = true;
                 isAutoScanning = true;
                 autoScanReturning = false;
@@ -1613,16 +1758,13 @@ public class AhPriceManager {
                 if (nextSlot >= 0) {
                     Slot s = screen.getMenu().slots.get(nextSlot);
                     clickSlot(screen, s);
-                    if (mc.player != null) {
-                        mc.player.sendOverlayMessage(Component.literal("Â§eâœ¦ Scansione autonoma /ah avviata..."));
-                    }
                 }
             }
         }
 
-        // 1. SCANSIONE AUTOMATICA COMPLETA DI TUTTE LE PAGINE DI /AH
+        // 1. SCANSIONE AUTOMATICA COMPLETA DI TUTTE LE PAGINE DI /AH (LIBRI INCANTATI)
         if (isAutoScanning) {
-            if (now - lastAutoScanClick < 320) return; // Attesa 320ms per sincronizzazione della cassa col server
+            if (now - lastAutoScanClick < 320) return; // Attesa per sincronizzazione della cassa
 
             if (!autoScanReturning) {
                 int nextSlot = findNextPageSlot(screen);
@@ -1631,9 +1773,6 @@ public class AhPriceManager {
                     lastAutoScanClick = now;
                     Slot s = screen.getMenu().slots.get(nextSlot);
                     clickSlot(screen, s);
-                    if (mc.player != null) {
-                        mc.player.sendOverlayMessage(Component.literal("§e✦ Scansione /ah: pagina " + (autoScanPageCount + 1) + "... (" + cachedListings.size() + " offerte salvate)"));
-                    }
                 } else {
                     // Fine delle pagine in avanti: torna indietro alla Pagina 1
                     autoScanReturning = true;
@@ -1646,9 +1785,6 @@ public class AhPriceManager {
                         isAutoScanning = false;
                         autoScanReturning = false;
                         autoScanPageCount = 0;
-                        if (mc.player != null) {
-                            mc.player.sendOverlayMessage(Component.literal("§a✔ Scansione completata! Trovate " + cachedListings.size() + " offerte totali."));
-                        }
                     }
                 }
             } else {
@@ -1662,9 +1798,6 @@ public class AhPriceManager {
                     isAutoScanning = false;
                     autoScanReturning = false;
                     autoScanPageCount = 0;
-                    if (mc.player != null) {
-                        mc.player.sendOverlayMessage(Component.literal("§a✔ Scansione completata! Trovate " + cachedListings.size() + " offerte totali."));
-                    }
                 }
             }
             return;
