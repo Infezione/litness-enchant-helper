@@ -13,6 +13,7 @@ import net.minecraft.client.gui.screens.inventory.AbstractContainerScreen;
 import net.minecraft.core.component.DataComponents;
 import net.minecraft.network.chat.Component;
 import net.minecraft.world.inventory.AbstractContainerMenu;
+import net.minecraft.world.inventory.ContainerInput;
 import net.minecraft.world.inventory.ChestMenu;
 import net.minecraft.world.inventory.DispenserMenu;
 import net.minecraft.world.inventory.HopperMenu;
@@ -82,24 +83,16 @@ public abstract class ContainerScreenMixin extends Screen {
 
     @Inject(method = "mouseClicked", at = @At("HEAD"), cancellable = true, require = 0)
     private void litness_onContainerMouseClicked(MouseButtonEvent event, boolean doubleClick, CallbackInfoReturnable<Boolean> cir) {
-        double mouseX = event.x();
-        double mouseY = event.y();
-        boolean insideContainer = (mouseX >= this.leftPos && mouseX <= this.leftPos + this.imageWidth
-                && mouseY >= this.topPos && mouseY <= this.topPos + this.imageHeight);
-
-        // Se il cursore si trova all'interno della schermata/cassa, non intercettare mai per consentire il click dei libri
-        if (!insideContainer) {
-            if (com.litness.optimizer.gui.AhPriceManager.handleMouseClicked(this, event)) {
-                cir.setReturnValue(true);
-                return;
-            }
+        if (com.litness.optimizer.gui.AhPriceManager.handleMouseClicked(this, event)) {
+            cir.setReturnValue(true);
+            return;
         }
+    }
 
-        if (this.hoveredSlot != null) {
-            Minecraft mc = Minecraft.getInstance();
-            if (mc.player != null && this.hoveredSlot.container != mc.player.getInventory()) {
-                com.litness.optimizer.gui.AhPriceManager.onSlotClicked((AbstractContainerScreen<?>) (Object) this, this.hoveredSlot);
-            }
+    @Inject(method = "slotClicked", at = @At("HEAD"), require = 0)
+    private void litness_onContainerSlotClicked(Slot slot, int slotId, int mouseButton, ContainerInput type, CallbackInfo ci) {
+        if (slot != null) {
+            com.litness.optimizer.gui.AhPriceManager.onSlotClicked((AbstractContainerScreen<?>) (Object) this, slot);
         }
     }
 

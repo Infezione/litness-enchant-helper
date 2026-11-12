@@ -1034,10 +1034,15 @@ public class AhPriceManager {
             return;
         }
 
-        // 2. Se clicca su un tasto di navigazione (slot 45..53 o freccia):
+        // 2. Icone da escludere categoricamente dalla navigazione pagine:
+        // Slot 49: Bottiglia blu al centro
+        // Slot 52: Tramoggia (filtro)
+        // Slot 45: Orologio
+        if (slotIndex == 49 || slotIndex == 52 || slotIndex == 45) {
+            return;
+        }
         if (stack != null && !stack.isEmpty()) {
-            if (stack.is(Items.HOPPER)) {
-                // La tramoggia è il filtro aste, non gira pagina!
+            if (stack.is(Items.HOPPER) || stack.is(Items.CLOCK) || stack.is(Items.GLASS_BOTTLE) || stack.is(Items.POTION)) {
                 return;
             }
 
@@ -1051,21 +1056,13 @@ public class AhPriceManager {
             }
         }
 
-        // 3. Fallback per indice di slot se il server non espone testo
-        if (slotIndex == 48) {
+        // 3. Fallback esatto per slot di Litness /ah:
+        // Slot 50: Freccia Gialla Avanti (a destra della bottiglia 49)
+        // Slot 48: Freccia Indietro (a sinistra della bottiglia 49)
+        if (slotIndex == 50) {
+            currentAhPage++;
+        } else if (slotIndex == 48) {
             currentAhPage = Math.max(1, currentAhPage - 1);
-        } else if (slotIndex == 49) {
-            if (currentAhPage <= 1) {
-                // A pagina 1 lo slot 49 è la freccia gialla per andare avanti (pagina 2)
-                currentAhPage = 2;
-            } else {
-                // A pagina 2+ lo slot 49 è la freccia per tornare indietro
-                currentAhPage = Math.max(1, currentAhPage - 1);
-            }
-        } else if (slotIndex == 50) {
-            currentAhPage++;
-        } else if (slotIndex == 51 && (stack == null || !stack.is(Items.HOPPER))) {
-            currentAhPage++;
         }
     }
 
@@ -1376,42 +1373,19 @@ public class AhPriceManager {
         if (screen == null || screen.getMenu() == null) return -1;
         List<Slot> slots = screen.getMenu().slots;
 
-        // 1. Cerca prima con isNextPageItem tra gli slot 45-53 (esclude categoricamente HOPPER, CLOCK, ecc.)
+        // 1. Cerca prima con isNextPageItem tra gli slot 45-53 (escludendo 49 bottiglia e 52 hopper)
         for (int i = 45; i < Math.min(54, slots.size()); i++) {
+            if (i == 49 || i == 52 || i == 45) continue;
             ItemStack stack = slots.get(i).getItem();
             if (isNextPageItem(stack)) return i;
         }
 
         if (isAuctionHouse(screen)) {
-            // A pagina 1: su Litness /ah la freccia gialla per andare alla pagina successiva si trova sullo slot 49
-            if (currentAhPage <= 1 && 49 < slots.size()) {
-                ItemStack s49 = slots.get(49).getItem();
-                if (!s49.isEmpty() && !s49.is(Items.AIR) && !s49.is(Items.BARRIER)
-                        && !s49.is(Items.HOPPER) && !s49.is(Items.CLOCK) && !s49.is(Items.GLASS_BOTTLE)) {
-                    return 49;
-                }
-            }
-
-            // A pagina 2+:
-            // Controlla slot 50
+            // Su Litness /ah lo Slot 50 è la freccia successiva (la freccia gialla a destra della bottiglia 49)
             if (50 < slots.size()) {
                 ItemStack s50 = slots.get(50).getItem();
-                if (!s50.isEmpty() && !s50.is(Items.AIR) && !s50.is(Items.BARRIER) && !s50.is(Items.HOPPER)) {
+                if (!s50.isEmpty() && !s50.is(Items.AIR) && !s50.is(Items.BARRIER)) {
                     return 50;
-                }
-            }
-            // Controlla slot 51 SOLO se NON è una tramoggia/hopper
-            if (51 < slots.size()) {
-                ItemStack s51 = slots.get(51).getItem();
-                if (!s51.isEmpty() && !s51.is(Items.AIR) && !s51.is(Items.BARRIER) && !s51.is(Items.HOPPER)) {
-                    return 51;
-                }
-            }
-            // Controlla slot 53
-            if (53 < slots.size()) {
-                ItemStack s53 = slots.get(53).getItem();
-                if (!s53.isEmpty() && !s53.is(Items.AIR) && !s53.is(Items.BARRIER) && !s53.is(Items.HOPPER)) {
-                    return 53;
                 }
             }
         }
@@ -1438,24 +1412,20 @@ public class AhPriceManager {
         if (screen == null || screen.getMenu() == null) return -1;
         List<Slot> slots = screen.getMenu().slots;
 
-        // 1. Cerca prima con isPrevPageItem tra gli slot 45-53
+        // 1. Cerca prima con isPrevPageItem tra gli slot 45-53 (escludendo 49 bottiglia e 52 hopper)
         for (int i = 45; i < Math.min(54, slots.size()); i++) {
+            if (i == 49 || i == 52 || i == 45) continue;
             ItemStack stack = slots.get(i).getItem();
             if (isPrevPageItem(stack)) return i;
         }
 
         if (isAuctionHouse(screen)) {
-            // A pagina 2+: lo slot 49 è la freccia per tornare indietro
-            if (currentAhPage > 1 && 49 < slots.size()) {
-                ItemStack s49 = slots.get(49).getItem();
-                if (!s49.isEmpty() && !s49.is(Items.AIR) && !s49.is(Items.BARRIER) && !s49.is(Items.HOPPER)) {
-                    return 49;
-                }
-            }
-            // Oppure slot 48
+            // Su Litness /ah lo Slot 48 è la freccia precedente (a sinistra della bottiglia 49)
             if (currentAhPage > 1 && 48 < slots.size()) {
                 ItemStack s48 = slots.get(48).getItem();
-                if (isPrevPageItem(s48)) return 48;
+                if (!s48.isEmpty() && !s48.is(Items.AIR) && !s48.is(Items.BARRIER)) {
+                    return 48;
+                }
             }
         }
         return -1;
