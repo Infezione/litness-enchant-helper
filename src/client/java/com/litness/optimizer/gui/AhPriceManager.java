@@ -1187,13 +1187,7 @@ public class AhPriceManager {
             updateAhNavigationState(screen, slotIndex, stack);
         }
 
-        try {
-            if ((Object) screen instanceof com.litness.optimizer.mixin.ContainerScreenAccessor accessor) {
-                accessor.litness_invokeSlotClicked(s, slotIndex, 0, net.minecraft.world.inventory.ContainerInput.PICKUP);
-                return;
-            }
-        } catch (Throwable ignored) {}
-        if (mc.gameMode != null && mc.player != null) {
+        if (mc.gameMode != null && mc.player != null && screen.getMenu() != null) {
             mc.gameMode.handleContainerInput(screen.getMenu().containerId, slotIndex, 0, net.minecraft.world.inventory.ContainerInput.PICKUP, mc.player);
         }
     }

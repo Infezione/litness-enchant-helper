@@ -87,12 +87,8 @@ public abstract class ContainerScreenMixin extends Screen {
             cir.setReturnValue(true);
             return;
         }
-    }
-
-    @Inject(method = "slotClicked", at = @At("HEAD"), require = 0)
-    private void litness_onContainerSlotClicked(Slot slot, int slotId, int mouseButton, ContainerInput type, CallbackInfo ci) {
-        if (slot != null) {
-            com.litness.optimizer.gui.AhPriceManager.onSlotClicked((AbstractContainerScreen<?>) (Object) this, slot);
+        if (this.hoveredSlot != null) {
+            com.litness.optimizer.gui.AhPriceManager.onSlotClicked((AbstractContainerScreen<?>) (Object) this, this.hoveredSlot);
         }
     }
 
