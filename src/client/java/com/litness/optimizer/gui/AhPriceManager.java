@@ -983,6 +983,90 @@ public class AhPriceManager {
         return -1;
     }
 
+    public static int findBookCategorySlot(AbstractContainerScreen<?> screen) {
+        if (screen == null || screen.getMenu() == null) return 7;
+        List<Slot> slots = screen.getMenu().slots;
+        if (slots.size() <= 8) return 7;
+
+        // 1. Controlla prima lo slot 7 (0-based per l'8° slot della prima riga)
+        Slot s7 = slots.get(7);
+        ItemStack st7 = s7.getItem();
+        if (!st7.isEmpty()) {
+            String name7 = st7.getHoverName().getString().toLowerCase(Locale.ROOT);
+            if (isBook(st7) || st7.is(Items.BOOK) || st7.is(Items.ENCHANTED_BOOK)
+                    || name7.contains("libr") || name7.contains("incant") || name7.contains("book")) {
+                return 7;
+            }
+        }
+
+        // 2. Fallback: scansiona la prima riga (slot 0..8) cercando il libro
+        for (int i = 0; i < Math.min(9, slots.size()); i++) {
+            Slot s = slots.get(i);
+            ItemStack st = s.getItem();
+            if (st.isEmpty()) continue;
+            String name = st.getHoverName().getString().toLowerCase(Locale.ROOT);
+            if (isBook(st) || st.is(Items.BOOK) || st.is(Items.ENCHANTED_BOOK)
+                    || name.contains("libr") || name.contains("incant") || name.contains("book")) {
+                return i;
+            }
+        }
+
+        return 7; // Default slot 7 (0-based)
+    }
+
+    private static void updateAhNavigationState(AbstractContainerScreen<?> screen, int slotIndex, ItemStack stack) {
+        if (screen == null) return;
+        int bookSlot = findBookCategorySlot(screen);
+
+        // 1. Se clicca sulla prima riga delle categorie (slot 0..8):
+        if (slotIndex >= 0 && slotIndex <= 8) {
+            String name = (stack != null && !stack.isEmpty()) ? stack.getHoverName().getString().toLowerCase(Locale.ROOT) : "";
+            boolean isBookCategory = (slotIndex == bookSlot || slotIndex == 7)
+                    || (stack != null && !stack.isEmpty() && (isBook(stack) || stack.is(Items.BOOK) || stack.is(Items.ENCHANTED_BOOK) || name.contains("libr") || name.contains("incant")));
+
+            if (isBookCategory) {
+                currentAhPage = 1;
+                hasSelectedBooksCategory = true;
+            } else {
+                currentAhPage = 1;
+                hasSelectedBooksCategory = false;
+            }
+            return;
+        }
+
+        // 2. Se clicca su un tasto di navigazione (slot 45..53 o freccia):
+        if (stack != null && !stack.isEmpty()) {
+            if (stack.is(Items.HOPPER)) {
+                // La tramoggia è il filtro aste, non gira pagina!
+                return;
+            }
+
+            if (isNextPageItem(stack)) {
+                currentAhPage++;
+                return;
+            }
+            if (isPrevPageItem(stack)) {
+                currentAhPage = Math.max(1, currentAhPage - 1);
+                return;
+            }
+        }
+
+        // 3. Fallback per indice di slot se il server non espone testo
+        if (slotIndex == 49) {
+            if (currentAhPage <= 1) {
+                // A pagina 1 lo slot 49 è la freccia gialla per andare avanti (pagina 2)
+                currentAhPage = 2;
+            } else {
+                // A pagina 2+ lo slot 49 è la freccia per tornare indietro
+                currentAhPage = Math.max(1, currentAhPage - 1);
+            }
+        } else if (slotIndex == 50) {
+            currentAhPage++;
+        } else if (slotIndex == 51 && (stack == null || !stack.is(Items.HOPPER))) {
+            currentAhPage++;
+        }
+    }
+
     public static void onSlotClicked(AbstractContainerScreen<?> screen, Slot slot) {
         if (screen == null || slot == null) return;
         ItemStack stack = slot.getItem();
@@ -992,14 +1076,7 @@ public class AhPriceManager {
         if (slotIndex < 0) slotIndex = slot.index;
 
         if (isAuctionHouse(screen)) {
-            if (slotIndex == 51) {
-                currentAhPage++;
-            } else if (slotIndex == 49) {
-                currentAhPage = Math.max(1, currentAhPage - 1);
-            } else if (slotIndex == 8) {
-                currentAhPage = 1;
-                hasSelectedBooksCategory = true;
-            }
+            updateAhNavigationState(screen, slotIndex, stack);
         }
 
         // Riconoscimento click di conferma in menu/popup di acquisto (es. Conferma Acquisto)
@@ -1114,16 +1191,10 @@ public class AhPriceManager {
         Minecraft mc = Minecraft.getInstance();
         int slotIndex = (screen.getMenu() != null) ? screen.getMenu().slots.indexOf(s) : s.index;
         if (slotIndex < 0) slotIndex = s.index;
+        ItemStack stack = s.getItem();
 
         if (isAuctionHouse(screen)) {
-            if (slotIndex == 51) {
-                currentAhPage++;
-            } else if (slotIndex == 49) {
-                currentAhPage = Math.max(1, currentAhPage - 1);
-            } else if (slotIndex == 8) {
-                currentAhPage = 1;
-                hasSelectedBooksCategory = true;
-            }
+            updateAhNavigationState(screen, slotIndex, stack);
         }
 
         try {
@@ -1171,6 +1242,7 @@ public class AhPriceManager {
 
             ParsedInfo info = parseSellerAndPrice(stack);
             if (info.price > 0) {
+                hasSelectedBooksCategory = true;
                 AhListing listing = new AhListing(singleId, eName, level, info.seller, info.price, info.netPrice, info.tax);
                 listing.page = Math.max(1, currentAhPage);
                 listing.slot = i;
@@ -1302,21 +1374,44 @@ public class AhPriceManager {
         if (screen == null || screen.getMenu() == null) return -1;
         List<Slot> slots = screen.getMenu().slots;
 
-        if (isAuctionHouse(screen)) {
-            // Su Litness /ah la freccia pagina successiva è sempre lo slot 51
-            if (51 < slots.size()) {
-                ItemStack s51 = slots.get(51).getItem();
-                if (!s51.isEmpty() && !s51.is(Items.AIR) && !s51.is(Items.BARRIER)) {
-                    return 51;
-                }
-            }
-            return -1; // Nessuna freccia successiva (fine pagine!)
-        }
-
-        // Fallback per altri container
+        // 1. Cerca prima con isNextPageItem tra gli slot 45-53 (esclude categoricamente HOPPER, CLOCK, ecc.)
         for (int i = 45; i < Math.min(54, slots.size()); i++) {
             ItemStack stack = slots.get(i).getItem();
             if (isNextPageItem(stack)) return i;
+        }
+
+        if (isAuctionHouse(screen)) {
+            // A pagina 1: su Litness /ah la freccia gialla per andare alla pagina successiva si trova sullo slot 49
+            if (currentAhPage <= 1 && 49 < slots.size()) {
+                ItemStack s49 = slots.get(49).getItem();
+                if (!s49.isEmpty() && !s49.is(Items.AIR) && !s49.is(Items.BARRIER)
+                        && !s49.is(Items.HOPPER) && !s49.is(Items.CLOCK) && !s49.is(Items.GLASS_BOTTLE)) {
+                    return 49;
+                }
+            }
+
+            // A pagina 2+:
+            // Controlla slot 50
+            if (50 < slots.size()) {
+                ItemStack s50 = slots.get(50).getItem();
+                if (!s50.isEmpty() && !s50.is(Items.AIR) && !s50.is(Items.BARRIER) && !s50.is(Items.HOPPER)) {
+                    return 50;
+                }
+            }
+            // Controlla slot 51 SOLO se NON è una tramoggia/hopper
+            if (51 < slots.size()) {
+                ItemStack s51 = slots.get(51).getItem();
+                if (!s51.isEmpty() && !s51.is(Items.AIR) && !s51.is(Items.BARRIER) && !s51.is(Items.HOPPER)) {
+                    return 51;
+                }
+            }
+            // Controlla slot 53
+            if (53 < slots.size()) {
+                ItemStack s53 = slots.get(53).getItem();
+                if (!s53.isEmpty() && !s53.is(Items.AIR) && !s53.is(Items.BARRIER) && !s53.is(Items.HOPPER)) {
+                    return 53;
+                }
+            }
         }
         return -1;
     }
@@ -1341,20 +1436,25 @@ public class AhPriceManager {
         if (screen == null || screen.getMenu() == null) return -1;
         List<Slot> slots = screen.getMenu().slots;
 
-        if (isAuctionHouse(screen)) {
-            // Su Litness /ah la freccia pagina precedente è sempre lo slot 49
-            if (49 < slots.size()) {
-                ItemStack s49 = slots.get(49).getItem();
-                if (!s49.isEmpty() && !s49.is(Items.AIR) && !s49.is(Items.BARRIER) && currentAhPage > 1) {
-                    return 49;
-                }
-            }
-            return -1; // Siamo a pagina 1
-        }
-
+        // 1. Cerca prima con isPrevPageItem tra gli slot 45-53
         for (int i = 45; i < Math.min(54, slots.size()); i++) {
             ItemStack stack = slots.get(i).getItem();
             if (isPrevPageItem(stack)) return i;
+        }
+
+        if (isAuctionHouse(screen)) {
+            // A pagina 2+: lo slot 49 è la freccia per tornare indietro
+            if (currentAhPage > 1 && 49 < slots.size()) {
+                ItemStack s49 = slots.get(49).getItem();
+                if (!s49.isEmpty() && !s49.is(Items.AIR) && !s49.is(Items.BARRIER) && !s49.is(Items.HOPPER)) {
+                    return 49;
+                }
+            }
+            // Oppure slot 48
+            if (currentAhPage > 1 && 48 < slots.size()) {
+                ItemStack s48 = slots.get(48).getItem();
+                if (isPrevPageItem(s48)) return 48;
+            }
         }
         return -1;
     }
@@ -1795,12 +1895,14 @@ public class AhPriceManager {
         if (isAutoScanning) {
             if (now - lastAutoScanClick < 380) return; // Pausa per sincronizzazione della cassa
 
-            // Prima di sfogliare, se la categoria libri non è stata selezionata, clicca slot 8
+            // Prima di sfogliare, se la categoria libri non è stata selezionata, clicca il libro (slot 7)
             if (!hasSelectedBooksCategory) {
-                if (8 < screen.getMenu().slots.size()) {
+                int bookSlot = findBookCategorySlot(screen);
+                if (bookSlot >= 0 && bookSlot < screen.getMenu().slots.size()) {
                     lastAutoScanClick = now;
-                    Slot s8 = screen.getMenu().slots.get(8);
-                    clickSlot(screen, s8);
+                    hasSelectedBooksCategory = true;
+                    Slot sBook = screen.getMenu().slots.get(bookSlot);
+                    clickSlot(screen, sBook);
                     return;
                 }
             }
