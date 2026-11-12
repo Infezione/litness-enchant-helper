@@ -142,6 +142,16 @@ public class AhPriceManager {
     private static long lastAutoScanClick = 0;
     private static int autoScanPageCount = 0;
     private static boolean autoScanReturning = false;
+    private static int currentAhPage = 1;
+    private static long lastContainerRemovedTime = 0;
+
+    public static boolean isContainerOrShulker(ItemStack stack) {
+        return com.litness.optimizer.data.ItemTypeHelper.isContainerOrShulker(stack);
+    }
+
+    public static void onContainerRemoved() {
+        lastContainerRemovedTime = System.currentTimeMillis();
+    }
 
     public static class EnchantBadgeInfo {
         public final String shortName;
@@ -689,6 +699,40 @@ public class AhPriceManager {
     public static boolean containsMatchingTargetItem(ItemStack stack, Set<String> targetEnchants) {
         if (stack == null || stack.isEmpty() || targetEnchants == null || targetEnchants.isEmpty()) return false;
 
+        // Se e' uno shulker box o bundle, controlla i libri all'interno
+        if (isContainerOrShulker(stack)) {
+            ItemContainerContents container = stack.getOrDefault(DataComponents.CONTAINER, ItemContainerContents.EMPTY);
+            if (container != ItemContainerContents.EMPTY) {
+                try {
+                    if (container.nonEmptyItemCopyStream().anyMatch(inner -> containsMatchingTargetItem(inner, targetEnchants))) {
+                        return true;
+                    }
+                } catch (Throwable ignored) {}
+            }
+            BundleContents bundle = stack.getOrDefault(DataComponents.BUNDLE_CONTENTS, null);
+            if (bundle != null) {
+                try {
+                    if (bundle.itemCopies().anyMatch(inner -> containsMatchingTargetItem(inner, targetEnchants))) {
+                        return true;
+                    }
+                } catch (Throwable t) {
+                    try {
+                        java.lang.reflect.Method m = bundle.getClass().getMethod("itemCopyStream");
+                        @SuppressWarnings("unchecked")
+                        java.util.stream.Stream<ItemStack> stream = (java.util.stream.Stream<ItemStack>) m.invoke(bundle);
+                        if (stream.anyMatch(inner -> containsMatchingTargetItem(inner, targetEnchants))) {
+                            return true;
+                        }
+                    } catch (Throwable ignored) {}
+                }
+            }
+            return false;
+        }
+
+        // ESCLUSIONE CATEGORICA: evidenzia SOLO ed ESCLUSIVAMENTE libri incantati!
+        // Le armature, armi e attrezzi non devono MAI e poi MAI essere illuminati!
+        if (!isBook(stack)) return false;
+
         // 1. Libro liscio diretto
         if (isCleanMatchingBook(stack, targetEnchants)) {
             return true;
@@ -701,17 +745,7 @@ public class AhPriceManager {
         }
         if (filters.isEmpty()) return false;
 
-        // 2. Componente ENCHANTMENTS (armi, armature, attrezzi incantati)
-        ItemEnchantments enchs = stack.getOrDefault(DataComponents.ENCHANTMENTS, ItemEnchantments.EMPTY);
-        for (var entry : enchs.entrySet()) {
-            String rawId = entry.getKey().unwrapKey().map(k -> k.identifier().getPath()).orElse("");
-            int lvl = entry.getIntValue();
-            if (matchesAnyFilter(rawId, lvl, filters)) {
-                return true;
-            }
-        }
-
-        // 3. Componente STORED_ENCHANTMENTS (libri incantati con 1 o piu' incantesimi)
+        // 2. Componente STORED_ENCHANTMENTS (libri incantati con 1 o piu' incantesimi)
         ItemEnchantments stored = stack.getOrDefault(DataComponents.STORED_ENCHANTMENTS, ItemEnchantments.EMPTY);
         for (var entry : stored.entrySet()) {
             String rawId = entry.getKey().unwrapKey().map(k -> k.identifier().getPath()).orElse("");
@@ -721,7 +755,7 @@ public class AhPriceManager {
             }
         }
 
-        // 4. Scansione Lore dell'oggetto (per incantesimi Custom del server Litness scritti in lore)
+        // 3. Scansione Lore dell'oggetto (per incantesimi Custom del server Litness scritti in lore)
         ItemLore lore = stack.getOrDefault(DataComponents.LORE, ItemLore.EMPTY);
         for (Component c : lore.lines()) {
             String rawLine = c.getString().replace('\u00A0', ' ').trim();
@@ -750,35 +784,6 @@ public class AhPriceManager {
                         return true;
                     }
                 }
-            }
-        }
-
-        // 5. Scatole di Shulker / Casse contenitori (DataComponents.CONTAINER)
-        ItemContainerContents container = stack.getOrDefault(DataComponents.CONTAINER, ItemContainerContents.EMPTY);
-        if (container != ItemContainerContents.EMPTY) {
-            try {
-                if (container.nonEmptyItemCopyStream().anyMatch(inner -> containsMatchingTargetItem(inner, targetEnchants))) {
-                    return true;
-                }
-            } catch (Throwable ignored) {}
-        }
-
-        // 6. Bundle (fagotto) con DataComponents.BUNDLE_CONTENTS
-        BundleContents bundle = stack.getOrDefault(DataComponents.BUNDLE_CONTENTS, null);
-        if (bundle != null) {
-            try {
-                if (bundle.itemCopies().anyMatch(inner -> containsMatchingTargetItem(inner, targetEnchants))) {
-                    return true;
-                }
-            } catch (Throwable t) {
-                try {
-                    java.lang.reflect.Method m = bundle.getClass().getMethod("itemCopyStream");
-                    @SuppressWarnings("unchecked")
-                    java.util.stream.Stream<ItemStack> stream = (java.util.stream.Stream<ItemStack>) m.invoke(bundle);
-                    if (stream.anyMatch(inner -> containsMatchingTargetItem(inner, targetEnchants))) {
-                        return true;
-                    }
-                } catch (Throwable ignored) {}
             }
         }
 
@@ -1147,9 +1152,10 @@ public class AhPriceManager {
         int currentPage = detectPageNumber(screen);
         Set<String> currentFoundKeys = new HashSet<>();
 
-        // Scansiona tutti i libri lisci (1 incantesimo) presenti nella pagina corrente di /ah
+        // Scansiona tutti i libri lisci (1 incantesimo) presenti nelle righe d'asta (slot 9-44)
+        int minAuctionSlot = 9;
         int maxAuctionSlot = Math.min(45, slots.size());
-        for (int i = 0; i < maxAuctionSlot; i++) {
+        for (int i = minAuctionSlot; i < maxAuctionSlot; i++) {
             Slot slot = slots.get(i);
             if (slot.container == mc.player.getInventory()) continue;
 
@@ -1169,7 +1175,7 @@ public class AhPriceManager {
             ParsedInfo info = parseSellerAndPrice(stack);
             if (info.price > 0) {
                 AhListing listing = new AhListing(singleId, eName, level, info.seller, info.price, info.netPrice, info.tax);
-                listing.page = Math.max(1, currentPage);
+                listing.page = Math.max(1, currentAhPage);
                 cachedListings.put(listing.key, listing);
                 pageToListings.computeIfAbsent(listing.page, k -> new HashSet<>()).add(listing.key);
                 currentFoundKeys.add(listing.key);
@@ -1195,12 +1201,13 @@ public class AhPriceManager {
         Minecraft mc = Minecraft.getInstance();
         if (mc.player == null) return -1;
         List<Slot> slots = screen.getMenu().slots;
+        int minAuctionSlot = 9;
         int maxAuctionSlot = Math.min(45, slots.size());
-        for (int i = 0; i < maxAuctionSlot; i++) {
+        for (int i = minAuctionSlot; i < maxAuctionSlot; i++) {
             Slot slot = slots.get(i);
             if (slot.container == mc.player.getInventory()) continue;
             ItemStack stack = slot.getItem();
-            if (stack.isEmpty()) continue;
+            if (stack.isEmpty() || !isBook(stack)) continue;
 
             Set<String> distinct = extractDistinctEnchantments(stack);
             boolean enchantMatch = false;
@@ -1260,15 +1267,14 @@ public class AhPriceManager {
             if (l.contains("nessuna altra pagina") || l.contains("ultima pagina") || l.contains("fine delle pagine")) return false;
             if (isNextPageText(l)) return true;
         }
+        if (stack.is(Items.ARROW) && !isPrevPageText(name)) return true;
         return false;
     }
 
     public static boolean isPrevPageItem(ItemStack stack) {
         if (stack == null || stack.isEmpty()) return false;
         if (stack.is(Items.AIR) || stack.is(Items.BARRIER)) return false;
-        if (stack.is(Items.HOPPER) || stack.is(Items.CLOCK) || stack.is(Items.COMPASS)
-                || stack.is(Items.POTION) || stack.is(Items.SPLASH_POTION) || stack.is(Items.LINGERING_POTION)
-                || stack.is(Items.GLASS_BOTTLE)) {
+        if (stack.is(Items.HOPPER) || stack.is(Items.CLOCK) || stack.is(Items.COMPASS)) {
             return false;
         }
         String name = stack.getHoverName().getString().toLowerCase(Locale.ROOT);
@@ -1276,7 +1282,7 @@ public class AhPriceManager {
         if (name.contains("filtri") || name.contains("ordina") || name.contains("le tue aste") || name.contains("informazion")) {
             return false;
         }
-        if (name.contains("nessun") || name.contains("prima") || name.contains("inizio") || name.contains("blocc")) {
+        if (name.contains("nessun") || name.contains("inizio") || name.contains("blocc")) {
             return false;
         }
         if (isPrevPageText(name)) return true;
@@ -1288,6 +1294,9 @@ public class AhPriceManager {
             if (l.contains("prima pagina") || l.contains("nessuna pagina")) return false;
             if (isPrevPageText(l)) return true;
         }
+        if ((stack.is(Items.POTION) || stack.is(Items.SPLASH_POTION) || stack.is(Items.GLASS_BOTTLE)) && !isNextPageText(name)) {
+            return true;
+        }
         return false;
     }
 
@@ -1296,35 +1305,30 @@ public class AhPriceManager {
         List<Slot> slots = screen.getMenu().slots;
         if (slots.size() < 50) return -1;
 
-        // 1. Cerca prima negli slot di navigazione prioritari (51 su pag 2+, 49 su pag 1)
-        int[] candNext = new int[]{51, 49, 50, 52, 53};
-        for (int idx : candNext) {
-            if (idx < slots.size()) {
-                ItemStack s = slots.get(idx).getItem();
-                if (isNextPageItem(s)) return idx;
+        if (isAuctionHouse(screen)) {
+            // Su Litness /ah:
+            // Su pagina 2+, slot 50 ha la freccia gialla "pagina seguente"
+            if (50 < slots.size()) {
+                ItemStack s50 = slots.get(50).getItem();
+                if (isNextPageItem(s50)) return 50;
             }
+            // Su pagina 1, slot 49 ha la freccia gialla "pagina seguente"
+            if (49 < slots.size()) {
+                ItemStack s49 = slots.get(49).getItem();
+                if (isNextPageItem(s49) && !isPrevPageItem(s49)) return 49;
+            }
+            // Slot 51 come fallback se non è hopper o bottiglia
+            if (51 < slots.size()) {
+                ItemStack s51 = slots.get(51).getItem();
+                if (isNextPageItem(s51) && !s51.is(Items.HOPPER) && !isPrevPageItem(s51)) return 51;
+            }
+            return -1; // Nessuna freccia successiva (fine pagine!)
         }
 
-        // 2. Cerca in tutta la riga inferiore (45-53) per corrispondenza di testo
+        // Fallback per altri container
         for (int i = 45; i < Math.min(54, slots.size()); i++) {
             ItemStack stack = slots.get(i).getItem();
             if (isNextPageItem(stack)) return i;
-        }
-
-        // 3. Fallback per /ah: escludi sempre tramogge e controlli
-        if (isAuctionHouse(screen)) {
-            if (51 < slots.size()) {
-                ItemStack s = slots.get(51).getItem();
-                if (!s.isEmpty() && !s.is(Items.AIR) && !s.is(Items.BARRIER) && !s.is(Items.HOPPER) && !s.is(Items.CLOCK) && !isPrevPageItem(s)) {
-                    return 51;
-                }
-            }
-            if (49 < slots.size()) {
-                ItemStack s = slots.get(49).getItem();
-                if (!s.isEmpty() && !s.is(Items.AIR) && !s.is(Items.BARRIER) && !s.is(Items.HOPPER) && !s.is(Items.CLOCK) && !isPrevPageItem(s)) {
-                    return 49;
-                }
-            }
         }
         return -1;
     }
@@ -1332,15 +1336,17 @@ public class AhPriceManager {
     public static boolean isNextPageText(String text) {
         if (text == null) return false;
         String t = text.toLowerCase(Locale.ROOT);
-        return t.contains("succ") || t.contains("next") || t.contains("avanti") || t.contains("prossim")
-                || t.contains("forward") || t.contains(">") || t.contains("\u00BB") || t.contains("\u2192") || t.contains("\u25B6");
+        return t.contains("succ") || t.contains("seguent") || t.contains("next") || t.contains("avanti")
+                || t.contains("prossim") || t.contains("dopo") || t.contains("destra") || t.contains("forward")
+                || t.contains(">") || t.contains("\u00BB") || t.contains("\u2192") || t.contains("\u25B6") || t.contains("\u27A4");
     }
 
     public static boolean isPrevPageText(String text) {
         if (text == null) return false;
         String t = text.toLowerCase(Locale.ROOT);
         return t.contains("prec") || t.contains("prev") || t.contains("indietro") || t.contains("back")
-                || t.contains("<") || t.contains("\u00AB") || t.contains("\u2190") || t.contains("\u25C0");
+                || t.contains("prima") || t.contains("sinistra") || t.contains("<") || t.contains("\u00AB")
+                || t.contains("\u2190") || t.contains("\u25C0");
     }
 
     public static int findPrevPageSlot(AbstractContainerScreen<?> screen) {
@@ -1349,33 +1355,22 @@ public class AhPriceManager {
         if (slots.size() < 49) return -1;
 
         if (isAuctionHouse(screen)) {
-            int page = detectPageNumber(screen);
-            if (page == 1) return -1;
-        }
-
-        // 1. Cerca negli slot candidati: 49, 48, 47, 45, 46
-        int[] candPrev = new int[]{49, 48, 47, 45, 46};
-        for (int idx : candPrev) {
-            if (idx < slots.size()) {
-                ItemStack s = slots.get(idx).getItem();
-                if (isPrevPageItem(s)) return idx;
-            }
-        }
-
-        // 2. Cerca in tutta la riga inferiore (45-53)
-        for (int i = 45; i < Math.min(54, slots.size()); i++) {
-            ItemStack stack = slots.get(i).getItem();
-            if (isPrevPageItem(stack)) return i;
-        }
-
-        // 3. Fallback per /ah se siamo oltre pagina 1
-        if (isAuctionHouse(screen)) {
+            // Su pagina 2+, slot 49 è la bottiglia blu / freccia precedente
             if (49 < slots.size()) {
-                ItemStack s = slots.get(49).getItem();
-                if (!s.isEmpty() && !s.is(Items.AIR) && !s.is(Items.BARRIER) && !s.is(Items.HOPPER) && !s.is(Items.CLOCK) && !isNextPageItem(s)) {
+                ItemStack s49 = slots.get(49).getItem();
+                if (isPrevPageItem(s49)) return 49;
+                // Se slot 50 ha la freccia avanti (quindi siamo oltre pag 1) e slot 49 ha un item non vuoto
+                ItemStack s50 = (50 < slots.size()) ? slots.get(50).getItem() : ItemStack.EMPTY;
+                if (!s50.isEmpty() && !s50.is(Items.AIR) && !s49.isEmpty() && !s49.is(Items.AIR) && !isNextPageItem(s49)) {
                     return 49;
                 }
             }
+            return -1; // Siamo a pagina 1
+        }
+
+        for (int i = 45; i < Math.min(54, slots.size()); i++) {
+            ItemStack stack = slots.get(i).getItem();
+            if (isPrevPageItem(stack)) return i;
         }
         return -1;
     }
@@ -1400,13 +1395,7 @@ public class AhPriceManager {
         maxScroll = 0;
         isDraggingScrollbar = false;
         lastHoveredListing = null;
-        autoNavListing = null;
-        autoNavAttempts = 0;
-        isAutoScanning = false;
-        hasAutoScannedThisSession = false;
-        hasSelectedBooksCategory = false;
-        autoScanReturning = false;
-        autoScanPageCount = 0;
+        onContainerRemoved();
         // Non cancelliamo cachedListings così quando l'utente sfoglia le pagine di /ah
         // o riapre l'asta ritrova tutti i prezzi migliori precedentemente scansionati!
         if (searchBox != null) {

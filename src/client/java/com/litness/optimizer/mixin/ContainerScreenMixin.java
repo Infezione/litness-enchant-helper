@@ -127,7 +127,7 @@ public abstract class ContainerScreenMixin extends Screen {
     @Inject(method = "removed", at = @At("HEAD"), require = 0)
     private void litness_onContainerRemoved(CallbackInfo ci) {
         com.litness.optimizer.gui.AnvilTooltipState.clearHover();
-        com.litness.optimizer.gui.AhPriceManager.onContainerClosed();
+        com.litness.optimizer.gui.AhPriceManager.onContainerRemoved();
     }
 
     @Inject(method = "extractSlot", at = @At("TAIL"), require = 0)
@@ -147,6 +147,12 @@ public abstract class ContainerScreenMixin extends Screen {
 
         ItemStack stack = slot.getItem();
         if (stack.isEmpty()) return;
+
+        // ESCLUSIONE CATEGORICA: evidenzia SOLO ed ESCLUSIVAMENTE libri incantati o scatole contenitori con libri!
+        // Le armature, armi e attrezzi non devono MAI e poi MAI essere evidenziati con glow o badge!
+        if (!com.litness.optimizer.gui.AhPriceManager.isBook(stack) && !com.litness.optimizer.gui.AhPriceManager.isContainerOrShulker(stack)) {
+            return;
+        }
 
         long now = System.currentTimeMillis();
         if (now - lastTargetCheck > 50) {
@@ -179,17 +185,18 @@ public abstract class ContainerScreenMixin extends Screen {
                 extractor.fill(x - 1, y + 16, x + 17, y + 17, 0xFF00FF66);
                 extractor.fill(x - 1, y, x, y + 16, 0xFF00FF66);
                 extractor.fill(x + 16, y, x + 17, y + 16, 0xFF00FF66);
-            } else {
-                // Evidenziazione CIANO BRILLANTE per armature, armi, attrezzi
-                extractor.fill(x, y, x + 16, y + 16, 0x4000E5FF);
-                extractor.fill(x - 1, y - 1, x + 17, y, 0xFF00E5FF);
-                extractor.fill(x - 1, y + 16, x + 17, y + 17, 0xFF00E5FF);
-                extractor.fill(x - 1, y, x, y + 16, 0xFF00E5FF);
-                extractor.fill(x + 16, y, x + 17, y + 16, 0xFF00E5FF);
+            } else if (com.litness.optimizer.gui.AhPriceManager.isBook(stack)) {
+                // Evidenziazione VERDE ACQUA per libri che contengono l'incantesimo cercato
+                extractor.fill(x, y, x + 16, y + 16, 0x3010B981);
+                extractor.fill(x - 1, y - 1, x + 17, y, 0xFF10B981);
+                extractor.fill(x - 1, y + 16, x + 17, y + 17, 0xFF10B981);
+                extractor.fill(x - 1, y, x, y + 16, 0xFF10B981);
+                extractor.fill(x + 16, y, x + 17, y + 16, 0xFF10B981);
             }
 
-            // 2. Piccola Lore Badge fluttuante SOPRA lo slot (come una piccola lore)
-            com.litness.optimizer.gui.AhPriceManager.EnchantBadgeInfo badge = com.litness.optimizer.gui.AhPriceManager.getEnchantBadgeInfo(stack, cachedTargetEnchants);
+            // 2. Piccola Lore Badge fluttuante SOPRA lo slot (solo sui libri!)
+            if (com.litness.optimizer.gui.AhPriceManager.isBook(stack)) {
+                com.litness.optimizer.gui.AhPriceManager.EnchantBadgeInfo badge = com.litness.optimizer.gui.AhPriceManager.getEnchantBadgeInfo(stack, cachedTargetEnchants);
             if (badge != null) {
                 String badgeText = badge.getDisplayText();
                 if (!badgeText.isEmpty()) {
@@ -213,6 +220,7 @@ public abstract class ContainerScreenMixin extends Screen {
 
                     extractor.pose().popMatrix();
                 }
+            }
             }
         }
     }
