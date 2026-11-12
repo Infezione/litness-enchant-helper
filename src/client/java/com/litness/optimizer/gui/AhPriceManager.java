@@ -1840,6 +1840,21 @@ public class AhPriceManager {
         return false;
     }
 
+    public static int countAuctionItemsOnScreen(AbstractContainerScreen<?> screen) {
+        if (screen == null || screen.getMenu() == null) return 0;
+        List<Slot> slots = screen.getMenu().slots;
+        int count = 0;
+        int maxSlot = Math.min(45, slots.size());
+        for (int i = 9; i < maxSlot; i++) {
+            ItemStack stack = slots.get(i).getItem();
+            if (stack.isEmpty() || stack.is(Items.AIR) || stack.is(Items.BARRIER)) continue;
+            String name = stack.getHoverName().getString().toLowerCase(Locale.ROOT);
+            if (name.contains("pane") || name.contains("pannell") || name.contains("vetro")) continue;
+            count++;
+        }
+        return count;
+    }
+
     public static void tickAutoNavigation(AbstractContainerScreen<?> screen) {
         if (screen == null || !isAuctionHouse(screen)) {
             autoNavListing = null;
@@ -1856,9 +1871,21 @@ public class AhPriceManager {
 
         // Scansione controllata: attivata SOLO se l'utente clicca [⚡ Sfoglia] nella sidebar
         if (isAutoScanning) {
-            if (now - lastAutoScanClick < 400) return; // Pausa per sincronizzazione della cassa
+            if (now - lastAutoScanClick < 480) return; // Pausa per sincronizzazione della cassa
 
-            // 1. Controllo limite pagine totali note del server (da Pagina X di Y o X / Y)
+            // 1. REGOLA PRIMARIA: Se la pagina attuale non è piena (meno di 36 oggetti nell'area asta 9-44), siamo all'ULTIMA pagina!
+            int itemsOnPage = countAuctionItemsOnScreen(screen);
+            if (itemsOnPage < 36) {
+                isAutoScanning = false;
+                autoScanPageCount = 0;
+                lastAutoScanKeys.clear();
+                if (mc.player != null) {
+                    mc.player.sendOverlayMessage(Component.literal("§a✔ Ultima pagina raggiunta (" + itemsOnPage + "/36 offerte): scansione completata!"));
+                }
+                return;
+            }
+
+            // 2. Controllo limite pagine totali note del server (da Pagina X di Y o X / Y)
             if (currentAhTotalPages > 0 && currentAhPage >= currentAhTotalPages) {
                 isAutoScanning = false;
                 autoScanPageCount = 0;
@@ -1869,7 +1896,7 @@ public class AhPriceManager {
                 return;
             }
 
-            // 2. Controllo duplicati: se la pagina attuale contiene le stesse identiche offerte della precedente, siamo all'ultima pagina
+            // 3. Controllo duplicati: se la pagina attuale contiene le stesse identiche offerte della precedente, siamo all'ultima pagina
             if (!lastScreenListingKeys.isEmpty() && lastScreenListingKeys.equals(lastAutoScanKeys)) {
                 isAutoScanning = false;
                 autoScanPageCount = 0;
@@ -1881,7 +1908,7 @@ public class AhPriceManager {
             }
             lastAutoScanKeys = new HashSet<>(lastScreenListingKeys);
 
-            // 3. Cerca la freccia per la pagina successiva (Slot 50)
+            // 4. Cerca la freccia per la pagina successiva (Slot 50)
             int nextSlot = findNextPageSlot(screen);
             if (nextSlot >= 0 && autoScanPageCount < 15) {
                 autoScanPageCount++;
