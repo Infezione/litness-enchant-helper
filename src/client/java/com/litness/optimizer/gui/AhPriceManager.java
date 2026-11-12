@@ -145,6 +145,8 @@ public class AhPriceManager {
     private static int autoScanPageCount = 0;
     private static boolean autoScanReturning = false;
     private static int currentAhPage = 1;
+    public static int currentAhTotalPages = -1;
+    private static Set<String> lastAutoScanKeys = new HashSet<>();
     private static long lastContainerRemovedTime = 0;
 
     public static boolean isContainerOrShulker(ItemStack stack) {
@@ -370,6 +372,8 @@ public class AhPriceManager {
         hasSelectedBooksCategory = false;
         autoScanReturning = false;
         autoScanPageCount = 0;
+        lastAutoScanKeys.clear();
+        currentAhTotalPages = -1;
         scrollOffset = 0;
         maxScroll = 0;
         isDraggingScrollbar = false;
@@ -973,7 +977,11 @@ public class AhPriceManager {
         }
         Matcher m2 = PAGE_REGEX_2.matcher(text);
         if (m2.find()) {
-            try { return Integer.parseInt(m2.group(1)); } catch (Exception ignored) {}
+            try {
+                int cur = Integer.parseInt(m2.group(1));
+                try { currentAhTotalPages = Integer.parseInt(m2.group(2)); } catch (Exception ignored) {}
+                return cur;
+            } catch (Exception ignored) {}
         }
         return -1;
     }
@@ -1226,7 +1234,6 @@ public class AhPriceManager {
 
             ParsedInfo info = parseSellerAndPrice(stack);
             if (info.price > 0) {
-                hasSelectedBooksCategory = true;
                 AhListing listing = new AhListing(singleId, eName, level, info.seller, info.price, info.netPrice, info.tax);
                 listing.page = Math.max(1, currentAhPage);
                 listing.slot = i;
@@ -1446,6 +1453,8 @@ public class AhPriceManager {
         autoNavWaitRetries = 0;
         isAutoScanning = false;
         autoScanPageCount = 0;
+        lastAutoScanKeys.clear();
+        currentAhTotalPages = -1;
         scrollOffset = 0;
         maxScroll = 0;
         isDraggingScrollbar = false;
@@ -1648,19 +1657,28 @@ public class AhPriceManager {
                 isAutoScanning = false;
                 autoScanReturning = false;
                 autoScanPageCount = 0;
+                lastAutoScanKeys.clear();
                 if (mc.player != null) {
                     mc.player.sendOverlayMessage(Component.literal("§c• Scansione /ah interrotta"));
                 }
             } else {
                 isAutoScanning = true;
-                hasSelectedBooksCategory = false;
+                hasSelectedBooksCategory = true;
                 hasAutoScannedThisSession = false;
                 autoScanReturning = false;
                 autoScanPageCount = 0;
-                lastAutoScanClick = 0;
+                lastAutoScanClick = System.currentTimeMillis();
+                lastAutoScanKeys.clear();
                 currentAhPage = 1;
+
+                // Clicca IMMEDIATAMENTE sullo slot del libro (Slot 7)
+                int bookSlot = findBookCategorySlot(containerScreen);
+                if (bookSlot >= 0 && bookSlot < containerScreen.getMenu().slots.size()) {
+                    Slot sBook = containerScreen.getMenu().slots.get(bookSlot);
+                    clickSlot(containerScreen, sBook);
+                }
                 if (mc.player != null) {
-                    mc.player.sendOverlayMessage(Component.literal("§e✦ Avvio scansione completa sezione Libri..."));
+                    mc.player.sendOverlayMessage(Component.literal("§e✦ Apertura sezione Libri e avvio scansione pagine..."));
                 }
             }
             return true;
@@ -1840,23 +1858,30 @@ public class AhPriceManager {
         if (isAutoScanning) {
             if (now - lastAutoScanClick < 400) return; // Pausa per sincronizzazione della cassa
 
-            // Passo 1: se la categoria libri non è stata selezionata, clicca prima sullo slot del libro (Slot 7)
-            if (!hasSelectedBooksCategory) {
-                int bookSlot = findBookCategorySlot(screen);
-                if (bookSlot >= 0 && bookSlot < screen.getMenu().slots.size()) {
-                    lastAutoScanClick = now;
-                    hasSelectedBooksCategory = true;
-                    currentAhPage = 1;
-                    Slot sBook = screen.getMenu().slots.get(bookSlot);
-                    clickSlot(screen, sBook);
-                    if (mc.player != null) {
-                        mc.player.sendOverlayMessage(Component.literal("§e✦ Selezione sezione Libri..."));
-                    }
-                    return;
+            // 1. Controllo limite pagine totali note del server (da Pagina X di Y o X / Y)
+            if (currentAhTotalPages > 0 && currentAhPage >= currentAhTotalPages) {
+                isAutoScanning = false;
+                autoScanPageCount = 0;
+                lastAutoScanKeys.clear();
+                if (mc.player != null) {
+                    mc.player.sendOverlayMessage(Component.literal("§a✔ Scansione completata: " + cachedListings.size() + " offerte su " + currentAhTotalPages + " pagine!"));
                 }
+                return;
             }
 
-            // Passo 2: Sfoglia le pagine in avanti
+            // 2. Controllo duplicati: se la pagina attuale contiene le stesse identiche offerte della precedente, siamo all'ultima pagina
+            if (!lastScreenListingKeys.isEmpty() && lastScreenListingKeys.equals(lastAutoScanKeys)) {
+                isAutoScanning = false;
+                autoScanPageCount = 0;
+                lastAutoScanKeys.clear();
+                if (mc.player != null) {
+                    mc.player.sendOverlayMessage(Component.literal("§a✔ Scansione completata: " + cachedListings.size() + " offerte in memoria!"));
+                }
+                return;
+            }
+            lastAutoScanKeys = new HashSet<>(lastScreenListingKeys);
+
+            // 3. Cerca la freccia per la pagina successiva (Slot 50)
             int nextSlot = findNextPageSlot(screen);
             if (nextSlot >= 0 && autoScanPageCount < 15) {
                 autoScanPageCount++;
@@ -1864,14 +1889,13 @@ public class AhPriceManager {
                 Slot s = screen.getMenu().slots.get(nextSlot);
                 clickSlot(screen, s);
                 if (mc.player != null) {
-                    mc.player.sendOverlayMessage(Component.literal("§e✦ Scansione /ah pagina " + currentAhPage + " (" + cachedListings.size() + " offerte)..."));
+                    mc.player.sendOverlayMessage(Component.literal("§e✦ Sfoglio /ah pagina " + currentAhPage + " (" + cachedListings.size() + " offerte)..."));
                 }
             } else {
-                // Passo 3: Raggiunta la fine o il limite: concludi la scansione e FERMATI in modo pulito
+                // Raggiunta la fine o il limite: FERMATI in modo pulito
                 isAutoScanning = false;
-                int totalScanned = autoScanPageCount + 1;
                 autoScanPageCount = 0;
-
+                lastAutoScanKeys.clear();
                 if (mc.player != null) {
                     mc.player.sendOverlayMessage(Component.literal("§a✔ Scansione completata: " + cachedListings.size() + " offerte in memoria!"));
                 }
