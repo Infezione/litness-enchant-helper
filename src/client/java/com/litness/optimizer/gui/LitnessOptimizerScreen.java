@@ -138,6 +138,19 @@ public class LitnessOptimizerScreen extends Screen {
     private int calculatorPage = 0;
     private int calculatorScrollOffset = 0;
     private SoftwareButton btnCalcPrev = null;
+
+    // Notifica animata fluida a centro schermo
+    private static String toastTitle = null;
+    private static String toastSubtitle = null;
+    private static boolean toastSuccess = true;
+    private static long toastStartTime = 0;
+
+    public static void showCenterNotification(String title, String subtitle, boolean success) {
+        toastTitle = title;
+        toastSubtitle = subtitle;
+        toastSuccess = success;
+        toastStartTime = System.currentTimeMillis();
+    }
     private SoftwareButton btnCalcNext = null;
     private Solution currentSolution = null;
     private String statusMessage = null;
@@ -893,6 +906,7 @@ public class LitnessOptimizerScreen extends Screen {
         Minecraft mc = Minecraft.getInstance();
         String clipboard = mc.keyboardHandler.getClipboard();
         if (clipboard == null || clipboard.trim().isEmpty()) {
+            showCenterNotification("✖ APPUNTI VUOTI", "Copia prima un set da importare!", false);
             if (mc.player != null) {
                 mc.player.sendOverlayMessage(Component.literal("§c• Gli appunti sono vuoti!"));
             }
@@ -900,12 +914,14 @@ public class LitnessOptimizerScreen extends Screen {
         }
         CustomSet imported = SavedSetsManager.importSetFromString(clipboard);
         if (imported != null) {
+            showCenterNotification("✔ SET INCOLLATO CON SUCCESSO!", imported.name + " (" + imported.enchantments.size() + " incantesimi)", true);
             if (mc.player != null) {
                 mc.player.sendOverlayMessage(Component.literal("§a✔ Set '" + imported.name + "' importato con successo!"));
             }
             this.clearWidgets();
             this.init();
         } else {
+            showCenterNotification("✖ FORMATO NON VALIDO", "La stringa negli appunti non è un set valido", false);
             if (mc.player != null) {
                 mc.player.sendOverlayMessage(Component.literal("§c• Formato set non valido negli appunti!"));
             }
@@ -971,6 +987,7 @@ public class LitnessOptimizerScreen extends Screen {
                 String code = SavedSetsManager.exportSetToString(set);
                 if (code != null) {
                     Minecraft.getInstance().keyboardHandler.setClipboard(code);
+                    showCenterNotification("✔ SET COPIATO NEGLI APPUNTI!", set.name + " (" + set.enchantments.size() + " incantesimi)", true);
                     if (Minecraft.getInstance().player != null) {
                         Minecraft.getInstance().player.sendOverlayMessage(Component.literal("§a✔ Set '" + set.name + "' copiato negli appunti!"));
                     }
@@ -1667,6 +1684,9 @@ public class LitnessOptimizerScreen extends Screen {
 
         // 8. Tooltip flottanti in primo piano
         renderFloatingTooltips(extractor, mouseX, mouseY);
+
+        // 9. Notifica animata fluida a centro schermo
+        renderAnimatedCenterToast(extractor);
     }
 
     private void renderCatalogTab(GuiGraphicsExtractor extractor, int startX, int startY, int panelWidth, int panelHeight, int mouseX, int mouseY) {
@@ -1995,6 +2015,92 @@ public class LitnessOptimizerScreen extends Screen {
             int navY = getWinY() + getWinH() - 17;
             String pageStr = "Passi " + (startIdx + 1) + "-" + endIdx + " di " + totalSteps + " \u00A78(Scorri con rotellina)";
             extractor.centeredText(this.font, pageStr, startX + panelWidth / 2, navY, 0xFF9CA3AF);
+        }
+    }
+
+    // -------------------------------------------------------------
+    // NOTIFICA ANIMATA FLUIDA A CENTRO SCHERMO (Copia/Incolla Set)
+    // -------------------------------------------------------------
+    private void renderAnimatedCenterToast(GuiGraphicsExtractor extractor) {
+        if (toastTitle == null || toastStartTime <= 0) return;
+        long now = System.currentTimeMillis();
+        long elapsed = now - toastStartTime;
+        long totalDuration = 2400; // 2.4 secondi
+
+        if (elapsed >= totalDuration) {
+            toastTitle = null;
+            toastSubtitle = null;
+            toastStartTime = 0;
+            return;
+        }
+
+        float alpha;
+        float offsetY;
+
+        // Fase 1: Entrata fluidissima con cubic ease-out (0..300ms)
+        if (elapsed < 300) {
+            float progress = (float) elapsed / 300.0f;
+            float ease = 1.0f - (float) Math.pow(1.0f - progress, 3);
+            alpha = ease;
+            offsetY = -18.0f * (1.0f - ease);
+        }
+        // Fase 2: Sosta di lettura nitida (300..1800ms)
+        else if (elapsed < 1800) {
+            alpha = 1.0f;
+            offsetY = 0.0f;
+        }
+        // Fase 3: Dissolvenza morbida in uscita (1800..2400ms)
+        else {
+            float progress = (float) (elapsed - 1800) / 600.0f;
+            float ease = progress * progress; // ease-in
+            alpha = Math.max(0.0f, 1.0f - ease);
+            offsetY = -10.0f * ease;
+        }
+
+        int a = Math.max(0, Math.min(255, (int) (alpha * 255.0f)));
+        if (a <= 4) return;
+
+        int titleW = this.font.width(toastTitle);
+        int subW = (toastSubtitle != null && !toastSubtitle.isEmpty()) ? this.font.width(toastSubtitle) : 0;
+        int toastW = Math.max(260, Math.max(titleW, subW) + 54);
+        int toastH = (toastSubtitle != null && !toastSubtitle.isEmpty()) ? 46 : 34;
+
+        int toastX = (this.width - toastW) / 2;
+        int toastY = (this.height - toastH) / 2 + (int) offsetY;
+
+        // Ombra morbida
+        int shadowAlpha = Math.max(0, Math.min(160, a / 2));
+        drawRoundedRect(extractor, toastX + 2, toastY + 3, toastW, toastH, 8, (shadowAlpha << 24));
+
+        // Sfondo Obsidian Dark Glass
+        int bgAlpha = Math.max(0, Math.min(248, (int) (a * 0.96f)));
+        int bgColor = (bgAlpha << 24) | 0x0A0D15;
+        drawRoundedRect(extractor, toastX, toastY, toastW, toastH, 8, bgColor);
+
+        // Bordo luminoso
+        int borderColor = toastSuccess ? ((a << 24) | 0x10B981) : ((a << 24) | 0xEF4444);
+        drawRoundedOutline(extractor, toastX, toastY, toastW, toastH, 8, borderColor);
+
+        // Pillola accento verticale colorata a sinistra
+        int pillColor = toastSuccess ? ((a << 24) | 0x10B981) : ((a << 24) | 0xEF4444);
+        drawRoundedRect(extractor, toastX + 6, toastY + 6, 4, toastH - 12, 2, pillColor);
+
+        // Icona distintiva (badge circolare / tondo a sinistra)
+        int iconX = toastX + 16;
+        int iconCenterY = toastY + (toastH / 2) - 4;
+        String icon = toastSuccess ? "✔" : "✖";
+        int iconColor = toastSuccess ? ((a << 24) | 0x34D399) : ((a << 24) | 0xF87171);
+        extractor.text(this.font, icon, iconX, iconCenterY - 1, iconColor, true);
+
+        // Testo Titolo e Sottotitolo
+        int textX = toastX + 32;
+        int titleColor = (a << 24) | 0xFFFFFF;
+        if (toastSubtitle != null && !toastSubtitle.isEmpty()) {
+            extractor.text(this.font, toastTitle, textX, toastY + 9, titleColor, true);
+            int subColor = toastSuccess ? ((a << 24) | 0x6EE7B7) : ((a << 24) | 0xFCA5A5);
+            extractor.text(this.font, toastSubtitle, textX, toastY + 23, subColor, false);
+        } else {
+            extractor.text(this.font, toastTitle, textX, toastY + (toastH / 2) - 4, titleColor, true);
         }
     }
 

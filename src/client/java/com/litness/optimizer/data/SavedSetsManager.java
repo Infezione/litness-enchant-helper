@@ -127,6 +127,49 @@ public class SavedSetsManager {
         return Character.toUpperCase(str.charAt(0)) + str.substring(1);
     }
 
+    public static String normalizeItemKey(String key) {
+        if (key == null) return "sword";
+        String k = key.trim().toLowerCase(Locale.ROOT);
+        switch (k) {
+            case "chest": case "chestplate": case "corazza": case "pettorina": return "chest";
+            case "helmet": case "elmo": case "casco": return "helmet";
+            case "legs": case "leggings": case "gambali": case "pantaloni": return "legs";
+            case "boots": case "stivali": return "boots";
+            case "elytra": case "elitre": return "elytra";
+            case "sword": case "spada": return "sword";
+            case "axe": case "ascia": return "axe";
+            case "mace": case "mazza": return "mace";
+            case "trident": case "tridente": return "trident";
+            case "bow": case "arco": return "bow";
+            case "xbow": case "crossbow": case "balestra": return "xbow";
+            case "pick": case "pickaxe": case "piccone": return "pick";
+            case "shovel": case "pala": return "shovel";
+            case "hoe": case "zappa": return "hoe";
+            case "rod": case "fishing_rod": case "canna": return "rod";
+            default: return k;
+        }
+    }
+
+    public static String cleanEnchantId(String input) {
+        if (input == null) return "";
+        String s = input.trim();
+        if (s.isEmpty()) return "";
+        String lower = s.toLowerCase(Locale.ROOT).replace(" ", "_");
+        if (EnchantmentDatabase.getEnchantment(lower) != null) {
+            return lower;
+        }
+        var match = com.litness.optimizer.tooltip.LitnessTooltipHandler.matchEnchantment(s);
+        if (match != null && match.entry != null) {
+            if (match.level > 1 && !match.entry.id.contains("_")) {
+                String vPlus = EnchantmentDatabase.resolveVanillaPlusId(match.entry.id, match.level);
+                if (vPlus != null) return vPlus;
+                return match.entry.id + "_" + match.level;
+            }
+            return match.entry.id;
+        }
+        return lower;
+    }
+
     public static class ExportedSet {
         public String name;
         public String itemKey;
@@ -136,13 +179,10 @@ public class SavedSetsManager {
     public static String exportSetToString(CustomSet set) {
         if (set == null) return null;
         try {
-            ExportedSet exp = new ExportedSet();
-            exp.name = set.name;
-            exp.itemKey = set.itemKey;
-            exp.enchantments = new ArrayList<>(set.enchantments);
-            String json = GSON.toJson(exp);
-            String b64 = Base64.getEncoder().encodeToString(json.getBytes(java.nio.charset.StandardCharsets.UTF_8));
-            return "LITSET:" + b64;
+            String name = (set.name != null && !set.name.trim().isEmpty()) ? set.name.trim() : "Custom Set";
+            String key = (set.itemKey != null && !set.itemKey.trim().isEmpty()) ? set.itemKey.trim().toLowerCase(Locale.ROOT) : "sword";
+            String enchs = String.join(", ", set.enchantments);
+            return String.format("Set: %s | %s | %s", name, key, enchs);
         } catch (Exception e) {
             e.printStackTrace();
             return null;
@@ -153,24 +193,65 @@ public class SavedSetsManager {
         if (input == null || input.trim().isEmpty()) return null;
         String trimmed = input.trim();
         try {
+            String readable = trimmed;
+            if (readable.startsWith("LITSET:")) {
+                String sub = readable.substring("LITSET:".length()).trim();
+                if (sub.contains("|")) {
+                    readable = sub;
+                }
+            }
+            if (readable.toLowerCase(Locale.ROOT).startsWith("set:")) {
+                readable = readable.substring(4).trim();
+            } else if (readable.toLowerCase(Locale.ROOT).startsWith("litnessset:")) {
+                readable = readable.substring(11).trim();
+            }
+
+            // 1. Formato leggibile con pipe: "Nome | itemKey | ench1, ench2..."
+            if (readable.contains("|")) {
+                String[] parts = readable.split("\\|", 3);
+                if (parts.length >= 2) {
+                    String name = parts[0].trim();
+                    String itemKey = normalizeItemKey(parts[1].trim());
+                    List<String> enchs = new ArrayList<>();
+                    if (parts.length > 2 && !parts[2].trim().isEmpty()) {
+                        String[] rawList = parts[2].split("[,;]+");
+                        for (String raw : rawList) {
+                            String cleaned = cleanEnchantId(raw);
+                            if (!cleaned.isEmpty()) enchs.add(cleaned);
+                        }
+                    }
+                    if (name.isEmpty()) name = "Set " + capitalize(itemKey);
+                    return addSet(name, itemKey, enchs);
+                }
+            }
+
+            // 2. Formato separato da due punti: "Nome: itemKey: ench1, ench2..."
+            if (readable.contains(":")) {
+                String[] parts = readable.split(":", 3);
+                if (parts.length >= 2) {
+                    String name = parts[0].trim();
+                    String itemKey = normalizeItemKey(parts[1].trim());
+                    List<String> enchs = new ArrayList<>();
+                    if (parts.length > 2 && !parts[2].trim().isEmpty()) {
+                        String[] rawList = parts[2].split("[,;]+");
+                        for (String raw : rawList) {
+                            String cleaned = cleanEnchantId(raw);
+                            if (!cleaned.isEmpty()) enchs.add(cleaned);
+                        }
+                    }
+                    if (name.isEmpty()) name = "Set " + capitalize(itemKey);
+                    return addSet(name, itemKey, enchs);
+                }
+            }
+
+            // 3. Fallback per vecchi codici Base64 o JSON
             String json = null;
             if (trimmed.startsWith("LITSET:")) {
                 String payload = trimmed.substring("LITSET:".length()).trim();
-                if (payload.contains("|")) {
-                    String[] parts = payload.split("\\|", 3);
-                    if (parts.length >= 2) {
-                        String name = parts[0];
-                        String itemKey = parts[1];
-                        List<String> enchs = new ArrayList<>();
-                        if (parts.length > 2 && !parts[2].isEmpty()) {
-                            enchs.addAll(Arrays.asList(parts[2].split(",")));
-                        }
-                        return addSet(name, itemKey, enchs);
-                    }
-                } else {
+                try {
                     byte[] bytes = Base64.getDecoder().decode(payload);
                     json = new String(bytes, java.nio.charset.StandardCharsets.UTF_8);
-                }
+                } catch (Exception ignored) {}
             } else if (trimmed.startsWith("{") && trimmed.endsWith("}")) {
                 json = trimmed;
             } else {
@@ -184,7 +265,14 @@ public class SavedSetsManager {
                 ExportedSet exp = GSON.fromJson(json, ExportedSet.class);
                 if (exp != null && exp.itemKey != null && !exp.itemKey.trim().isEmpty()) {
                     String finalName = (exp.name != null && !exp.name.trim().isEmpty()) ? exp.name.trim() : ("Set " + capitalize(exp.itemKey));
-                    return addSet(finalName, exp.itemKey.trim().toLowerCase(Locale.ROOT), exp.enchantments);
+                    List<String> cleanList = new ArrayList<>();
+                    if (exp.enchantments != null) {
+                        for (String s : exp.enchantments) {
+                            String c = cleanEnchantId(s);
+                            if (!c.isEmpty()) cleanList.add(c);
+                        }
+                    }
+                    return addSet(finalName, normalizeItemKey(exp.itemKey), cleanList);
                 }
             }
         } catch (Exception e) {
