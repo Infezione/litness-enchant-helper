@@ -162,6 +162,20 @@ public class LitnessOptimizerScreen extends Screen {
     private SoftwareButton btnLangToggle = null;
     private SoftwareButton btnClose = null;
 
+    // Animazioni fluide: pillola scorrevole barra laterale e transizione schede
+    private float animatedPillY = -1.0f;
+    private long tabTransitionStartTime = System.currentTimeMillis();
+
+    private void switchTab(Tab newTab) {
+        if (this.currentTab != newTab) {
+            this.currentTab = newTab;
+            this.isCreatingSet = false;
+            this.tabTransitionStartTime = System.currentTimeMillis();
+            this.clearWidgets();
+            this.init();
+        }
+    }
+
     public LitnessOptimizerScreen(Component title) {
         this(title, null, null, null);
     }
@@ -194,6 +208,7 @@ public class LitnessOptimizerScreen extends Screen {
     public void openSetEditor(SavedSetsManager.CustomSet set) {
         this.currentTab = Tab.SETS;
         this.isCreatingSet = true;
+        this.tabTransitionStartTime = System.currentTimeMillis();
         this.editingSetId = (set != null) ? set.id : null;
         this.creatingSetEnchants.clear();
         if (set != null) {
@@ -256,6 +271,18 @@ public class LitnessOptimizerScreen extends Screen {
         extractor.fill(x + w - 2, y + h - r, x + w - 1, y + h - 2, color);
     }
 
+    public static int lerpColor(int c1, int c2, float t) {
+        if (t <= 0.0f) return c1;
+        if (t >= 1.0f) return c2;
+        int a1 = (c1 >> 24) & 0xFF, r1 = (c1 >> 16) & 0xFF, g1 = (c1 >> 8) & 0xFF, b1 = c1 & 0xFF;
+        int a2 = (c2 >> 24) & 0xFF, r2 = (c2 >> 16) & 0xFF, g2 = (c2 >> 8) & 0xFF, b2 = c2 & 0xFF;
+        int a = (int)(a1 + (a2 - a1) * t);
+        int r = (int)(r1 + (r2 - r1) * t);
+        int g = (int)(g1 + (g2 - g1) * t);
+        int b = (int)(b1 + (b2 - b1) * t);
+        return (a << 24) | (r << 16) | (g << 8) | b;
+    }
+
     // -------------------------------------------------------------
     // SOFTWARE BUTTON WIDGET (Obsidian Minimal Soft Rounded Style)
     // -------------------------------------------------------------
@@ -267,6 +294,7 @@ public class LitnessOptimizerScreen extends Screen {
         private boolean isSuccess = false;
         private boolean isSocket = false;
         private long lastPressTime = 0;
+        private float hoverAnim = 0.0f;
 
         public SoftwareButton(int x, int y, int width, int height, Component message, OnPress onPress) {
             super(x, y, width, height, message, onPress, DEFAULT_NARRATION);
@@ -311,6 +339,9 @@ public class LitnessOptimizerScreen extends Screen {
         @Override
         public void extractContents(GuiGraphicsExtractor extractor, int mouseX, int mouseY, float delta) {
             boolean hovered = isHovered();
+            float targetHover = hovered ? 1.0f : 0.0f;
+            hoverAnim += (targetHover - hoverAnim) * 0.28f;
+
             int x = getX();
             int y = getY();
             int w = getWidth();
@@ -321,21 +352,22 @@ public class LitnessOptimizerScreen extends Screen {
             y += pressOffset;
 
             if (isSidebar) {
-                int bg = isTabActive ? 0xFF181D2C : (hovered ? 0xFF131724 : 0x00000000);
-                int border = isTabActive ? 0xFF3B82F6 : (hovered ? 0xFF1E2334 : 0x00000000);
-                if (bg != 0) {
+                int restingBg = isTabActive ? 0xFF181D2C : 0x00000000;
+                int hoveredBg = isTabActive ? 0xFF1E2436 : 0xFF131724;
+                int bg = lerpColor(restingBg, hoveredBg, hoverAnim);
+
+                int restingBorder = isTabActive ? 0xFF3B82F6 : 0x00000000;
+                int hoveredBorder = isTabActive ? 0xFF60A5FA : 0xFF1E2334;
+                int border = lerpColor(restingBorder, hoveredBorder, hoverAnim);
+
+                if ((bg & 0xFF000000) != 0) {
                     drawRoundedRect(extractor, x, y, w, h, 6, bg);
-                    if (border != 0) drawRoundedOutline(extractor, x, y, w, h, 6, border);
                 }
-                if (isTabActive) {
-                    // Pillola accento azzurro Obsidian a sinistra e indicatore luminoso pulsante
-                    extractor.fill(x + 3, y + 4, x + 5, y + h - 4, 0xFF3B82F6);
-                    long time = System.currentTimeMillis();
-                    double pulse = (Math.sin(time / 240.0) + 1.0) / 2.0;
-                    int pulseAlpha = (int)(0x80 + pulse * 0x7F);
-                    extractor.fill(x + w - 10, y + (h - 4) / 2, x + w - 6, y + (h + 4) / 2, (pulseAlpha << 24) | 0x60A5FA);
+                if ((border & 0xFF000000) != 0) {
+                    drawRoundedOutline(extractor, x, y, w, h, 6, border);
                 }
-                int textColor = isTabActive ? 0xFFFFFFFF : (hovered ? 0xFFE2E8F0 : 0xFF94A3B8);
+
+                int textColor = isTabActive ? 0xFFFFFFFF : lerpColor(0xFF94A3B8, 0xFFE2E8F0, hoverAnim);
                 extractor.text(Minecraft.getInstance().font, getMessage().getString(), x + 10, y + (h - 8) / 2, textColor, false);
 
                 if (elapsed < 220) {
@@ -368,35 +400,36 @@ public class LitnessOptimizerScreen extends Screen {
                 return;
             }
 
-            int bg;
-            int border;
-            int textColor;
-
+            int restingBg, hoveredBg, restingBorder, hoveredBorder, restingText, hoveredText;
             if (!this.active) {
-                bg = 0xFF10121C;
-                border = 0xFF1A1D2C;
-                textColor = 0xFF4B5563;
+                restingBg = hoveredBg = 0xFF10121C;
+                restingBorder = hoveredBorder = 0xFF1A1D2C;
+                restingText = hoveredText = 0xFF4B5563;
             } else if (isDanger) {
-                bg = hovered ? 0xFFDC2626 : 0xFF991B1B;
-                border = hovered ? 0xFFEF4444 : 0xFFB91C1C;
-                textColor = 0xFFFFFFFF;
+                restingBg = 0xFF991B1B; hoveredBg = 0xFFDC2626;
+                restingBorder = 0xFFB91C1C; hoveredBorder = 0xFFEF4444;
+                restingText = hoveredText = 0xFFFFFFFF;
             } else if (isSuccess) {
-                bg = hovered ? 0xFF0D3322 : 0xFF0B291B;
-                border = hovered ? 0xFF34D399 : 0xFF10B981;
-                textColor = 0xFF86EFAC;
+                restingBg = 0xFF0B291B; hoveredBg = 0xFF0D3322;
+                restingBorder = 0xFF10B981; hoveredBorder = 0xFF34D399;
+                restingText = hoveredText = 0xFF86EFAC;
             } else if (isPrimary) {
-                bg = hovered ? 0xFF2563EB : 0xFF1D4ED8;
-                border = hovered ? 0xFF60A5FA : 0xFF3B82F6;
-                textColor = 0xFFFFFFFF;
+                restingBg = 0xFF1D4ED8; hoveredBg = 0xFF2563EB;
+                restingBorder = 0xFF3B82F6; hoveredBorder = 0xFF60A5FA;
+                restingText = hoveredText = 0xFFFFFFFF;
             } else if (isTabActive) {
-                bg = 0xFF1E2638;
-                border = 0xFF3B82F6;
-                textColor = 0xFFFFFFFF;
+                restingBg = 0xFF1E2638; hoveredBg = 0xFF253046;
+                restingBorder = 0xFF3B82F6; hoveredBorder = 0xFF60A5FA;
+                restingText = hoveredText = 0xFFFFFFFF;
             } else {
-                bg = hovered ? 0xFF1C2234 : 0xFF141724;
-                border = hovered ? 0xFF3B82F6 : 0xFF1E2334;
-                textColor = hovered ? 0xFFFFFFFF : 0xFFCBD5E1;
+                restingBg = 0xFF141724; hoveredBg = 0xFF1C2234;
+                restingBorder = 0xFF1E2334; hoveredBorder = 0xFF3B82F6;
+                restingText = 0xFFCBD5E1; hoveredText = 0xFFFFFFFF;
             }
+
+            int bg = lerpColor(restingBg, hoveredBg, hoverAnim);
+            int border = lerpColor(restingBorder, hoveredBorder, hoverAnim);
+            int textColor = lerpColor(restingText, hoveredText, hoverAnim);
 
             drawRoundedRect(extractor, x, y, w, h, 5, bg);
             drawRoundedOutline(extractor, x, y, w, h, 5, border);
@@ -444,6 +477,7 @@ public class LitnessOptimizerScreen extends Screen {
         public final ItemStack iconStack;
         public boolean hasInlineSearchButton = false;
         private long lastPressTime = 0;
+        private float hoverAnim = 0.0f;
 
         public EnchantmentCardWidget(int x, int y, int width, int height, EnchantmentEntry entry,
                                      boolean isInspected, boolean isSelected, boolean hasConflict, String conflictName,
@@ -475,6 +509,9 @@ public class LitnessOptimizerScreen extends Screen {
         @Override
         public void extractContents(GuiGraphicsExtractor extractor, int mouseX, int mouseY, float delta) {
             boolean hovered = isHovered();
+            float targetHover = hovered ? 1.0f : 0.0f;
+            hoverAnim += (targetHover - hoverAnim) * 0.28f;
+
             int x = getX();
             int y = getY();
             int w = getWidth();
@@ -484,28 +521,39 @@ public class LitnessOptimizerScreen extends Screen {
             int pressOffset = (elapsed < 110) ? 1 : 0;
             y += pressOffset;
 
-            int bg;
-            int border;
+            int restingBg, hoveredBg, restingBorder, hoveredBorder;
             if (isInspected) {
                 // Scheda visualizzata nell'ispettore: Blu Obsidian Stondato sempre attivo
-                bg = hovered ? 0xFF14243A : 0xFF0E1A2C;
-                border = 0xFF3B82F6; // Cornice blu Obsidian
+                restingBg = 0xFF0E1A2C;
+                hoveredBg = 0xFF14243A;
+                restingBorder = hoveredBorder = 0xFF3B82F6; // Cornice blu Obsidian
             } else if (hasInlineSearchButton) {
                 // In Catalogo: stile Obsidian uniforme senza conflitti cromatici
-                bg = hovered ? 0xFF1C2234 : 0xFF131724;
-                border = hovered ? 0xFF3B82F6 : 0xFF1E2334;
+                restingBg = 0xFF131724;
+                hoveredBg = 0xFF1C2234;
+                restingBorder = 0xFF1E2334;
+                hoveredBorder = 0xFF3B82F6;
             } else if (isSelected) {
                 // Attivo nel set (durante creazione set): Stile smeraldo pulito
-                bg = hovered ? 0xFF0E251A : 0xFF091C13;
-                border = hovered ? 0xFF34D399 : 0xFF10B981;
+                restingBg = 0xFF091C13;
+                hoveredBg = 0xFF0E251A;
+                restingBorder = 0xFF10B981;
+                hoveredBorder = 0xFF34D399;
             } else if (hasConflict) {
                 // Incompatibile con il set: Stile muted sobrio (non rosso sangue allarmante)
-                bg = hovered ? 0xFF19141D : 0xFF121017;
-                border = hovered ? 0xFF581C28 : 0xFF261922;
+                restingBg = 0xFF121017;
+                hoveredBg = 0xFF19141D;
+                restingBorder = 0xFF261922;
+                hoveredBorder = 0xFF581C28;
             } else {
-                bg = hovered ? 0xFF1C2234 : 0xFF131724;
-                border = hovered ? 0xFF3B82F6 : 0xFF1E2334;
+                restingBg = 0xFF131724;
+                hoveredBg = 0xFF1C2234;
+                restingBorder = 0xFF1E2334;
+                hoveredBorder = 0xFF3B82F6;
             }
+
+            int bg = lerpColor(restingBg, hoveredBg, hoverAnim);
+            int border = lerpColor(restingBorder, hoveredBorder, hoverAnim);
 
             drawRoundedRect(extractor, x, y, w, h, 6, bg);
             drawRoundedOutline(extractor, x, y, w, h, 6, border);
@@ -624,28 +672,19 @@ public class LitnessOptimizerScreen extends Screen {
 
         SoftwareButton tabCatalog = new SoftwareButton(winX + 6, tabY, SIDEBAR_W - 12, tabH,
                 Component.literal("📖 " + LitnessI18n.t("tab_catalog")), b -> {
-            this.currentTab = Tab.CATALOG;
-            this.isCreatingSet = false;
-            this.clearWidgets();
-            this.init();
+            switchTab(Tab.CATALOG);
         }).setSidebar(true).setTabActive(this.currentTab == Tab.CATALOG);
         this.addRenderableWidget(tabCatalog);
 
         SoftwareButton tabSets = new SoftwareButton(winX + 6, tabY + tabH + 4, SIDEBAR_W - 12, tabH,
                 Component.literal("🛡 " + LitnessI18n.t("tab_sets")), b -> {
-            this.currentTab = Tab.SETS;
-            this.isCreatingSet = false;
-            this.clearWidgets();
-            this.init();
+            switchTab(Tab.SETS);
         }).setSidebar(true).setTabActive(this.currentTab == Tab.SETS);
         this.addRenderableWidget(tabSets);
 
         SoftwareButton tabCalc = new SoftwareButton(winX + 6, tabY + (tabH * 2) + 8, SIDEBAR_W - 12, tabH,
                 Component.literal("⚡ " + LitnessI18n.t("tab_calculator")), b -> {
-            this.currentTab = Tab.CALCULATOR;
-            this.isCreatingSet = false;
-            this.clearWidgets();
-            this.init();
+            switchTab(Tab.CALCULATOR);
         }).setSidebar(true).setTabActive(this.currentTab == Tab.CALCULATOR);
         this.addRenderableWidget(tabCalc);
 
@@ -1114,9 +1153,7 @@ public class LitnessOptimizerScreen extends Screen {
             selectedItemIndex = creatingSetItemIndex;
             calcMode = CalcMode.SIMULATOR;
             runCalculation();
-            this.currentTab = Tab.CALCULATOR;
-            this.clearWidgets();
-            this.init();
+            switchTab(Tab.CALCULATOR);
         }).setPrimary(selCount > 0);
         btnSim.active = (selCount > 0);
         btnSim.setTooltip(net.minecraft.client.gui.components.Tooltip.create(
@@ -1140,6 +1177,7 @@ public class LitnessOptimizerScreen extends Screen {
             }
             isCreatingSet = false;
             editingSetId = null;
+            tabTransitionStartTime = System.currentTimeMillis();
             this.clearWidgets();
             this.init();
         }).setSuccess(true);
@@ -1150,6 +1188,7 @@ public class LitnessOptimizerScreen extends Screen {
         SoftwareButton btnCancel = new SoftwareButton(startX + 4 + btnSaveW + 4, botY, btnCancelW, 20, Component.literal(LitnessI18n.t("btn_cancel")), b -> {
             isCreatingSet = false;
             editingSetId = null;
+            tabTransitionStartTime = System.currentTimeMillis();
             this.clearWidgets();
             this.init();
         });
@@ -1480,9 +1519,7 @@ public class LitnessOptimizerScreen extends Screen {
         calcMode = CalcMode.SIMULATOR;
         runCalculation();
         statusMessage = "\u00A7aCaricato set '" + set.name + "' (" + set.enchantments.size() + "/12)!";
-        currentTab = Tab.CALCULATOR;
-        this.clearWidgets();
-        this.init();
+        switchTab(Tab.CALCULATOR);
     }
 
     private void updateSearch() {
@@ -1665,6 +1702,29 @@ public class LitnessOptimizerScreen extends Screen {
         // 4. Linea divisoria Barra Laterale Sinistra
         extractor.fill(winX + SIDEBAR_W, winY + HEADER_H, winX + SIDEBAR_W + 1, winY + winH, 0xFF1A1D2E);
 
+        // 4b. Pillola accento azzurro fluida che scorre dolcemente tra le schede
+        int tabY0 = winY + HEADER_H + 6;
+        int tabH0 = 26;
+        float targetPillY = tabY0;
+        if (this.currentTab == Tab.SETS) {
+            targetPillY = tabY0 + tabH0 + 4;
+        } else if (this.currentTab == Tab.CALCULATOR) {
+            targetPillY = tabY0 + (tabH0 * 2) + 8;
+        }
+
+        if (this.animatedPillY < 0) {
+            this.animatedPillY = targetPillY;
+        } else {
+            this.animatedPillY += (targetPillY - this.animatedPillY) * 0.30f;
+        }
+
+        int pillY = (int) this.animatedPillY;
+        drawRoundedRect(extractor, winX + 8, pillY + 4, 3, tabH0 - 8, 1, 0xFF3B82F6);
+        long animTime = System.currentTimeMillis();
+        double pulse = (Math.sin(animTime / 240.0) + 1.0) / 2.0;
+        int pulseAlpha = (int) (0x80 + pulse * 0x7F);
+        extractor.fill(winX + SIDEBAR_W - 14, pillY + (tabH0 - 4) / 2, winX + SIDEBAR_W - 10, pillY + (tabH0 + 4) / 2, (pulseAlpha << 24) | 0x60A5FA);
+
         // 5. Area Contenuto Destra
         int contentX = winX + SIDEBAR_W + 8;
         int contentY = winY + HEADER_H + 6;
@@ -1677,6 +1737,17 @@ public class LitnessOptimizerScreen extends Screen {
             renderSavedSetsTab(extractor, contentX, contentY, contentW, contentH, mouseX, mouseY);
         } else {
             renderCalculatorTab(extractor, contentX, contentY, contentW, contentH, mouseX, mouseY);
+        }
+
+        // Dissolvenza morbida fluida all'ingresso della scheda
+        long tabElapsed = System.currentTimeMillis() - this.tabTransitionStartTime;
+        if (tabElapsed < 220) {
+            float progress = (float) tabElapsed / 220.0f;
+            float ease = 1.0f - (float) Math.pow(1.0f - progress, 3);
+            int veilAlpha = (int) ((1.0f - ease) * 140);
+            if (veilAlpha > 2) {
+                drawRoundedRect(extractor, winX + SIDEBAR_W + 2, winY + HEADER_H + 2, winW - SIDEBAR_W - 4, winH - HEADER_H - 4, 8, (veilAlpha << 24) | 0x090B10);
+            }
         }
 
         // 7. Render widget standard (pulsanti e campi testo)
