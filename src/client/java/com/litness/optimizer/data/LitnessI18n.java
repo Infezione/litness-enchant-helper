@@ -278,7 +278,7 @@ public class LitnessI18n {
             case "clean_books_only": return en ? "Clean books (Best in Orange)" : "Libri lisci (Migliori in Arancio)";
             case "ah_prices": return en ? "AH PRICES" : "PREZZI AH";
             case "best_prices": return en ? "BEST OFFERS:" : "MIGLIORI PREZZI:";
-            case "browse_ah_hint": return en ? "Browse /ah pages to read prices!" : "Sfoglia /ah per leggere i prezzi!";
+            case "browse_ah_hint": return en ? "Click [Auto Search] or browse /ah!" : "Premi [Ricerca Automatica] o sfoglia /ah!";
             case "right_click_remove": return en ? "Right-click card to remove offer" : "Tasto destro sulla card per rimuovere l'offerta";
             case "offer_removed": return en ? "Offer removed from list" : "Offerta rimossa dalla lista";
             case "btn_new_set": return en ? "+ New Set" : "+ Nuovo Set";
