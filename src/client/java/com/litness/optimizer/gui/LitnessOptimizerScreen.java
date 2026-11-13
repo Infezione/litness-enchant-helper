@@ -352,6 +352,10 @@ public class LitnessOptimizerScreen extends Screen {
             y += pressOffset;
 
             if (isSidebar) {
+                int hoverShiftX = (int) (hoverAnim * 3.0f);
+                x += hoverShiftX;
+                w -= hoverShiftX;
+
                 int restingBg = isTabActive ? 0xFF181D2C : 0x00000000;
                 int hoveredBg = isTabActive ? 0xFF1E2436 : 0xFF131724;
                 int bg = lerpColor(restingBg, hoveredBg, hoverAnim);
@@ -370,10 +374,15 @@ public class LitnessOptimizerScreen extends Screen {
                 int textColor = isTabActive ? 0xFFFFFFFF : lerpColor(0xFF94A3B8, 0xFFE2E8F0, hoverAnim);
                 extractor.text(Minecraft.getInstance().font, getMessage().getString(), x + 10, y + (h - 8) / 2, textColor, false);
 
-                if (elapsed < 220) {
-                    float progress = elapsed / 220f;
-                    int rippleAlpha = (int)((1.0f - progress) * 75);
-                    drawRoundedRect(extractor, x + 2, y + 2, w - 4, h - 4, 5, (rippleAlpha << 24) | 0x3B82F6);
+                if (elapsed < 240) {
+                    float progress = elapsed / 240f;
+                    float rippleEase = 1.0f - (float) Math.pow(1.0f - progress, 2);
+                    int rippleAlpha = (int)((1.0f - progress) * 120);
+                    int rw = (int)(w * rippleEase);
+                    int rh = (int)(h * rippleEase);
+                    int rx = x + (w - rw) / 2;
+                    int ry = y + (h - rh) / 2;
+                    drawRoundedRect(extractor, rx, ry, rw, rh, 5, (rippleAlpha << 24) | 0x38BDF8);
                 }
                 return;
             }
@@ -438,10 +447,15 @@ public class LitnessOptimizerScreen extends Screen {
                 extractor.fill(x + 4, y + h - 2, x + w - 4, y + h, 0xFF3B82F6);
             }
 
-            if (elapsed < 220) {
-                float progress = elapsed / 220f;
-                int rippleAlpha = (int)((1.0f - progress) * 85);
-                drawRoundedRect(extractor, x + 2, y + 2, w - 4, h - 4, 4, (rippleAlpha << 24) | 0x3B82F6);
+            if (elapsed < 240) {
+                float progress = elapsed / 240f;
+                float rippleEase = 1.0f - (float) Math.pow(1.0f - progress, 2);
+                int rippleAlpha = (int)((1.0f - progress) * 120);
+                int rw = (int)(w * rippleEase);
+                int rh = (int)(h * rippleEase);
+                int rx = x + (w - rw) / 2;
+                int ry = y + (h - rh) / 2;
+                drawRoundedRect(extractor, rx, ry, rw, rh, 4, (rippleAlpha << 24) | 0x38BDF8);
             }
 
             String label = getMessage().getString();
@@ -517,6 +531,11 @@ public class LitnessOptimizerScreen extends Screen {
             int w = getWidth();
             int h = getHeight();
 
+            // Scorrimento tattile orizzontale di 4 pixel su hover
+            int hoverShiftX = (int) (hoverAnim * 4.0f);
+            x += hoverShiftX;
+            w -= hoverShiftX;
+
             long elapsed = System.currentTimeMillis() - lastPressTime;
             int pressOffset = (elapsed < 110) ? 1 : 0;
             y += pressOffset;
@@ -558,11 +577,26 @@ public class LitnessOptimizerScreen extends Screen {
             drawRoundedRect(extractor, x, y, w, h, 6, bg);
             drawRoundedOutline(extractor, x, y, w, h, 6, border);
 
-            if (elapsed < 220) {
-                float progress = elapsed / 220f;
-                int rippleAlpha = (int)((1.0f - progress) * 85);
-                int rippleColor = (hasInlineSearchButton || !isSelected) ? 0x3B82F6 : 0x10B981;
-                drawRoundedRect(extractor, x + 2, y + 2, w - 4, h - 4, 5, (rippleAlpha << 24) | rippleColor);
+            // Tacca neon luminosa a sinistra della card attiva/hovered
+            if (hoverAnim > 0.05f) {
+                int indH = (int) (hoverAnim * (h - 8));
+                int indY = y + (h - indH) / 2;
+                int indAlpha = (int) (hoverAnim * 255.0f);
+                int indColor = isSelected ? 0x34D399 : 0x38BDF8;
+                extractor.fill(x + 2, indY, x + 4, indY + indH, (indAlpha << 24) | indColor);
+            }
+
+            // Ripple fluidissimo dinamico al click
+            if (elapsed < 240) {
+                float progress = elapsed / 240f;
+                float rippleEase = 1.0f - (float) Math.pow(1.0f - progress, 2);
+                int rippleAlpha = (int)((1.0f - progress) * 120);
+                int rippleColor = (hasInlineSearchButton || !isSelected) ? 0x38BDF8 : 0x10B981;
+                int rw = (int)(w * rippleEase);
+                int rh = (int)(h * rippleEase);
+                int rx = x + (w - rw) / 2;
+                int ry = y + (h - rh) / 2;
+                drawRoundedRect(extractor, rx, ry, rw, rh, 5, (rippleAlpha << 24) | rippleColor);
             }
 
             // Icona item/libro
@@ -1702,7 +1736,7 @@ public class LitnessOptimizerScreen extends Screen {
         // 4. Linea divisoria Barra Laterale Sinistra
         extractor.fill(winX + SIDEBAR_W, winY + HEADER_H, winX + SIDEBAR_W + 1, winY + winH, 0xFF1A1D2E);
 
-        // 4b. Pillola accento azzurro fluida che scorre dolcemente tra le schede
+        // 4b. Pillola accento e aura neon fluida che scorre dolcemente tra le schede
         int tabY0 = winY + HEADER_H + 6;
         int tabH0 = 26;
         float targetPillY = tabY0;
@@ -1715,21 +1749,43 @@ public class LitnessOptimizerScreen extends Screen {
         if (this.animatedPillY < 0) {
             this.animatedPillY = targetPillY;
         } else {
-            this.animatedPillY += (targetPillY - this.animatedPillY) * 0.30f;
+            this.animatedPillY += (targetPillY - this.animatedPillY) * 0.35f;
         }
 
         int pillY = (int) this.animatedPillY;
-        drawRoundedRect(extractor, winX + 8, pillY + 4, 3, tabH0 - 8, 1, 0xFF3B82F6);
-        long animTime = System.currentTimeMillis();
-        double pulse = (Math.sin(animTime / 240.0) + 1.0) / 2.0;
-        int pulseAlpha = (int) (0x80 + pulse * 0x7F);
-        extractor.fill(winX + SIDEBAR_W - 14, pillY + (tabH0 - 4) / 2, winX + SIDEBAR_W - 10, pillY + (tabH0 + 4) / 2, (pulseAlpha << 24) | 0x60A5FA);
+        // Aura / bagliore azzurro attorno al pulsante attivo
+        drawRoundedRect(extractor, winX + 5, pillY - 1, SIDEBAR_W - 10, tabH0 + 2, 7, 0x223B82F6);
+        drawRoundedOutline(extractor, winX + 5, pillY - 1, SIDEBAR_W - 10, tabH0 + 2, 7, 0x553B82F6);
 
-        // 5. Area Contenuto Destra
+        // Pillola accento blu elettrico con nucleo ciano brillante
+        drawRoundedRect(extractor, winX + 7, pillY + 3, 4, tabH0 - 6, 2, 0xFF3B82F6);
+        extractor.fill(winX + 8, pillY + 5, winX + 10, pillY + tabH0 - 8, 0xFF67E8F9);
+
+        // Scintilla neon pulsante a destra del pulsante attivo
+        long animTime = System.currentTimeMillis();
+        double pulse = (Math.sin(animTime / 180.0) + 1.0) / 2.0;
+        int pulseAlpha = (int) (120 + pulse * 135);
+        extractor.fill(winX + SIDEBAR_W - 14, pillY + (tabH0 - 4) / 2, winX + SIDEBAR_W - 10, pillY + (tabH0 + 4) / 2, (pulseAlpha << 24) | 0x38BDF8);
+
+        // 5. Area Contenuto Destra con Matrix Slide & Scale Pop fluidissima
         int contentX = winX + SIDEBAR_W + 8;
         int contentY = winY + HEADER_H + 6;
         int contentW = winW - SIDEBAR_W - 16;
         int contentH = winH - HEADER_H - 12;
+
+        long tabElapsed = System.currentTimeMillis() - this.tabTransitionStartTime;
+        float progress = Math.min(1.0f, (float) tabElapsed / 300.0f);
+        float ease = 1.0f - (float) Math.pow(1.0f - progress, 3); // cubic ease-out
+        float offsetY = -24.0f * (1.0f - ease);
+        float scale = 0.96f + (0.04f * ease);
+
+        float centerX = contentX + contentW / 2.0f;
+        float centerY = contentY + contentH / 2.0f;
+
+        extractor.pose().pushMatrix();
+        extractor.pose().translate(centerX, centerY);
+        extractor.pose().scale(scale, scale);
+        extractor.pose().translate(-centerX, -centerY + offsetY);
 
         if (this.currentTab == Tab.CATALOG) {
             renderCatalogTab(extractor, contentX, contentY, contentW, contentH, mouseX, mouseY);
@@ -1739,19 +1795,20 @@ public class LitnessOptimizerScreen extends Screen {
             renderCalculatorTab(extractor, contentX, contentY, contentW, contentH, mouseX, mouseY);
         }
 
-        // Dissolvenza morbida fluida all'ingresso della scheda
-        long tabElapsed = System.currentTimeMillis() - this.tabTransitionStartTime;
-        if (tabElapsed < 220) {
-            float progress = (float) tabElapsed / 220.0f;
-            float ease = 1.0f - (float) Math.pow(1.0f - progress, 3);
-            int veilAlpha = (int) ((1.0f - ease) * 140);
-            if (veilAlpha > 2) {
-                drawRoundedRect(extractor, winX + SIDEBAR_W + 2, winY + HEADER_H + 2, winW - SIDEBAR_W - 4, winH - HEADER_H - 4, 8, (veilAlpha << 24) | 0x090B10);
-            }
-        }
-
-        // 7. Render widget standard (pulsanti e campi testo)
+        // Render widget standard (pulsanti e campi testo) trasformati insieme al contenuto
         super.extractRenderState(extractor, mouseX, mouseY, delta);
+
+        extractor.pose().popMatrix();
+
+        // 6. Laser Streak Neon azzurro ad alta velocità in cima alla scheda al cambio tab
+        if (tabElapsed < 320) {
+            int laserW = (int) (contentW * ease);
+            extractor.fill(contentX, contentY - 3, contentX + laserW, contentY - 1, 0xFF3B82F6);
+            extractor.fill(contentX, contentY - 4, contentX + laserW, contentY, 0x4038BDF8);
+            int headX = contentX + laserW;
+            extractor.fill(Math.max(contentX, headX - 8), contentY - 4, headX, contentY, 0xFF67E8F9);
+            extractor.fill(Math.max(contentX, headX - 4), contentY - 5, headX + 2, contentY + 1, 0xFFFFFFFF);
+        }
 
         // 8. Tooltip flottanti in primo piano
         renderFloatingTooltips(extractor, mouseX, mouseY);
@@ -1890,20 +1947,27 @@ public class LitnessOptimizerScreen extends Screen {
             int rowIdx = i - startIdx;
             int curY = startY + 28 + (rowIdx * 28);
 
-            // Card Set Salvato
+            // Card Set Salvato con scorrimento tattile e highlight su hover
             boolean isPinned = ActiveSessionManager.isSetPinned(set.id);
-            int cardBg = isPinned ? 0xFF151A2E : 0xFF121422;
-            int cardBorder = isPinned ? 0xFF6366F1 : 0xFF222538;
+            boolean isRowHovered = (mouseX >= startX && mouseX <= startX + panelWidth && mouseY >= curY && mouseY <= curY + 24);
+            int rowShiftX = isRowHovered ? 4 : 0;
 
-            extractor.fill(startX, curY, startX + panelWidth, curY + 24, cardBg);
-            extractor.outline(startX, curY, panelWidth, 24, cardBorder);
+            int cardBg = isPinned ? (isRowHovered ? 0xFF1C223D : 0xFF151A2E) : (isRowHovered ? 0xFF181C2C : 0xFF121422);
+            int cardBorder = isPinned ? (isRowHovered ? 0xFF818CF8 : 0xFF6366F1) : (isRowHovered ? 0xFF3B82F6 : 0xFF222538);
+
+            extractor.fill(startX + rowShiftX, curY, startX + panelWidth, curY + 24, cardBg);
+            extractor.outline(startX + rowShiftX, curY, panelWidth - rowShiftX, 24, cardBorder);
+
+            if (isRowHovered) {
+                extractor.fill(startX + rowShiftX + 1, curY + 2, startX + rowShiftX + 3, curY + 22, 0xFF38BDF8);
+            }
 
             ItemStack pieceStack = getItemStackForType(set.itemKey);
-            extractor.fakeItem(pieceStack, startX + 4, curY + 4);
+            extractor.fakeItem(pieceStack, startX + rowShiftX + 4, curY + 4);
 
             String pinBadge = isPinned ? "\u00A76[\u2605 PIN] \u00A7r" : "";
             String title = pinBadge + "\u00A7f" + set.name + " \u00A78(" + set.enchantments.size() + "/12)";
-            extractor.text(this.font, title, startX + 24, curY + 8, 0xFFFFFFFF, false);
+            extractor.text(this.font, title, startX + rowShiftX + 24, curY + 8, 0xFFFFFFFF, false);
         }
 
         if (totalPages > 1) {

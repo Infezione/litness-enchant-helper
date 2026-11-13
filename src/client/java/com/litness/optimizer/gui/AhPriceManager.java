@@ -1337,33 +1337,40 @@ public class AhPriceManager {
         return false;
     }
 
+    private static boolean isPriceMatching(ParsedInfo info, AhListing listing) {
+        if (info == null || listing == null) return false;
+        if (info.price > 0 && Math.abs(info.price - listing.price) <= 1) return true;
+        if (info.netPrice > 0 && Math.abs(info.netPrice - listing.netPrice) <= 1) return true;
+        if (info.netPrice > 0 && Math.abs(info.netPrice - listing.price) <= 1) return true;
+        if (info.price > 0 && Math.abs(info.price - listing.netPrice) <= 1) return true;
+        return false;
+    }
+
     public static int findSlotForListing(AbstractContainerScreen<?> screen, AhListing listing) {
         if (screen == null || screen.getMenu() == null || listing == null) return -1;
         Minecraft mc = Minecraft.getInstance();
         if (mc.player == null) return -1;
         List<Slot> slots = screen.getMenu().slots;
 
-        // 1. Controlla prima lo slot originale memorizzato
-        if (listing.slot >= 9 && listing.slot < Math.min(45, slots.size())) {
+        int minAuctionSlot = 9;
+        int maxAuctionSlot = Math.min(45, slots.size());
+
+        // 1. Controlla prima lo slot originale memorizzato (solo se prezzo e incanto combaciano al 100%)
+        if (listing.slot >= minAuctionSlot && listing.slot < maxAuctionSlot) {
             Slot slot = slots.get(listing.slot);
             if (slot.container != mc.player.getInventory()) {
                 ItemStack stack = slot.getItem();
                 if (!stack.isEmpty() && isBook(stack) && matchesEnchantAndLevel(stack, listing.enchantId, listing.level)) {
                     ParsedInfo info = parseSellerAndPrice(stack);
-                    if (info.price <= 0 || info.price == listing.price || Math.abs(info.price - listing.price) <= 1) {
+                    if (isPriceMatching(info, listing)) {
                         return listing.slot;
                     }
                 }
             }
         }
 
-        // 2. Cerca in tutti gli slot d'asta (9..44)
-        int minAuctionSlot = 9;
-        int maxAuctionSlot = Math.min(45, slots.size());
-        int exactPriceSlot = -1;
-        int sameSellerSlot = -1;
-        int anyEnchantMatchSlot = -1;
-
+        // 2. Cerca in tutti gli slot d'asta (9..44) SOLO ed ESCLUSIVAMENTE offerte con prezzo corrispondente!
+        int exactMatchSlot = -1;
         for (int i = minAuctionSlot; i < maxAuctionSlot; i++) {
             Slot slot = slots.get(i);
             if (slot.container == mc.player.getInventory()) continue;
@@ -1372,24 +1379,21 @@ public class AhPriceManager {
 
             if (matchesEnchantAndLevel(stack, listing.enchantId, listing.level)) {
                 ParsedInfo info = parseSellerAndPrice(stack);
-                if (info.price == listing.price) {
-                    exactPriceSlot = i;
-                    break;
-                }
-                if (listing.seller != null && !listing.seller.isEmpty() && listing.seller.equalsIgnoreCase(info.seller)) {
-                    if (sameSellerSlot < 0) sameSellerSlot = i;
-                }
-                if (anyEnchantMatchSlot < 0) {
-                    anyEnchantMatchSlot = i;
+                if (isPriceMatching(info, listing)) {
+                    // Priorità assoluta se anche il venditore combacia!
+                    if (listing.seller != null && !listing.seller.isEmpty() && !listing.seller.equals("Sconosciuto")
+                            && listing.seller.equalsIgnoreCase(info.seller)) {
+                        return i;
+                    }
+                    if (exactMatchSlot < 0) {
+                        exactMatchSlot = i;
+                    }
                 }
             }
         }
 
-        if (exactPriceSlot >= 0) return exactPriceSlot;
-        if (sameSellerSlot >= 0) return sameSellerSlot;
-        if (anyEnchantMatchSlot >= 0) return anyEnchantMatchSlot;
-
-        return -1;
+        // Ritorna -1 se il prezzo non combacia. NON restituire MAI un libro a caso!
+        return exactMatchSlot;
     }
 
     public static boolean isGlassPane(ItemStack stack) {
@@ -2052,7 +2056,7 @@ public class AhPriceManager {
                 pendingBuyTime = now;
                 clickSlot(screen, s);
                 if (mc.player != null) {
-                    mc.player.sendOverlayMessage(Component.literal("§a✔ Trovato! Apertura acquisto per " + autoNavListing.getDisplayNameWithLevel()));
+                    mc.player.sendOverlayMessage(Component.literal("§a✔ Trovato! " + autoNavListing.getDisplayNameWithLevel() + " a " + autoNavListing.price + "$ (" + autoNavListing.seller + ")"));
                 }
                 autoNavListing = null;
                 autoNavAttempts = 0;
@@ -2248,6 +2252,26 @@ public class AhPriceManager {
         }
 
         int curY = searchBoxY + searchBoxH + 5;
+
+        // Banner animato HUD durante navigazione per acquisto offerta
+        if (autoNavListing != null) {
+            int navBannerY = curY;
+            int navBannerH = 20;
+            curY += navBannerH + 4;
+
+            long time = System.currentTimeMillis();
+            double p = (Math.sin(time / 140.0) + 1.0) / 2.0;
+            int pulseAlpha = (int)(0x90 + p * 0x6F);
+
+            LitnessOptimizerScreen.drawRoundedRect(extractor, sideX + 6, navBannerY, sideW - 12, navBannerH, 4, 0xEE0B182B);
+            LitnessOptimizerScreen.drawRoundedOutline(extractor, sideX + 6, navBannerY, sideW - 12, navBannerH, 4, 0xFF3B82F6);
+            extractor.fill(sideX + 10, navBannerY + 6, sideX + 14, navBannerY + 14, (pulseAlpha << 24) | 0x38BDF8);
+
+            String navMsg = "✦ Ricerca a Pagina " + autoNavListing.page + "...";
+            extractor.text(font, navMsg, sideX + 18, navBannerY + 3, 0xFF67E8F9, false);
+            String navSub = autoNavListing.price + "$ \u00A78(" + autoNavListing.seller + ")";
+            extractor.text(font, navSub, sideX + 18, navBannerY + 11, 0xFF94A3B8, false);
+        }
 
         if (!hasQuery && !hasFilter) {
             scrollOffset = 0;
