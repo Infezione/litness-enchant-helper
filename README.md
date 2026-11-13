@@ -85,6 +85,11 @@ Sul server Litness, maxare un'arma o un pezzo d'armatura con 10–12 incantesimi
 - **Controllo Conflitti Intelligente**: previene l'aggiunta di incantesimi incompatibili tra loro (*Affilatezza* vs *Anatema*, *Efficienza VI* vs *Efficienza I-V*, ecc.).
 - **Tasto `[Guida]` Rapido**: carica con un solo clic il set salvato direttamente nel simulatore di forgiatura per visualizzare l'albero di fusione ottimale.
 - **Tasto `[Pin]` / `[Sblocca]`**: fissa il set a schermo nell'HUD di gioco.
+- **📤 Condivisione Rapida con gli Amici (`[Copia Set]` & `[Incolla Set]`)**:
+  - **Tasto `[Copia Set]`**: posizionato accanto al tasto `Edit` di ciascun set salvato. Con un solo clic copia negli appunti l'intera configurazione (tipo di pezzo, nome e tutti gli incantesimi) in un formato testo pulito e leggibile, pronto per essere inviato su Discord, Telegram o chat di gioco.
+  - **Tasto `[Incolla Set]`**: situato in alto a destra nella sezione dei set. Legge automaticamente gli appunti e crea all'istante il set completo senza dover selezionare manualmente tutti i libri!
+  - **Notifica Fluida Animata**: una notifica a centro schermo con animazione Cyber Matrix conferma istantaneamente il successo dell'importazione o dell'esportazione.
+  - **Doppio Formato Supportato**: funziona sia con il formato leggibile `Set: Nome | item | incanto1, incanto2...` sia con le stringhe compatte `LITSET:...`.
 
 ---
 
@@ -145,7 +150,9 @@ Sul server Litness, maxare un'arma o un pezzo d'armatura con 10–12 incantesimi
 | Tasto / Controllo | Azione |
 | :--- | :--- |
 | **`N`** | Apri il menu principale (Catalogo / I Miei Set / Guida Incudine) |
-| **`[⚡ Sfoglia]`** | Scansiona tutte le pagine della Casa d'Aste (`/ah`) |
+| **`[⚡ Ricerca Automatica]`** | Scansiona tutte le pagine della Casa d'Aste (`/ah`) |
+| **`[Copia Set]`** | Esporta e copia negli appunti la configurazione del set da passare agli amici |
+| **`[Incolla Set]`** | Importa istantaneamente negli appunti un set condiviso |
 | **`[📋 Guida Passi]`** | Apri la guida ottimale direttamente dalla schermata dell'incudine |
 | **`[📋 Copia Passi]`** | Copia l'intera sequenza di fusione negli appunti |
 | **`[Pen: +X]`** | Seleziona manualmente la penalità pregressa (+0, +1, +3, +7, +15, +31) |
