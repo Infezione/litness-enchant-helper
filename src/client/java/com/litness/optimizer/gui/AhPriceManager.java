@@ -1399,28 +1399,24 @@ public class AhPriceManager {
         if (screen == null || screen.getMenu() == null) return -1;
         List<Slot> slots = screen.getMenu().slots;
 
-        // 1. Cerca prima con isNextPageItem tra gli slot 45-53 (escludendo 49 bottiglia e 52 hopper)
+        // 1. Su /ah di Litness lo Slot 50 (a destra della bottiglia 49) è SEMPRE il pulsante della pagina successiva
+        if (isAuctionHouse(screen) && 50 < slots.size()) {
+            ItemStack s50 = slots.get(50).getItem();
+            if (!s50.isEmpty() && !s50.is(Items.AIR) && !s50.is(Items.BARRIER) && !isGlassPane(s50)) {
+                String name = s50.getHoverName().getString().toLowerCase(Locale.ROOT);
+                if (!name.contains("fine") && !name.contains("nessun") && !name.contains("ultima") && !name.contains("blocc")) {
+                    return 50;
+                }
+            }
+        }
+
+        // 2. Fallback: cerca con isNextPageItem tra gli slot 45-53 (escludendo 49 bottiglia e 52 hopper)
         for (int i = 45; i < Math.min(54, slots.size()); i++) {
             if (i == 49 || i == 52 || i == 45) continue;
             ItemStack stack = slots.get(i).getItem();
             if (isNextPageItem(stack)) return i;
         }
 
-        if (isAuctionHouse(screen)) {
-            // Su Litness /ah lo Slot 50 è la freccia successiva (la freccia gialla a destra della bottiglia 49)
-            if (50 < slots.size()) {
-                ItemStack s50 = slots.get(50).getItem();
-                if (!s50.isEmpty() && !s50.is(Items.AIR) && !s50.is(Items.BARRIER) && !isGlassPane(s50)) {
-                    String name = s50.getHoverName().getString().toLowerCase(Locale.ROOT);
-                    if (!name.contains("fine") && !name.contains("nessun") && !name.contains("ultima")
-                            && !name.contains("blocc")) {
-                        if (isNextPageItem(s50) || s50.is(Items.SPECTRAL_ARROW) || s50.is(Items.ARROW) || s50.is(Items.PLAYER_HEAD) || isNextPageText(name)) {
-                            return 50;
-                        }
-                    }
-                }
-            }
-        }
         return -1;
     }
 
@@ -1444,28 +1440,24 @@ public class AhPriceManager {
         if (screen == null || screen.getMenu() == null) return -1;
         List<Slot> slots = screen.getMenu().slots;
 
-        // 1. Cerca prima con isPrevPageItem tra gli slot 45-53 (escludendo 49 bottiglia e 52 hopper)
+        // 1. Su /ah di Litness lo Slot 48 (a sinistra della bottiglia 49) è SEMPRE il pulsante per tornare indietro
+        if (isAuctionHouse(screen) && 48 < slots.size()) {
+            ItemStack s48 = slots.get(48).getItem();
+            if (!s48.isEmpty() && !s48.is(Items.AIR) && !s48.is(Items.BARRIER) && !isGlassPane(s48)) {
+                String name = s48.getHoverName().getString().toLowerCase(Locale.ROOT);
+                if (!name.contains("inizio") && !name.contains("nessun") && !name.contains("prima pagina") && !name.contains("blocc")) {
+                    return 48;
+                }
+            }
+        }
+
+        // 2. Fallback: cerca con isPrevPageItem tra gli slot 45-53 (escludendo 49 bottiglia e 52 hopper)
         for (int i = 45; i < Math.min(54, slots.size()); i++) {
             if (i == 49 || i == 52 || i == 45) continue;
             ItemStack stack = slots.get(i).getItem();
             if (isPrevPageItem(stack)) return i;
         }
 
-        if (isAuctionHouse(screen)) {
-            // Su Litness /ah lo Slot 48 è la freccia precedente (a sinistra della bottiglia 49)
-            if (48 < slots.size()) {
-                ItemStack s48 = slots.get(48).getItem();
-                if (!s48.isEmpty() && !s48.is(Items.AIR) && !s48.is(Items.BARRIER) && !isGlassPane(s48)) {
-                    String name = s48.getHoverName().getString().toLowerCase(Locale.ROOT);
-                    if (!name.contains("inizio") && !name.contains("nessun") && !name.contains("prima pagina")
-                            && !name.contains("blocc")) {
-                        if (isPrevPageItem(s48) || s48.is(Items.SPECTRAL_ARROW) || s48.is(Items.ARROW) || s48.is(Items.PLAYER_HEAD) || isPrevPageText(name)) {
-                            return 48;
-                        }
-                    }
-                }
-            }
-        }
         return -1;
     }
 
@@ -1907,18 +1899,22 @@ public class AhPriceManager {
     }
 
     public static void tickAutoNavigation(AbstractContainerScreen<?> screen) {
+        long now = System.currentTimeMillis();
         if (screen == null || !isAuctionHouse(screen)) {
+            if (isAutoScanning && (now - lastAutoScanClick < 3500)) {
+                return; // Attendi che il server stabilizzi la nuova schermata
+            }
             autoNavListing = null;
             autoNavAttempts = 0;
             autoNavWaitRetries = 0;
             isAutoScanning = false;
             autoScanReturning = false;
             autoScanPageCount = 0;
+            autoScanWaitRetries = 0;
             return;
         }
 
         Minecraft mc = Minecraft.getInstance();
-        long now = System.currentTimeMillis();
 
         // Scansione controllata: attivata SOLO se l'utente clicca [⚡ Sfoglia] nella sidebar
         if (isAutoScanning) {
@@ -1951,19 +1947,7 @@ public class AhPriceManager {
             // Nuova pagina caricata: azzera i tentativi di attesa
             autoScanWaitRetries = 0;
 
-            // 1. Controllo limite pagine totali note del server (es. Pagina 3 di 3)
-            if (currentAhTotalPages > 0 && currentAhPage >= currentAhTotalPages) {
-                isAutoScanning = false;
-                autoScanPageCount = 0;
-                autoScanWaitRetries = 0;
-                lastAutoScanKeys.clear();
-                if (mc.player != null) {
-                    mc.player.sendOverlayMessage(Component.literal("§a✔ Scansione completata: " + cachedListings.size() + " offerte su " + currentAhTotalPages + " pagine!"));
-                }
-                return;
-            }
-
-            // 2. Cerca la freccia per la pagina successiva (Slot 50)
+            // 1. Cerca la freccia per la pagina successiva (Slot 50)
             int nextSlot = findNextPageSlot(screen);
             if (nextSlot < 0) {
                 // Nessuna freccia per andare avanti: siamo arrivati all'ULTIMA pagina!
@@ -1977,19 +1961,7 @@ public class AhPriceManager {
                 return;
             }
 
-            // 3. Se la pagina ha meno di 36 oggetti nell'area asta (ed è stabilizzata), è l'ultima pagina
-            if (itemsOnPage > 0 && itemsOnPage < 36 && nextSlot < 0) {
-                isAutoScanning = false;
-                autoScanPageCount = 0;
-                autoScanWaitRetries = 0;
-                lastAutoScanKeys.clear();
-                if (mc.player != null) {
-                    mc.player.sendOverlayMessage(Component.literal("§a✔ Ultima pagina raggiunta (" + itemsOnPage + "/36 offerte): scansione completata!"));
-                }
-                return;
-            }
-
-            // 4. Limite di sicurezza massimo (15 pagine per evitare loop anomali)
+            // 2. Limite di sicurezza massimo (15 pagine per evitare loop anomali)
             if (autoScanPageCount >= 15) {
                 isAutoScanning = false;
                 autoScanPageCount = 0;
@@ -2001,7 +1973,7 @@ public class AhPriceManager {
                 return;
             }
 
-            // 5. Clicca sulla freccia (Slot 50) per avanzare alla pagina successiva
+            // 3. Clicca sulla freccia (Slot 50) per avanzare alla pagina successiva
             lastAutoScanKeys = new HashSet<>(lastScreenListingKeys);
             autoScanPageCount++;
             lastAutoScanClick = now;

@@ -126,4 +126,70 @@ public class SavedSetsManager {
         if (str == null || str.isEmpty()) return "";
         return Character.toUpperCase(str.charAt(0)) + str.substring(1);
     }
+
+    public static class ExportedSet {
+        public String name;
+        public String itemKey;
+        public List<String> enchantments = new ArrayList<>();
+    }
+
+    public static String exportSetToString(CustomSet set) {
+        if (set == null) return null;
+        try {
+            ExportedSet exp = new ExportedSet();
+            exp.name = set.name;
+            exp.itemKey = set.itemKey;
+            exp.enchantments = new ArrayList<>(set.enchantments);
+            String json = GSON.toJson(exp);
+            String b64 = Base64.getEncoder().encodeToString(json.getBytes(java.nio.charset.StandardCharsets.UTF_8));
+            return "LITSET:" + b64;
+        } catch (Exception e) {
+            e.printStackTrace();
+            return null;
+        }
+    }
+
+    public static CustomSet importSetFromString(String input) {
+        if (input == null || input.trim().isEmpty()) return null;
+        String trimmed = input.trim();
+        try {
+            String json = null;
+            if (trimmed.startsWith("LITSET:")) {
+                String payload = trimmed.substring("LITSET:".length()).trim();
+                if (payload.contains("|")) {
+                    String[] parts = payload.split("\\|", 3);
+                    if (parts.length >= 2) {
+                        String name = parts[0];
+                        String itemKey = parts[1];
+                        List<String> enchs = new ArrayList<>();
+                        if (parts.length > 2 && !parts[2].isEmpty()) {
+                            enchs.addAll(Arrays.asList(parts[2].split(",")));
+                        }
+                        return addSet(name, itemKey, enchs);
+                    }
+                } else {
+                    byte[] bytes = Base64.getDecoder().decode(payload);
+                    json = new String(bytes, java.nio.charset.StandardCharsets.UTF_8);
+                }
+            } else if (trimmed.startsWith("{") && trimmed.endsWith("}")) {
+                json = trimmed;
+            } else {
+                try {
+                    byte[] bytes = Base64.getDecoder().decode(trimmed);
+                    json = new String(bytes, java.nio.charset.StandardCharsets.UTF_8);
+                } catch (Exception ignored) {}
+            }
+
+            if (json != null) {
+                ExportedSet exp = GSON.fromJson(json, ExportedSet.class);
+                if (exp != null && exp.itemKey != null && !exp.itemKey.trim().isEmpty()) {
+                    String finalName = (exp.name != null && !exp.name.trim().isEmpty()) ? exp.name.trim() : ("Set " + capitalize(exp.itemKey));
+                    return addSet(finalName, exp.itemKey.trim().toLowerCase(Locale.ROOT), exp.enchantments);
+                }
+            }
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+        return null;
+    }
 }

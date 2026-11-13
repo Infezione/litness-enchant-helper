@@ -284,6 +284,8 @@ public class LitnessI18n {
             case "btn_new_set": return en ? "+ New Set" : "+ Nuovo Set";
             case "empty_sets": return en ? "No sets saved yet. Create your first set!" : "Nessun set salvato. Crea il tuo primo set!";
             case "guide_btn": return en ? "Guide" : "Guida";
+            case "copy_set_btn": return en ? "Copy" : "Copia";
+            case "paste_set_btn": return en ? "📋 Paste Set" : "📋 Incolla Set";
             case "edit_btn": return en ? "Edit" : "Modifica";
             case "delete_btn": return en ? "Delete" : "Elimina";
             case "pin_btn": return en ? "Pin" : "Pin";

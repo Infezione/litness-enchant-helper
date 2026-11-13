@@ -850,7 +850,7 @@ public class LitnessOptimizerScreen extends Screen {
 
     private void initSavedSetsListWidgets(int startX, int startY, int panelWidth, int panelHeight) {
         // Tasto + Nuovo Set (Primario Viola)
-        SoftwareButton btnNew = new SoftwareButton(startX, startY, 110, 22, Component.literal(LitnessI18n.t("btn_new_set")), b -> {
+        SoftwareButton btnNew = new SoftwareButton(startX, startY, 95, 22, Component.literal(LitnessI18n.t("btn_new_set")), b -> {
             openSetEditor(null);
             this.clearWidgets();
             this.init();
@@ -858,7 +858,7 @@ public class LitnessOptimizerScreen extends Screen {
         this.addRenderableWidget(btnNew);
 
         // Filtri categorie set
-        int fx = startX + 118;
+        int fx = startX + 102;
         String[] cats = {"ALL", "0", "1", "2", "3"};
         String[] catLabels = {
             LitnessI18n.t("all_filter"),
@@ -880,7 +880,36 @@ public class LitnessOptimizerScreen extends Screen {
             fx += bw + 4;
         }
 
+        // Tasto Incolla Set (vicino a tools e categorie a destra)
+        SoftwareButton btnPaste = new SoftwareButton(fx + 6, startY + 1, 88, 20, Component.literal(LitnessI18n.t("paste_set_btn")), b -> {
+            pasteSetFromClipboard();
+        });
+        this.addRenderableWidget(btnPaste);
+
         refreshSavedSetButtons(startY + 28, startX, panelWidth);
+    }
+
+    private void pasteSetFromClipboard() {
+        Minecraft mc = Minecraft.getInstance();
+        String clipboard = mc.keyboardHandler.getClipboard();
+        if (clipboard == null || clipboard.trim().isEmpty()) {
+            if (mc.player != null) {
+                mc.player.sendOverlayMessage(Component.literal("§c• Gli appunti sono vuoti!"));
+            }
+            return;
+        }
+        CustomSet imported = SavedSetsManager.importSetFromString(clipboard);
+        if (imported != null) {
+            if (mc.player != null) {
+                mc.player.sendOverlayMessage(Component.literal("§a✔ Set '" + imported.name + "' importato con successo!"));
+            }
+            this.clearWidgets();
+            this.init();
+        } else {
+            if (mc.player != null) {
+                mc.player.sendOverlayMessage(Component.literal("§c• Formato set non valido negli appunti!"));
+            }
+        }
     }
 
     private List<CustomSet> getFilteredSavedSets() {
@@ -931,13 +960,27 @@ public class LitnessOptimizerScreen extends Screen {
             int by = startY + (rowIdx * 28);
 
             // Tasto Carica / Guida
-            SoftwareButton btnGuide = new SoftwareButton(startX + panelWidth - 210, by + 2, 52, 20,
+            SoftwareButton btnGuide = new SoftwareButton(startX + panelWidth - 238, by + 2, 46, 20,
                     Component.literal(LitnessI18n.t("guide_btn")), b -> loadSavedSetIntoSimulator(set)).setPrimary(true);
             this.addRenderableWidget(btnGuide);
             savedSetButtons.add(btnGuide);
 
+            // Tasto Copia (prima di Edit / Modifica)
+            SoftwareButton btnCopy = new SoftwareButton(startX + panelWidth - 190, by + 2, 44, 20,
+                    Component.literal(LitnessI18n.t("copy_set_btn")), b -> {
+                String code = SavedSetsManager.exportSetToString(set);
+                if (code != null) {
+                    Minecraft.getInstance().keyboardHandler.setClipboard(code);
+                    if (Minecraft.getInstance().player != null) {
+                        Minecraft.getInstance().player.sendOverlayMessage(Component.literal("§a✔ Set '" + set.name + "' copiato negli appunti!"));
+                    }
+                }
+            });
+            this.addRenderableWidget(btnCopy);
+            savedSetButtons.add(btnCopy);
+
             // Tasto Modifica
-            SoftwareButton btnEdit = new SoftwareButton(startX + panelWidth - 154, by + 2, 52, 20,
+            SoftwareButton btnEdit = new SoftwareButton(startX + panelWidth - 144, by + 2, 48, 20,
                     Component.literal(LitnessI18n.t("edit_btn")), b -> {
                 openSetEditor(set);
                 this.clearWidgets();
@@ -948,7 +991,7 @@ public class LitnessOptimizerScreen extends Screen {
 
             // Tasto Pin
             boolean isPinned = ActiveSessionManager.isSetPinned(set.id);
-            SoftwareButton btnPin = new SoftwareButton(startX + panelWidth - 98, by + 2, 46, 20,
+            SoftwareButton btnPin = new SoftwareButton(startX + panelWidth - 94, by + 2, 44, 20,
                     Component.literal(isPinned ? LitnessI18n.t("unpin_btn") : LitnessI18n.t("pin_btn")), b -> {
                 ActiveSessionManager.togglePinSet(set.id);
                 this.clearWidgets();
