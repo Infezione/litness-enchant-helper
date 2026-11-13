@@ -143,11 +143,35 @@ public class AhPriceManager {
     private static boolean hasSelectedBooksCategory = false;
     private static long lastAutoScanClick = 0;
     private static int autoScanPageCount = 0;
+    private static int autoScanWaitRetries = 0;
     private static boolean autoScanReturning = false;
     private static int currentAhPage = 1;
     public static int currentAhTotalPages = -1;
     private static Set<String> lastAutoScanKeys = new HashSet<>();
     private static long lastContainerRemovedTime = 0;
+
+    public static boolean isAutoScanning() {
+        return isAutoScanning;
+    }
+
+    public static long getLastAutoScanClick() {
+        return lastAutoScanClick;
+    }
+
+    public static void checkContainerClosedTick() {
+        long now = System.currentTimeMillis();
+        if (isAutoScanning && (now - lastAutoScanClick > 1500)) {
+            isAutoScanning = false;
+            autoScanPageCount = 0;
+            autoScanWaitRetries = 0;
+            lastAutoScanKeys.clear();
+        }
+        if (autoNavListing != null && (now - autoNavLastClick > 1500)) {
+            autoNavListing = null;
+            autoNavAttempts = 0;
+            autoNavWaitRetries = 0;
+        }
+    }
 
     public static boolean isContainerOrShulker(ItemStack stack) {
         return com.litness.optimizer.data.ItemTypeHelper.isContainerOrShulker(stack);
@@ -372,6 +396,7 @@ public class AhPriceManager {
         hasSelectedBooksCategory = false;
         autoScanReturning = false;
         autoScanPageCount = 0;
+        autoScanWaitRetries = 0;
         lastAutoScanKeys.clear();
         currentAhTotalPages = -1;
         scrollOffset = 0;
@@ -449,7 +474,7 @@ public class AhPriceManager {
         String clean = title.replaceAll("(?i)§[0-9a-fk-orx]", "").replace('\u00A0', ' ').trim().toUpperCase();
         return clean.contains("AUCTION") || clean.contains("ASTA") || clean.contains("ASTE") || clean.contains("MERCATO")
                 || clean.equals("AH") || clean.startsWith("AH ") || clean.endsWith(" AH") || clean.contains(" AH ")
-                || clean.contains("BAZAAR");
+                || clean.contains("BAZAAR") || (isAutoScanning && (clean.contains("LIBR") || clean.contains("BOOK")));
     }
 
     public static boolean isBook(ItemStack stack) {
@@ -1303,9 +1328,18 @@ public class AhPriceManager {
         return -1;
     }
 
+    public static boolean isGlassPane(ItemStack stack) {
+        if (stack == null || stack.isEmpty()) return false;
+        if (stack.is(Items.GLASS_PANE)) return true;
+        String name = stack.getHoverName().getString().toLowerCase(Locale.ROOT);
+        if (name.contains("pane") || name.contains("pannell") || name.contains("vetro")) return true;
+        String itemId = stack.getItem().toString().toLowerCase(Locale.ROOT);
+        return itemId.contains("glass_pane");
+    }
+
     public static boolean isNextPageItem(ItemStack stack) {
         if (stack == null || stack.isEmpty()) return false;
-        if (stack.is(Items.AIR) || stack.is(Items.BARRIER)) return false;
+        if (stack.is(Items.AIR) || stack.is(Items.BARRIER) || isGlassPane(stack)) return false;
         if (stack.is(Items.HOPPER) || stack.is(Items.CLOCK) || stack.is(Items.COMPASS)
                 || stack.is(Items.POTION) || stack.is(Items.SPLASH_POTION) || stack.is(Items.LINGERING_POTION)
                 || stack.is(Items.GLASS_BOTTLE)) {
@@ -1328,13 +1362,13 @@ public class AhPriceManager {
             if (l.contains("nessuna altra pagina") || l.contains("ultima pagina") || l.contains("fine delle pagine")) return false;
             if (isNextPageText(l)) return true;
         }
-        if (stack.is(Items.ARROW) && !isPrevPageText(name)) return true;
+        if ((stack.is(Items.ARROW) || stack.is(Items.SPECTRAL_ARROW) || stack.is(Items.TIPPED_ARROW)) && !isPrevPageText(name)) return true;
         return false;
     }
 
     public static boolean isPrevPageItem(ItemStack stack) {
         if (stack == null || stack.isEmpty()) return false;
-        if (stack.is(Items.AIR) || stack.is(Items.BARRIER)) return false;
+        if (stack.is(Items.AIR) || stack.is(Items.BARRIER) || isGlassPane(stack)) return false;
         if (stack.is(Items.HOPPER) || stack.is(Items.CLOCK) || stack.is(Items.COMPASS)) {
             return false;
         }
@@ -1355,7 +1389,7 @@ public class AhPriceManager {
             if (l.contains("prima pagina") || l.contains("nessuna pagina")) return false;
             if (isPrevPageText(l)) return true;
         }
-        if (stack.is(Items.ARROW) && !isNextPageText(name)) {
+        if ((stack.is(Items.ARROW) || stack.is(Items.SPECTRAL_ARROW) || stack.is(Items.TIPPED_ARROW)) && !isNextPageText(name)) {
             return true;
         }
         return false;
@@ -1376,10 +1410,13 @@ public class AhPriceManager {
             // Su Litness /ah lo Slot 50 è la freccia successiva (la freccia gialla a destra della bottiglia 49)
             if (50 < slots.size()) {
                 ItemStack s50 = slots.get(50).getItem();
-                if (!s50.isEmpty() && !s50.is(Items.AIR) && !s50.is(Items.BARRIER)) {
+                if (!s50.isEmpty() && !s50.is(Items.AIR) && !s50.is(Items.BARRIER) && !isGlassPane(s50)) {
                     String name = s50.getHoverName().getString().toLowerCase(Locale.ROOT);
-                    if (!name.contains("fine") && !name.contains("nessun") && !name.contains("ultima")) {
-                        return 50;
+                    if (!name.contains("fine") && !name.contains("nessun") && !name.contains("ultima")
+                            && !name.contains("blocc")) {
+                        if (isNextPageItem(s50) || s50.is(Items.SPECTRAL_ARROW) || s50.is(Items.ARROW) || s50.is(Items.PLAYER_HEAD) || isNextPageText(name)) {
+                            return 50;
+                        }
                     }
                 }
             }
@@ -1418,10 +1455,13 @@ public class AhPriceManager {
             // Su Litness /ah lo Slot 48 è la freccia precedente (a sinistra della bottiglia 49)
             if (48 < slots.size()) {
                 ItemStack s48 = slots.get(48).getItem();
-                if (!s48.isEmpty() && !s48.is(Items.AIR) && !s48.is(Items.BARRIER)) {
+                if (!s48.isEmpty() && !s48.is(Items.AIR) && !s48.is(Items.BARRIER) && !isGlassPane(s48)) {
                     String name = s48.getHoverName().getString().toLowerCase(Locale.ROOT);
-                    if (!name.contains("inizio") && !name.contains("nessun") && !name.contains("prima pagina")) {
-                        return 48;
+                    if (!name.contains("inizio") && !name.contains("nessun") && !name.contains("prima pagina")
+                            && !name.contains("blocc")) {
+                        if (isPrevPageItem(s48) || s48.is(Items.SPECTRAL_ARROW) || s48.is(Items.ARROW) || s48.is(Items.PLAYER_HEAD) || isPrevPageText(name)) {
+                            return 48;
+                        }
                     }
                 }
             }
@@ -1443,17 +1483,28 @@ public class AhPriceManager {
     }
 
     public static void onContainerClosed() {
+        long now = System.currentTimeMillis();
+        boolean scanningRecently = isAutoScanning && (now - lastAutoScanClick < 3500);
+        boolean navRecently = (autoNavListing != null) && (now - autoNavLastClick < 3500);
+
         cachedContainerId = -1;
         cachedIsAh = false;
-        currentAhPage = 1;
-        hasSelectedBooksCategory = false;
-        hasAutoScannedThisSession = false;
-        autoNavListing = null;
-        autoNavAttempts = 0;
-        autoNavWaitRetries = 0;
-        isAutoScanning = false;
-        autoScanPageCount = 0;
-        lastAutoScanKeys.clear();
+
+        if (!scanningRecently) {
+            isAutoScanning = false;
+            autoScanPageCount = 0;
+            autoScanWaitRetries = 0;
+            hasSelectedBooksCategory = false;
+            hasAutoScannedThisSession = false;
+            lastAutoScanKeys.clear();
+        }
+
+        if (!navRecently) {
+            autoNavListing = null;
+            autoNavAttempts = 0;
+            autoNavWaitRetries = 0;
+        }
+
         currentAhTotalPages = -1;
         scrollOffset = 0;
         maxScroll = 0;
@@ -1871,24 +1922,40 @@ public class AhPriceManager {
 
         // Scansione controllata: attivata SOLO se l'utente clicca [⚡ Sfoglia] nella sidebar
         if (isAutoScanning) {
-            if (now - lastAutoScanClick < 480) return; // Pausa per sincronizzazione della cassa
+            long elapsed = now - lastAutoScanClick;
+            if (elapsed < 550) return; // Pausa per sincronizzazione della cassa
 
-            // 1. REGOLA PRIMARIA: Se la pagina attuale non è piena (meno di 36 oggetti nell'area asta 9-44), siamo all'ULTIMA pagina!
             int itemsOnPage = countAuctionItemsOnScreen(screen);
-            if (itemsOnPage < 36) {
+            // Se la pagina ha 0 oggetti e sono passati meno di 1200ms, attendiamo che arrivino i pacchetti dal server
+            if (itemsOnPage == 0 && elapsed < 1200) {
+                return;
+            }
+
+            // Se la pagina ha le stesse offerte della pagina precedente, il server non ha ancora inviato i nuovi dati
+            if (!lastAutoScanKeys.isEmpty() && lastScreenListingKeys.equals(lastAutoScanKeys)) {
+                autoScanWaitRetries++;
+                if (autoScanWaitRetries < 5) {
+                    return; // Attendi fino a ~1.5s per dare tempo al server di aggiornare
+                }
+                // Se dopo 5 verifiche le offerte sono ancora identiche, il server non sfoglia oltre (raggiunta la fine)
                 isAutoScanning = false;
                 autoScanPageCount = 0;
+                autoScanWaitRetries = 0;
                 lastAutoScanKeys.clear();
                 if (mc.player != null) {
-                    mc.player.sendOverlayMessage(Component.literal("§a✔ Ultima pagina raggiunta (" + itemsOnPage + "/36 offerte): scansione completata!"));
+                    mc.player.sendOverlayMessage(Component.literal("§a✔ Scansione completata: " + cachedListings.size() + " offerte in memoria!"));
                 }
                 return;
             }
 
-            // 2. Controllo limite pagine totali note del server (da Pagina X di Y o X / Y)
+            // Nuova pagina caricata: azzera i tentativi di attesa
+            autoScanWaitRetries = 0;
+
+            // 1. Controllo limite pagine totali note del server (es. Pagina 3 di 3)
             if (currentAhTotalPages > 0 && currentAhPage >= currentAhTotalPages) {
                 isAutoScanning = false;
                 autoScanPageCount = 0;
+                autoScanWaitRetries = 0;
                 lastAutoScanKeys.clear();
                 if (mc.player != null) {
                     mc.player.sendOverlayMessage(Component.literal("§a✔ Scansione completata: " + cachedListings.size() + " offerte su " + currentAhTotalPages + " pagine!"));
@@ -1896,36 +1963,53 @@ public class AhPriceManager {
                 return;
             }
 
-            // 3. Controllo duplicati: se la pagina attuale contiene le stesse identiche offerte della precedente, siamo all'ultima pagina
-            if (!lastScreenListingKeys.isEmpty() && lastScreenListingKeys.equals(lastAutoScanKeys)) {
+            // 2. Cerca la freccia per la pagina successiva (Slot 50)
+            int nextSlot = findNextPageSlot(screen);
+            if (nextSlot < 0) {
+                // Nessuna freccia per andare avanti: siamo arrivati all'ULTIMA pagina!
                 isAutoScanning = false;
                 autoScanPageCount = 0;
+                autoScanWaitRetries = 0;
                 lastAutoScanKeys.clear();
                 if (mc.player != null) {
-                    mc.player.sendOverlayMessage(Component.literal("§a✔ Scansione completata: " + cachedListings.size() + " offerte in memoria!"));
+                    mc.player.sendOverlayMessage(Component.literal("§a✔ Ultima pagina raggiunta: scansione completata (" + cachedListings.size() + " offerte)!"));
                 }
                 return;
             }
-            lastAutoScanKeys = new HashSet<>(lastScreenListingKeys);
 
-            // 4. Cerca la freccia per la pagina successiva (Slot 50)
-            int nextSlot = findNextPageSlot(screen);
-            if (nextSlot >= 0 && autoScanPageCount < 15) {
-                autoScanPageCount++;
-                lastAutoScanClick = now;
-                Slot s = screen.getMenu().slots.get(nextSlot);
-                clickSlot(screen, s);
-                if (mc.player != null) {
-                    mc.player.sendOverlayMessage(Component.literal("§e✦ Sfoglio /ah pagina " + currentAhPage + " (" + cachedListings.size() + " offerte)..."));
-                }
-            } else {
-                // Raggiunta la fine o il limite: FERMATI in modo pulito
+            // 3. Se la pagina ha meno di 36 oggetti nell'area asta (ed è stabilizzata), è l'ultima pagina
+            if (itemsOnPage > 0 && itemsOnPage < 36 && nextSlot < 0) {
                 isAutoScanning = false;
                 autoScanPageCount = 0;
+                autoScanWaitRetries = 0;
                 lastAutoScanKeys.clear();
                 if (mc.player != null) {
-                    mc.player.sendOverlayMessage(Component.literal("§a✔ Scansione completata: " + cachedListings.size() + " offerte in memoria!"));
+                    mc.player.sendOverlayMessage(Component.literal("§a✔ Ultima pagina raggiunta (" + itemsOnPage + "/36 offerte): scansione completata!"));
                 }
+                return;
+            }
+
+            // 4. Limite di sicurezza massimo (15 pagine per evitare loop anomali)
+            if (autoScanPageCount >= 15) {
+                isAutoScanning = false;
+                autoScanPageCount = 0;
+                autoScanWaitRetries = 0;
+                lastAutoScanKeys.clear();
+                if (mc.player != null) {
+                    mc.player.sendOverlayMessage(Component.literal("§a✔ Scansione completata (limite 15 pagine): " + cachedListings.size() + " offerte in memoria!"));
+                }
+                return;
+            }
+
+            // 5. Clicca sulla freccia (Slot 50) per avanzare alla pagina successiva
+            lastAutoScanKeys = new HashSet<>(lastScreenListingKeys);
+            autoScanPageCount++;
+            lastAutoScanClick = now;
+            Slot s = screen.getMenu().slots.get(nextSlot);
+            clickSlot(screen, s);
+            if (mc.player != null) {
+                int displayNext = (currentAhPage > 0 ? currentAhPage + 1 : autoScanPageCount + 1);
+                mc.player.sendOverlayMessage(Component.literal("§e✦ Sfoglio /ah pagina " + displayNext + " (" + cachedListings.size() + " offerte)..."));
             }
             return;
         }

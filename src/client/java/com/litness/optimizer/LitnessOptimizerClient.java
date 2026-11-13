@@ -37,6 +37,10 @@ public class LitnessOptimizerClient implements ClientModInitializer {
 
         // Listener per aprire la GUI quando viene premuto il tasto N e gestione notifica aggiornamenti
         ClientTickEvents.END_CLIENT_TICK.register(client -> {
+            if (client.gui == null || client.gui.screen() == null || !(client.gui.screen() instanceof net.minecraft.client.gui.screens.inventory.AbstractContainerScreen)) {
+                com.litness.optimizer.gui.AhPriceManager.checkContainerClosedTick();
+            }
+
             while (openGuiKeyMapping.consumeClick()) {
                 if (client.player != null) {
                     client.setScreenAndShow(new LitnessOptimizerScreen(Component.translatable("gui.litnessoptimizer.title")));
