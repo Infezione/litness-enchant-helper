@@ -1,12 +1,12 @@
-# ⚡ Litness Enchant v1.3 | By Waaxey
+# ⚡ Litness Enchant v1.3.1 | By Waaxey
 
-[![DOWNLOAD MOD (.JAR)](https://img.shields.io/badge/⚡%20SCARICA%20SUBITO%20LA%20MOD%20(.JAR)-VERSIONE%201.3.0-22c55e?style=for-the-badge&logo=curseforge&logoColor=white)](https://github.com/Infezione/litness-enchant-helper/releases/download/v1.3.0/LitnessEnchantHelper-1.3.0.jar)
+[![DOWNLOAD MOD (.JAR)](https://img.shields.io/badge/⚡%20SCARICA%20SUBITO%20LA%20MOD%20(.JAR)-VERSIONE%201.3.1-22c55e?style=for-the-badge&logo=curseforge&logoColor=white)](https://github.com/Infezione/litness-enchant-helper/releases/download/v1.3.1/LitnessEnchantHelper-1.3.1.jar)
 [![ULTIMI AGGIORNAMENTI](https://img.shields.io/badge/🌟%20ULTIMI%20AGGIORNAMENTI-VEDI%20LE%20NOVITÀ-6366f1?style=for-the-badge&logo=sparkles&logoColor=white)](#ultimi-aggiornamenti)
 
 ![Minecraft](https://img.shields.io/badge/Minecraft-26.3-brightgreen.svg)
 ![Fabric](https://img.shields.io/badge/ModLoader-Fabric-blue.svg)
 ![Lunar Client](https://img.shields.io/badge/Lunar%20Client-Compatible-informational.svg)
-![Release](https://img.shields.io/badge/Release-v1.3.0-blueviolet.svg)
+![Release](https://img.shields.io/badge/Release-v1.3.1-blueviolet.svg)
 ![Author](https://img.shields.io/badge/Author-Waaxey-purple.svg)
 
 > [!TIP]
@@ -109,6 +109,21 @@ Sul server Litness, maxare un'arma o un pezzo d'armatura con 10–12 incantesimi
 <a id="ultimi-aggiornamenti" name="ultimi-aggiornamenti"></a>
 <a id="-ultimi-aggiornamenti" name="-ultimi-aggiornamenti"></a>
 
+## 🌟 Ultimi Aggiornamenti - Novità Versione 1.3.1
+
+- ⚡ **Ricerca Automatica & Auto-Acquisto /ah**:
+  - Scansione ultra-veloce e intelligente di tutte le pagine della Casa d'Aste (`/ah`) con sincronizzazione sui pacchetti di rete del server.
+  - Memorizzazione precisa della posizione reale di ciascuna offerta (Pagina e Slot esatto).
+  - Cliccando su **✦ Clicca per acquistare** su qualsiasi offerta nella sidebar, la mod sfoglia le pagine da sola e apre istantaneamente il menu *"Comprare questo oggetto?"* per acquistare al volo il miglior prezzo!
+- 🎨 **Nuove Animazioni Fluidissime & Cyber UI**:
+  - Animazioni d'interfaccia fluide: Matrix Slide & Scale Pop, indicatore Cyber Neon Laser streak, Shockwave ripples al tocco o click su bottoni/card, transizioni animate tra schede e design pulito senza elementi superflui.
+- 📋 **Copia & Incolla Set**:
+  - Nuovi pulsanti **[Copia Set]** e **[Incolla Set]** nella sezione *"I Miei Set"* per esportare e importare con un clic i set personalizzati da condividere con gli amici, completi di notifica fluida animata a centro schermo.
+- 🛠️ **Risoluzione Bug & Ottimizzazioni**:
+  - Risolto definitivamente il disallineamento off-by-one dei numeri di pagina e il blocco a fine asta.
+
+---
+
 ## 🌟 Novità Versione 1.3.0
 
 - 🚀 **Rilascio Ufficiale "Litness Enchant v1.3 | By Waaxey"**:
@@ -141,17 +156,17 @@ Sul server Litness, maxare un'arma o un pezzo d'armatura con 10–12 incantesimi
 ## 📦 Installazione
 
 ### Per Lunar Client (Consigliato)
-1. Scarica il file **`LitnessEnchantHelper-1.3.0.jar`** dall'area [Releases](../../releases).
+1. Scarica il file **`LitnessEnchantHelper-1.3.1.jar`** dall'area [Releases](../../releases).
 2. Premi sulla tastiera `Win + R`, incolla la seguente stringa e premi **Invio**:
    ```text
    %userprofile%\.lunarclient\profiles\26\mods\fabric-26.3\
    ```
-3. Incolla il file `LitnessEnchantHelper-1.3.0.jar` all'interno della cartella (rimuovendo eventuali versioni precedenti).
+3. Incolla il file `LitnessEnchantHelper-1.3.1.jar` all'interno della cartella (rimuovendo eventuali versioni precedenti).
 4. Avvia Minecraft da Lunar Client con la versione **26.3 (Fabric)**.
 
 ### Per Fabric Launcher Standard
 1. Assicurati di avere installato **Fabric Loader** per Minecraft 26.3 e la **Fabric API**.
-2. Posiziona il file `LitnessEnchantHelper-1.3.0.jar` nella cartella `.minecraft/mods/`.
+2. Posiziona il file `LitnessEnchantHelper-1.3.1.jar` nella cartella `.minecraft/mods/`.
 3. Avvia il gioco.
 
 ---
