@@ -264,6 +264,39 @@ public class LitnessTooltipHandler {
         ItemTooltipCallback.EVENT.register(LitnessTooltipHandler::onTooltip);
     }
 
+    public static List<MatchedEnchantment> matchAllEnchantmentsFromLine(String lineText) {
+        if (lineText == null || lineText.isEmpty()) return Collections.emptyList();
+        String clean = lineText.replace('\u00A0', ' ').replace('\u2007', ' ').replace('\u202F', ' ');
+        clean = clean.replaceAll("(?i)§[0-9a-fk-orx]", "").trim();
+        if (clean.isEmpty()) return Collections.emptyList();
+
+        if (clean.contains(",")) {
+            String lower = clean.toLowerCase();
+            if (lower.contains("conflitti") || lower.contains("conflict") || lower.contains("applicabile")
+                    || lower.contains("requisiti") || lower.contains("informazioni") || lower.contains("limite")
+                    || lower.contains("danno") || lower.contains("incudine") || lower.contains("costo")) {
+                return Collections.emptyList();
+            }
+            List<MatchedEnchantment> matches = new ArrayList<>();
+            String[] parts = clean.split(",");
+            for (String p : parts) {
+                MatchedEnchantment m = matchEnchantment(p.trim());
+                if (m != null && m.entry != null) {
+                    matches.add(m);
+                }
+            }
+            if (!matches.isEmpty()) {
+                return matches;
+            }
+        }
+
+        MatchedEnchantment single = matchEnchantment(lineText);
+        if (single != null && single.entry != null) {
+            return Collections.singletonList(single);
+        }
+        return Collections.emptyList();
+    }
+
     public static MatchedEnchantment matchEnchantment(String lineText) {
         if (lineText == null || lineText.isEmpty()) return null;
 

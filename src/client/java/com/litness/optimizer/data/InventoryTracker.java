@@ -139,7 +139,7 @@ public class InventoryTracker {
     }
 
     /**
-     * Raccoglie gli incantesimi già applicati ESCLUSIVAMENTE sull'oggetto corrispondente al set (zero falsi positivi!)
+     * Raccoglie gli incantesimi già applicati ESCLUSIVAMENTE sull'oggetto presente nell'incudine (zero interferenze da oggetti in mano!)
      */
     public static Set<String> getAppliedEnchantmentsForItem(String itemKey) {
         Set<String> set = new HashSet<>();
@@ -147,22 +147,21 @@ public class InventoryTracker {
         if (mc.player == null || itemKey == null) return set;
         String key = itemKey.trim().toLowerCase();
 
-        // 1. Oggetto presente nell'Incudine nello slot 0 (se corrisponde alla categoria del set)
+        // 1. Oggetto presente nell'Incudine nello slot 0 o slot 2 (output)
         if (mc.player.containerMenu instanceof AnvilMenu anvilMenu) {
             ItemStack slot0 = anvilMenu.getSlot(0).getItem();
             if (!slot0.isEmpty() && matchesItemKey(slot0, key)) {
                 scanAppliedStack(slot0, set);
             }
-        }
-
-        // 2. Oggetto tenuto nella mano principale (se Spada, Piccone o arma/attrezzo)
-        if (key.contains("sword") || key.contains("spada") || key.contains("pick") || key.contains("piccone") 
-                || key.contains("axe") || key.contains("ascia") || key.contains("bow") || key.contains("arco")) {
-            ItemStack main = mc.player.getMainHandItem();
-            if (!main.isEmpty() && matchesItemKey(main, key)) {
-                scanAppliedStack(main, set);
+            ItemStack slot2 = anvilMenu.getSlot(2).getItem();
+            if (!slot2.isEmpty() && matchesItemKey(slot2, key)) {
+                scanAppliedStack(slot2, set);
             }
         }
+
+        // NOTA: Non scansioniamo mai getMainHandItem() qui!
+        // Altrimenti, quando il giocatore ha in mano la sua spada maxata (es. Netherite),
+        // il set pinnato pensa erroneamente che tutti gli incantesimi siano già stati applicati alla nuova spada.
 
         return set;
     }
@@ -259,16 +258,18 @@ public class InventoryTracker {
         int loreCost = extractAnvilCostFromLore(stack);
         ItemLore lore = stack.getOrDefault(DataComponents.LORE, ItemLore.EMPTY);
         for (Component c : lore.lines()) {
-            LitnessTooltipHandler.MatchedEnchantment match = LitnessTooltipHandler.matchEnchantment(c.getString());
-            if (match != null && match.entry != null) {
-                int lvl = match.level > 0 ? match.level : 1;
-                map.merge(match.entry.id, lvl, Math::max);
-                String baseId = LitnessI18n.getBaseId(match.entry.id);
-                if (!baseId.isEmpty()) {
-                    map.merge(baseId, lvl, Math::max);
-                }
-                if (loreCost > 0) {
-                    EnchantmentDatabase.updateAnvilCost(match.entry.id, loreCost);
+            List<LitnessTooltipHandler.MatchedEnchantment> matches = LitnessTooltipHandler.matchAllEnchantmentsFromLine(c.getString());
+            for (LitnessTooltipHandler.MatchedEnchantment match : matches) {
+                if (match != null && match.entry != null) {
+                    int lvl = match.level > 0 ? match.level : 1;
+                    map.merge(match.entry.id, lvl, Math::max);
+                    String baseId = LitnessI18n.getBaseId(match.entry.id);
+                    if (!baseId.isEmpty()) {
+                        map.merge(baseId, lvl, Math::max);
+                    }
+                    if (loreCost > 0) {
+                        EnchantmentDatabase.updateAnvilCost(match.entry.id, loreCost);
+                    }
                 }
             }
         }
@@ -297,14 +298,17 @@ public class InventoryTracker {
             }
         }
 
-        // 2. Righe Lore su armi / armature
+        // 2. Righe Lore su armi / armature (supporta più incantesimi per riga, es. "Phantom Strike II, Reaper III")
         ItemLore lore = stack.getOrDefault(DataComponents.LORE, ItemLore.EMPTY);
         for (Component c : lore.lines()) {
-            LitnessTooltipHandler.MatchedEnchantment match = LitnessTooltipHandler.matchEnchantment(c.getString());
-            if (match != null && match.entry != null) {
-                set.add(match.entry.id.toLowerCase().trim());
-                String baseId = LitnessI18n.getBaseId(match.entry.id);
-                if (!baseId.isEmpty()) set.add(baseId.toLowerCase().trim());
+            List<LitnessTooltipHandler.MatchedEnchantment> matches = LitnessTooltipHandler.matchAllEnchantmentsFromLine(c.getString());
+            for (LitnessTooltipHandler.MatchedEnchantment match : matches) {
+                if (match != null && match.entry != null) {
+                    set.add(match.entry.id.toLowerCase().trim());
+                    set.add(match.entry.id.toLowerCase().replace('_', '-').trim());
+                    String baseId = LitnessI18n.getBaseId(match.entry.id);
+                    if (!baseId.isEmpty()) set.add(baseId.toLowerCase().trim());
+                }
             }
         }
     }

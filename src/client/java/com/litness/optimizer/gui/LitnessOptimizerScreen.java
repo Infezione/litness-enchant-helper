@@ -1596,38 +1596,7 @@ public class LitnessOptimizerScreen extends Screen {
     }
 
     private List<EnchantApplied> extractAllEnchantmentsFromItem(ItemStack stack) {
-        List<EnchantApplied> list = new ArrayList<>();
-        if (stack.isEmpty()) return list;
-
-        Set<String> seen = new HashSet<>();
-
-        ItemEnchantments stored = stack.getOrDefault(DataComponents.STORED_ENCHANTMENTS, ItemEnchantments.EMPTY);
-        for (var entry : stored.entrySet()) {
-            String rawId = entry.getKey().unwrapKey().map(k -> k.identifier().getPath()).orElse("");
-            int lvl = entry.getIntValue();
-            String vPlusId = EnchantmentDatabase.resolveVanillaPlusId(rawId, lvl);
-            String id = (vPlusId != null) ? vPlusId : rawId;
-            EnchantmentEntry ee = EnchantmentDatabase.getEnchantment(id);
-            if (ee != null) id = ee.id;
-            if (!id.isEmpty() && seen.add(id)) {
-                list.add(new EnchantApplied(id, lvl));
-            }
-        }
-
-        ItemEnchantments enchants = stack.getOrDefault(DataComponents.ENCHANTMENTS, ItemEnchantments.EMPTY);
-        for (var entry : enchants.entrySet()) {
-            String rawId = entry.getKey().unwrapKey().map(k -> k.identifier().getPath()).orElse("");
-            int lvl = entry.getIntValue();
-            String vPlusId = EnchantmentDatabase.resolveVanillaPlusId(rawId, lvl);
-            String id = (vPlusId != null) ? vPlusId : rawId;
-            EnchantmentEntry ee = EnchantmentDatabase.getEnchantment(id);
-            if (ee != null) id = ee.id;
-            if (!id.isEmpty() && seen.add(id)) {
-                list.add(new EnchantApplied(id, lvl));
-            }
-        }
-
-        return list;
+        return AnvilTooltipState.extractAllEnchantments(stack);
     }
 
     private void runCalculation() {

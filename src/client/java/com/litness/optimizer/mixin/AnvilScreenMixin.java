@@ -179,6 +179,7 @@ public abstract class AnvilScreenMixin extends ItemCombinerScreen<AnvilMenu> {
                 cachedSolution = null;
                 AnvilTooltipState.cachedSolution = null;
             }
+            AnvilTooltipState.explicitTargetEquip = activeEquipment;
 
             if (!activeEquipment.isEmpty()) {
                 updateAutoCalculation(activeEquipment);
@@ -276,9 +277,15 @@ public abstract class AnvilScreenMixin extends ItemCombinerScreen<AnvilMenu> {
                         int badgeColor = ready ? 0xFF34D399 : 0xFF60A5FA;
                         extractor.text(this.font, badge, sideX + 10, moveY + 5, badgeColor, false);
 
+                        boolean slot0HasWeapon = !slot0.isEmpty() && ItemTypeHelper.isEnchantableWeaponOrArmor(slot0);
+
                         if (ready) {
                             extractor.text(this.font, "§a• " + LitnessI18n.t("take_from_output"), sideX + 10, moveY + 18, 0xFF34D399, false);
                             extractor.text(this.font, LitnessI18n.t("cost_xp") + "§a" + nextStep.cost + LitnessI18n.t("levels") + " XP", sideX + 10, moveY + 43, 0xFF34D399, false);
+                        } else if (slot0HasWeapon) {
+                            extractor.text(this.font, "§e⚠ Togli l'oggetto dall'incudine!", sideX + 10, moveY + 18, 0xFFFBBF24, false);
+                            extractor.text(this.font, "§7Unisci prima i 2 libri [1] e [2]", sideX + 10, moveY + 30, 0xFFE2E8F0, false);
+                            extractor.text(this.font, LitnessI18n.t("cost_xp") + "§a" + nextStep.cost + LitnessI18n.t("levels") + " XP", sideX + 10, moveY + 42, 0xFF34D399, false);
                         } else if (oneInserted) {
                             extractor.text(this.font, "§7Slot 1: §a✔ Inserito", sideX + 10, moveY + 18, 0xFF34D399, false);
                             String missingLabel = (slot0HasLeft || slot1HasLeft) ? nextStep.rightLabel : nextStep.leftLabel;
@@ -453,37 +460,45 @@ public abstract class AnvilScreenMixin extends ItemCombinerScreen<AnvilMenu> {
         if (targetKey == null || this.minecraft == null || this.minecraft.player == null) return ItemStack.EMPTY;
         Inventory inv = this.minecraft.player.getInventory();
         int size = inv.getContainerSize();
+        ItemStack bestCandidate = ItemStack.EMPTY;
+        int minEnchants = 999;
+
         for (int i = 0; i < size; i++) {
             ItemStack stack = inv.getItem(i);
             if (!stack.isEmpty() && !ItemTypeHelper.isContainerOrShulker(stack) && ItemTypeHelper.isEnchantableWeaponOrArmor(stack)) {
                 String k = ItemTypeHelper.detectItemKey(stack);
-                if (k.equalsIgnoreCase(targetKey) && extractAllEnchantments(stack).size() < 12) {
-                    return stack;
+                if (k.equalsIgnoreCase(targetKey) && !AnvilTooltipState.isItemMaxed(stack)) {
+                    int ec = extractAllEnchantments(stack).size();
+                    if (ec < minEnchants) {
+                        minEnchants = ec;
+                        bestCandidate = stack;
+                        if (ec == 0) break; // Oggetto senza incantesimi: candidato ideale!
+                    }
                 }
             }
         }
-        return ItemStack.EMPTY;
+        return bestCandidate;
     }
 
     private ItemStack findAnyEquipmentInInventory() {
         if (this.minecraft == null || this.minecraft.player == null) return ItemStack.EMPTY;
         Inventory inv = this.minecraft.player.getInventory();
         int size = inv.getContainerSize();
-        // Priorità hotbar (solo item incantabili con meno di 12 incantesimi)
-        for (int i = 0; i < 9; i++) {
+        ItemStack bestCandidate = ItemStack.EMPTY;
+        int minEnchants = 999;
+
+        for (int i = 0; i < size; i++) {
             ItemStack stack = inv.getItem(i);
-            if (!stack.isEmpty() && !ItemTypeHelper.isContainerOrShulker(stack) && ItemTypeHelper.isEnchantableWeaponOrArmor(stack) && extractAllEnchantments(stack).size() < 12) {
-                return stack;
+            if (!stack.isEmpty() && !ItemTypeHelper.isContainerOrShulker(stack) && ItemTypeHelper.isEnchantableWeaponOrArmor(stack) && !AnvilTooltipState.isItemMaxed(stack)) {
+                int ec = extractAllEnchantments(stack).size();
+                if (ec < minEnchants) {
+                    minEnchants = ec;
+                    bestCandidate = stack;
+                    if (ec == 0) break;
+                }
             }
         }
-        // Poi resto dell'inventario
-        for (int i = 9; i < size; i++) {
-            ItemStack stack = inv.getItem(i);
-            if (!stack.isEmpty() && !ItemTypeHelper.isContainerOrShulker(stack) && ItemTypeHelper.isEnchantableWeaponOrArmor(stack) && extractAllEnchantments(stack).size() < 12) {
-                return stack;
-            }
-        }
-        return ItemStack.EMPTY;
+        return bestCandidate;
     }
 
     private void updateAutoCalculation(ItemStack targetEquip) {
@@ -782,12 +797,7 @@ public abstract class AnvilScreenMixin extends ItemCombinerScreen<AnvilMenu> {
         if (this.minecraft == null || this.minecraft.player == null) {
             return new ItemStack(Items.DIAMOND_SWORD);
         }
-        // 1. Controlla la mano principale
-        ItemStack main = this.minecraft.player.getMainHandItem();
-        if (ItemTypeHelper.isEnchantableWeaponOrArmor(main)) {
-            return main;
-        }
-        // 2. Controlla il set pinnato attivo nell'HUD se presente
+        // 1. Controlla il set pinnato attivo nell'HUD se presente
         String pinnedSetId = com.litness.optimizer.data.ActiveSessionManager.getPinnedSetId();
         if (pinnedSetId != null) {
             com.litness.optimizer.data.SavedSetsManager.CustomSet set = com.litness.optimizer.data.SavedSetsManager.getSetById(pinnedSetId);
@@ -796,11 +806,16 @@ public abstract class AnvilScreenMixin extends ItemCombinerScreen<AnvilMenu> {
                 if (mapped != null) return mapped;
             }
         }
-        // 3. Cerca nell'inventario una qualsiasi arma o armatura incantabile
+        // 2. Controlla la mano principale (SOLO se non è già maxata!)
+        ItemStack main = this.minecraft.player.getMainHandItem();
+        if (ItemTypeHelper.isEnchantableWeaponOrArmor(main) && !AnvilTooltipState.isItemMaxed(main)) {
+            return main;
+        }
+        // 3. Cerca nell'inventario una qualsiasi arma o armatura incantabile non maxata
         int invSize = this.minecraft.player.getInventory().getContainerSize();
         for (int i = 0; i < invSize; i++) {
             ItemStack stack = this.minecraft.player.getInventory().getItem(i);
-            if (ItemTypeHelper.isEnchantableWeaponOrArmor(stack)) {
+            if (ItemTypeHelper.isEnchantableWeaponOrArmor(stack) && !AnvilTooltipState.isItemMaxed(stack)) {
                 return stack;
             }
         }

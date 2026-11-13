@@ -7,6 +7,7 @@ import com.litness.optimizer.calculator.AnvilOptimizer.Solution;
 import com.litness.optimizer.data.EnchantmentDatabase;
 import com.litness.optimizer.data.EnchantmentDatabase.EnchantmentEntry;
 import com.litness.optimizer.data.ItemTypeHelper;
+import com.litness.optimizer.data.LitnessI18n;
 import com.litness.optimizer.mixin.AnvilScreenMixin;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.Font;
@@ -63,6 +64,8 @@ public class AnvilTooltipState {
         public String label;
         public String bookName;
     }
+
+    public static ItemStack explicitTargetEquip = ItemStack.EMPTY;
 
     public static List<HighlightedSlot> getTargetInventorySlots(AnvilScreen anvil) {
         List<HighlightedSlot> targets = new ArrayList<>();
@@ -135,23 +138,42 @@ public class AnvilTooltipState {
             if (!needSlot1 && !needSlot2) return targets;
 
             if (needSlot1) {
+                Slot bestSlot = null;
+                int minEnchants = 999;
+                String bestName = "";
+
                 for (Slot s : anvil.getMenu().slots) {
                     if (s.container != mc.player.getInventory()) continue;
                     ItemStack st = s.getItem();
                     if (st.isEmpty() || ItemTypeHelper.isContainerOrShulker(st) || st.is(Items.ENCHANTED_BOOK) || st.is(Items.BOOK)) continue;
                     if (!ItemTypeHelper.isEnchantableWeaponOrArmor(st)) continue;
-                    if (extractAllEnchantments(st).size() >= 12) continue; // Salta item già al limite massimo di 12 incanti!
+                    if (isItemMaxed(st)) continue; // Salta SEMPRE item già al limite massimo di 12 incanti!
+
                     String itemKey = ItemTypeHelper.detectItemKey(st);
                     if (itemKey != null && !itemKey.isEmpty() && itemKey.equalsIgnoreCase(cachedItemKey)) {
-                        HighlightedSlot hs = new HighlightedSlot();
-                        hs.slot = s;
-                        hs.targetAnvilSlot = 1;
-                        hs.label = com.litness.optimizer.data.LitnessI18n.t("must_put_slot_1");
-                        hs.bookName = st.getHoverName().getString();
-                        targets.add(hs);
-                        usedIndices.add(s.index);
-                        break;
+                        // Se c'è un equipaggiamento target esplicito (es. Diamond Sword), priorità assoluta allo stesso Item!
+                        if (!explicitTargetEquip.isEmpty() && st.getItem() == explicitTargetEquip.getItem()) {
+                            bestSlot = s;
+                            bestName = st.getHoverName().getString();
+                            break;
+                        }
+                        int ec = extractAllEnchantments(st).size();
+                        if (ec < minEnchants) {
+                            minEnchants = ec;
+                            bestSlot = s;
+                            bestName = st.getHoverName().getString();
+                        }
                     }
+                }
+
+                if (bestSlot != null) {
+                    HighlightedSlot hs = new HighlightedSlot();
+                    hs.slot = bestSlot;
+                    hs.targetAnvilSlot = 1;
+                    hs.label = com.litness.optimizer.data.LitnessI18n.t("must_put_slot_1");
+                    hs.bookName = bestName;
+                    targets.add(hs);
+                    usedIndices.add(bestSlot.index);
                 }
             }
 
@@ -178,6 +200,34 @@ public class AnvilTooltipState {
     }
 
     private static final Map<ItemStack, List<EnchantApplied>> ENCHANT_CACHE = new WeakHashMap<>();
+
+    public static boolean isItemMaxed(ItemStack stack) {
+        if (stack == null || stack.isEmpty()) return false;
+        ItemLore lore = stack.getOrDefault(DataComponents.LORE, ItemLore.EMPTY);
+        for (Component c : lore.lines()) {
+            String clean = c.getString().replaceAll("(?i)§[0-9a-fk-orx]", "").trim();
+            if (clean.contains("12/12")) {
+                return true;
+            }
+        }
+        return extractAllEnchantments(stack).size() >= 12;
+    }
+
+    public static boolean isSameEnchant(String id1, String id2) {
+        if (id1 == null || id2 == null) return false;
+        if (id1.equalsIgnoreCase(id2)) return true;
+        String n1 = id1.trim().toLowerCase().replace('_', '-');
+        String n2 = id2.trim().toLowerCase().replace('_', '-');
+        if (n1.equals(n2)) return true;
+
+        String b1 = LitnessI18n.getBaseId(n1);
+        String b2 = LitnessI18n.getBaseId(n2);
+        if (!b1.isEmpty() && !b2.isEmpty()) {
+            if (b1.replace('_', '-').equalsIgnoreCase(b2.replace('_', '-'))) return true;
+        }
+        if (b1.equalsIgnoreCase(n2) || b2.equalsIgnoreCase(n1)) return true;
+        return false;
+    }
 
     public static List<EnchantApplied> extractAllEnchantments(ItemStack stack) {
         if (stack == null || stack.isEmpty() || ItemTypeHelper.isContainerOrShulker(stack)) return Collections.emptyList();
@@ -224,16 +274,18 @@ public class AnvilTooltipState {
             }
         }
 
-        // 3. Da LORE (per incantesimi custom o inviati come testo dal server)
+        // 3. Da LORE (per incantesimi custom o inviati come testo dal server, supporta virgole)
         ItemLore lore = stack.getOrDefault(DataComponents.LORE, ItemLore.EMPTY);
         for (Component c : lore.lines()) {
-            LitnessTooltipHandler.MatchedEnchantment match = LitnessTooltipHandler.matchEnchantment(c.getString());
-            if (match != null && match.entry != null) {
-                int lvl = match.level > 0 ? match.level : match.entry.maxLevel;
-                String vPlusId = EnchantmentDatabase.resolveVanillaPlusId(match.entry.id, lvl);
-                String id = vPlusId != null ? vPlusId : match.entry.id;
-                if (!id.isEmpty() && seen.add(id)) {
-                    list.add(new EnchantApplied(id, lvl));
+            List<LitnessTooltipHandler.MatchedEnchantment> matches = LitnessTooltipHandler.matchAllEnchantmentsFromLine(c.getString());
+            for (LitnessTooltipHandler.MatchedEnchantment match : matches) {
+                if (match != null && match.entry != null) {
+                    int lvl = match.level > 0 ? match.level : match.entry.maxLevel;
+                    String vPlusId = EnchantmentDatabase.resolveVanillaPlusId(match.entry.id, lvl);
+                    String id = vPlusId != null ? vPlusId : match.entry.id;
+                    if (!id.isEmpty() && seen.add(id)) {
+                        list.add(new EnchantApplied(id, lvl));
+                    }
                 }
             }
         }
@@ -241,13 +293,15 @@ public class AnvilTooltipState {
         // 4. Da CUSTOM_NAME (se il nome stesso del libro/item riporta l'incantesimo)
         Component customName = stack.get(DataComponents.CUSTOM_NAME);
         if (customName != null) {
-            LitnessTooltipHandler.MatchedEnchantment match = LitnessTooltipHandler.matchEnchantment(customName.getString());
-            if (match != null && match.entry != null) {
-                int lvl = match.level > 0 ? match.level : match.entry.maxLevel;
-                String vPlusId = EnchantmentDatabase.resolveVanillaPlusId(match.entry.id, lvl);
-                String id = vPlusId != null ? vPlusId : match.entry.id;
-                if (!id.isEmpty() && seen.add(id)) {
-                    list.add(new EnchantApplied(id, lvl));
+            List<LitnessTooltipHandler.MatchedEnchantment> matches = LitnessTooltipHandler.matchAllEnchantmentsFromLine(customName.getString());
+            for (LitnessTooltipHandler.MatchedEnchantment match : matches) {
+                if (match != null && match.entry != null) {
+                    int lvl = match.level > 0 ? match.level : match.entry.maxLevel;
+                    String vPlusId = EnchantmentDatabase.resolveVanillaPlusId(match.entry.id, lvl);
+                    String id = vPlusId != null ? vPlusId : match.entry.id;
+                    if (!id.isEmpty() && seen.add(id)) {
+                        list.add(new EnchantApplied(id, lvl));
+                    }
                 }
             }
         }
@@ -259,11 +313,12 @@ public class AnvilTooltipState {
     public static boolean matchesEnchantList(ItemStack stack, List<EnchantApplied> targetEnchants) {
         if (stack == null || stack.isEmpty() || ItemTypeHelper.isContainerOrShulker(stack) || targetEnchants == null || targetEnchants.isEmpty()) return false;
         List<EnchantApplied> stackEnchants = extractAllEnchantments(stack);
-        if (stackEnchants.isEmpty() || stackEnchants.size() != targetEnchants.size()) return false;
+        if (stackEnchants.isEmpty()) return false;
+
         for (EnchantApplied target : targetEnchants) {
             boolean match = false;
             for (EnchantApplied se : stackEnchants) {
-                if (se.id.equalsIgnoreCase(target.id) && se.level == target.level) {
+                if (isSameEnchant(se.id, target.id) && (target.level <= 0 || se.level >= target.level)) {
                     match = true;
                     break;
                 }
