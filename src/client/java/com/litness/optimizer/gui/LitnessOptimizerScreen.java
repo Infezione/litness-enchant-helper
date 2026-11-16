@@ -197,6 +197,7 @@ public class LitnessOptimizerScreen extends Screen {
         if (this.currentTab != newTab) {
             this.currentTab = newTab;
             this.isCreatingSet = false;
+            this.activeDropdown = DropdownType.NONE;
             this.tabTransitionStartTime = System.currentTimeMillis();
             this.clearWidgets();
             this.init();
@@ -1894,6 +1895,9 @@ public class LitnessOptimizerScreen extends Screen {
             extractor.fill(Math.max(contentX, headX - 4), contentY - 5, headX + 2, contentY + 1, 0xFFFFFFFF);
         }
 
+        // 7b. Menu a tendina attivo (Dropdown) in primo piano sopra i controlli
+        renderActiveDropdown(extractor, vMouseX, vMouseY);
+
         // 8. Tooltip flottanti in primo piano
         renderFloatingTooltips(extractor, vMouseX, vMouseY);
 
@@ -2240,32 +2244,124 @@ public class LitnessOptimizerScreen extends Screen {
     }
 
     // -------------------------------------------------------------
+    // SISTEMA MENU A TENDINA (DROPDOWN) FLUIDO OBSIDIAN
+    // -------------------------------------------------------------
+    public enum DropdownType {
+        NONE,
+        GUI_SCALE,
+        PALETTE,
+        LORE_DETAIL
+    }
+
+    public static class DropdownOption {
+        public final String label;
+        public final String sublabel;
+        public final int swatch1;
+        public final int swatch2;
+        public final boolean isSelected;
+        public final Runnable onSelect;
+
+        public DropdownOption(String label, String sublabel, boolean isSelected, Runnable onSelect) {
+            this(label, sublabel, -1, -1, isSelected, onSelect);
+        }
+
+        public DropdownOption(String label, String sublabel, int swatch1, int swatch2, boolean isSelected, Runnable onSelect) {
+            this.label = label;
+            this.sublabel = sublabel;
+            this.swatch1 = swatch1;
+            this.swatch2 = swatch2;
+            this.isSelected = isSelected;
+            this.onSelect = onSelect;
+        }
+    }
+
+    private DropdownType activeDropdown = DropdownType.NONE;
+    private int dropdownX = 0, dropdownY = 0, dropdownW = 0;
+    private List<DropdownOption> dropdownOptions = new ArrayList<>();
+    private long dropdownOpenStartTime = 0;
+
+    private void openDropdown(DropdownType type, int x, int y, int w, List<DropdownOption> options) {
+        if (this.activeDropdown == type) {
+            closeDropdown();
+            return;
+        }
+        this.activeDropdown = type;
+        this.dropdownX = x;
+        this.dropdownY = y;
+        this.dropdownW = w;
+        this.dropdownOptions = options;
+        this.dropdownOpenStartTime = System.currentTimeMillis();
+    }
+
+    private void closeDropdown() {
+        this.activeDropdown = DropdownType.NONE;
+        this.dropdownOptions.clear();
+    }
+
+    private void playClickSound() {
+        if (this.minecraft != null && this.minecraft.getSoundManager() != null) {
+            this.minecraft.getSoundManager().play(net.minecraft.client.resources.sounds.SimpleSoundInstance.forUI(net.minecraft.sounds.SoundEvents.UI_BUTTON_CLICK, 1.0F));
+        }
+    }
+
+    // -------------------------------------------------------------
     // IMPOSTAZIONI WIDGETS & RENDERING
     // -------------------------------------------------------------
     private void initSettingsWidgets(int startX, int startY, int panelWidth, int panelHeight) {
         ModConfig config = ModConfig.get();
 
         int rowY = startY + 30;
-        int btnW = 164;
+        int btnW = 168;
         int btnH = 20;
         int btnX = startX + panelWidth - btnW - 12;
 
-        // 1. GUI Scale
+        // 1. GUI Scale Dropdown
+        final int dropY1 = rowY + 6 + btnH + 2;
+        String scaleText = ModConfig.GUI_SCALE_LABELS[config.guiScaleMode] + " \u25BE";
         SoftwareButton btnScale = new SoftwareButton(btnX, rowY + 6, btnW, btnH,
-                Component.literal(ModConfig.GUI_SCALE_LABELS[config.guiScaleMode]), b -> {
-            config.guiScaleMode = (config.guiScaleMode + 1) % ModConfig.GUI_SCALE_LABELS.length;
-            ModConfig.save();
-            this.clearWidgets();
-            this.init();
+                Component.literal(scaleText), b -> {
+            List<DropdownOption> opts = new ArrayList<>();
+            opts.add(new DropdownOption("Auto (Adatta schermo)", "Consigliato: calcola la scala ottimale", config.guiScaleMode == 0, () -> {
+                config.guiScaleMode = 0;
+                ModConfig.save();
+                this.clearWidgets();
+                this.init();
+            }));
+            opts.add(new DropdownOption("GUI Scale 1", "Scala 100% (Molto piccolo)", config.guiScaleMode == 1, () -> {
+                config.guiScaleMode = 1;
+                ModConfig.save();
+                this.clearWidgets();
+                this.init();
+            }));
+            opts.add(new DropdownOption("GUI Scale 2", "Scala 200% (Compatto)", config.guiScaleMode == 2, () -> {
+                config.guiScaleMode = 2;
+                ModConfig.save();
+                this.clearWidgets();
+                this.init();
+            }));
+            opts.add(new DropdownOption("GUI Scale 3", "Scala 300% (Standard)", config.guiScaleMode == 3, () -> {
+                config.guiScaleMode = 3;
+                ModConfig.save();
+                this.clearWidgets();
+                this.init();
+            }));
+            opts.add(new DropdownOption("GUI Scale 4", "Scala 400% (Grande)", config.guiScaleMode == 4, () -> {
+                config.guiScaleMode = 4;
+                ModConfig.save();
+                this.clearWidgets();
+                this.init();
+            }));
+            openDropdown(DropdownType.GUI_SCALE, btnX, dropY1, btnW + 24, opts);
         }).setPrimary(config.guiScaleMode == 0);
         this.addRenderableWidget(btnScale);
 
         // 2. Tooltip Usura Incudine
         rowY += 46;
         SoftwareButton btnPenalty = new SoftwareButton(btnX, rowY + 6, btnW, btnH,
-                Component.literal(config.showAnvilPenaltyTooltip ? "✔ ATTIVO" : "✖ DISATTIVO"), b -> {
+                Component.literal(config.showAnvilPenaltyTooltip ? "\u2714 ATTIVO" : "\u2716 DISATTIVO"), b -> {
             config.showAnvilPenaltyTooltip = !config.showAnvilPenaltyTooltip;
             ModConfig.save();
+            closeDropdown();
             this.clearWidgets();
             this.init();
         }).setSuccess(config.showAnvilPenaltyTooltip).setDanger(!config.showAnvilPenaltyTooltip);
@@ -2273,32 +2369,67 @@ public class LitnessOptimizerScreen extends Screen {
 
         // 3. Palette Colori Evidenziazione Libri (Incudine)
         rowY += 46;
+        final int dropY3 = rowY + 6 + btnH + 2;
+        String paletteText = config.getCurrentPreset().name + " \u25BE";
         SoftwareButton btnPalette = new SoftwareButton(btnX, rowY + 6, btnW, btnH,
-                Component.literal(config.getCurrentPreset().name), b -> {
-            config.colorPresetIndex = (config.colorPresetIndex + 1) % ModConfig.PRESETS.length;
-            ModConfig.save();
-            this.clearWidgets();
-            this.init();
+                Component.literal(paletteText), b -> {
+            List<DropdownOption> opts = new ArrayList<>();
+            for (int i = 0; i < ModConfig.PRESETS.length; i++) {
+                final int idx = i;
+                ModConfig.HighlightPreset p = ModConfig.PRESETS[i];
+                opts.add(new DropdownOption(p.name, "Slot 1 & Slot 2", p.slot1Border, p.slot2Border, config.colorPresetIndex == i, () -> {
+                    config.colorPresetIndex = idx;
+                    ModConfig.save();
+                    this.clearWidgets();
+                    this.init();
+                }));
+            }
+            openDropdown(DropdownType.PALETTE, btnX, dropY3, btnW + 24, opts);
         });
         this.addRenderableWidget(btnPalette);
 
         // 4. Dettagli Lore Libri Incantati
         rowY += 46;
+        final int dropY4 = rowY + 6 + btnH + 2;
+        String loreText = ModConfig.LORE_DETAIL_LABELS[config.bookLoreDetailMode] + " \u25BE";
         SoftwareButton btnLoreDetail = new SoftwareButton(btnX, rowY + 6, btnW, btnH,
-                Component.literal(ModConfig.LORE_DETAIL_LABELS[config.bookLoreDetailMode]), b -> {
-            config.bookLoreDetailMode = (config.bookLoreDetailMode + 1) % ModConfig.LORE_DETAIL_LABELS.length;
-            ModConfig.save();
-            this.clearWidgets();
-            this.init();
+                Component.literal(loreText), b -> {
+            List<DropdownOption> opts = new ArrayList<>();
+            opts.add(new DropdownOption("Completa", "Costi XP, descrizioni, conflitti ed icone", config.bookLoreDetailMode == 0, () -> {
+                config.bookLoreDetailMode = 0;
+                ModConfig.save();
+                this.clearWidgets();
+                this.init();
+            }));
+            opts.add(new DropdownOption("Compatta", "Solo costi base XP e livello massimo", config.bookLoreDetailMode == 1, () -> {
+                config.bookLoreDetailMode = 1;
+                ModConfig.save();
+                this.clearWidgets();
+                this.init();
+            }));
+            opts.add(new DropdownOption("Minimale", "Solo nome incantesimo e livello", config.bookLoreDetailMode == 2, () -> {
+                config.bookLoreDetailMode = 2;
+                ModConfig.save();
+                this.clearWidgets();
+                this.init();
+            }));
+            opts.add(new DropdownOption("Disattivata", "Nessuna lore aggiuntiva sui libri", config.bookLoreDetailMode == 3, () -> {
+                config.bookLoreDetailMode = 3;
+                ModConfig.save();
+                this.clearWidgets();
+                this.init();
+            }));
+            openDropdown(DropdownType.LORE_DETAIL, btnX, dropY4, btnW + 24, opts);
         });
         this.addRenderableWidget(btnLoreDetail);
 
         // 5. Avviso Libri Già Lavorati
         rowY += 46;
         SoftwareButton btnWarn = new SoftwareButton(btnX, rowY + 6, btnW, btnH,
-                Component.literal(config.warnUsedBooksInAnvil ? "✔ ATTIVO" : "✖ DISATTIVO"), b -> {
+                Component.literal(config.warnUsedBooksInAnvil ? "\u2714 ATTIVO" : "\u2716 DISATTIVO"), b -> {
             config.warnUsedBooksInAnvil = !config.warnUsedBooksInAnvil;
             ModConfig.save();
+            closeDropdown();
             this.clearWidgets();
             this.init();
         }).setSuccess(config.warnUsedBooksInAnvil).setDanger(!config.warnUsedBooksInAnvil);
@@ -2307,13 +2438,14 @@ public class LitnessOptimizerScreen extends Screen {
         // 6. Reset Defaults
         int resetY = getWinY() + getWinH() - 24;
         SoftwareButton btnReset = new SoftwareButton(startX + 6, resetY, 150, 18,
-                Component.literal("↺ Ripristina Default"), b -> {
+                Component.literal("\u21BA Ripristina Default"), b -> {
             config.guiScaleMode = 0;
             config.showAnvilPenaltyTooltip = true;
             config.colorPresetIndex = 0;
             config.bookLoreDetailMode = 0;
             config.warnUsedBooksInAnvil = true;
             ModConfig.save();
+            closeDropdown();
             showCenterNotification("Ripristinato", "Impostazioni predefinite ricaricate", true);
             this.clearWidgets();
             this.init();
@@ -2325,7 +2457,7 @@ public class LitnessOptimizerScreen extends Screen {
         ModConfig config = ModConfig.get();
 
         // Titolo sezione
-        extractor.text(this.font, "⚙ IMPOSTAZIONI & PERSONALIZZAZIONE", startX + 6, startY + 6, 0xFFFFFFFF, true);
+        extractor.text(this.font, "\u2699 IMPOSTAZIONI & PERSONALIZZAZIONE", startX + 6, startY + 6, 0xFFFFFFFF, true);
         extractor.text(this.font, "Personalizza scala GUI, tooltip usura incudine, colori slot e descrizioni lore.", startX + 6, startY + 18, 0xFF9CA3AF, false);
 
         int rowY = startY + 30;
@@ -2336,14 +2468,16 @@ public class LitnessOptimizerScreen extends Screen {
         drawRoundedRect(extractor, startX, rowY, cardW, rowH, 6, 0xFF0B0D14);
         drawRoundedOutline(extractor, startX, rowY, cardW, rowH, 6, 0xFF1E2334);
         extractor.text(this.font, "Scala Interfaccia Mod (GUI Scale)", startX + 10, rowY + 7, 0xFFFFFFFF, true);
-        extractor.text(this.font, "Risolve il problema dello schermo tagliato per chi usa GUI Scale 4 (Auto adatta da sola)", startX + 10, rowY + 21, 0xFF6B7280, false);
+        extractor.text(this.font, "Risolve lo schermo tagliato a GUI Scale 4.", startX + 10, rowY + 19, 0xFF9CA3AF, false);
+        extractor.text(this.font, "\u00A78(Auto adatta automaticamente alle dimensioni dello schermo)", startX + 10, rowY + 29, 0xFF64748B, false);
 
         // Card 2: Lore Usura Incudine
         rowY += 46;
         drawRoundedRect(extractor, startX, rowY, cardW, rowH, 6, 0xFF0B0D14);
         drawRoundedOutline(extractor, startX, rowY, cardW, rowH, 6, 0xFF1E2334);
         extractor.text(this.font, "Tooltip Usura Incudine (Armi, Armature, Libri)", startX + 10, rowY + 7, 0xFFFFFFFF, true);
-        extractor.text(this.font, "Mostra: \u00A7e⚠ Usura incudine: +31 liv. \u00A78· \u00A7f8 liberi \u00A77prima del limite 39", startX + 10, rowY + 21, 0xFF6B7280, false);
+        extractor.text(this.font, "Mostra: \u00A7e\u26A0 Usura incudine: +31 liv. \u00A78\u00B7 \u00A7f8 liberi \u00A77prima di 39", startX + 10, rowY + 19, 0xFF9CA3AF, false);
+        extractor.text(this.font, "\u00A78(Segnala automaticamente quando il set raggiunge 12/12 MAX)", startX + 10, rowY + 29, 0xFF64748B, false);
 
         // Card 3: Palette Colori Evidenziazione Libri
         rowY += 46;
@@ -2351,7 +2485,7 @@ public class LitnessOptimizerScreen extends Screen {
         drawRoundedOutline(extractor, startX, rowY, cardW, rowH, 6, 0xFF1E2334);
         extractor.text(this.font, "Evidenziazione Libri in Incudine", startX + 10, rowY + 7, 0xFFFFFFFF, true);
 
-        // Mostra preview mini campioni colori [1] e [2]
+        // Preview campioni colori
         ModConfig.HighlightPreset preset = config.getCurrentPreset();
         int prevBox1 = preset.slot1Border;
         int prevBox2 = preset.slot2Border;
@@ -2368,14 +2502,72 @@ public class LitnessOptimizerScreen extends Screen {
         drawRoundedRect(extractor, startX, rowY, cardW, rowH, 6, 0xFF0B0D14);
         drawRoundedOutline(extractor, startX, rowY, cardW, rowH, 6, 0xFF1E2334);
         extractor.text(this.font, "Dettagli & Lore Aggiuntiva Libri", startX + 10, rowY + 7, 0xFFFFFFFF, true);
-        extractor.text(this.font, "Regola descrizioni, costi incudine, conflitti e icone degli oggetti compatibili", startX + 10, rowY + 21, 0xFF6B7280, false);
+        extractor.text(this.font, "Mostra descrizioni, costi incudine, conflitti e compatibilit\u00E0.", startX + 10, rowY + 21, 0xFF9CA3AF, false);
 
         // Card 5: Avviso Libri Usati
         rowY += 46;
         drawRoundedRect(extractor, startX, rowY, cardW, rowH, 6, 0xFF0B0D14);
         drawRoundedOutline(extractor, startX, rowY, cardW, rowH, 6, 0xFF1E2334);
         extractor.text(this.font, "Avviso di Sicurezza Libri Usati", startX + 10, rowY + 7, 0xFFFFFFFF, true);
-        extractor.text(this.font, "Segnala libri con usura (>0 liv.) per evitare di bloccare il set a 11 incanti", startX + 10, rowY + 21, 0xFF6B7280, false);
+        extractor.text(this.font, "Segnala libri con usura (>0 liv.) per evitare blocco a 11 incanti.", startX + 10, rowY + 21, 0xFF9CA3AF, false);
+    }
+
+    private void renderActiveDropdown(GuiGraphicsExtractor extractor, int mouseX, int mouseY) {
+        if (activeDropdown == DropdownType.NONE || dropdownOptions.isEmpty()) return;
+
+        long elapsed = System.currentTimeMillis() - dropdownOpenStartTime;
+        float progress = Math.min(1.0f, (float) elapsed / 120.0f);
+        float ease = 1.0f - (float) Math.pow(1.0f - progress, 3); // cubic ease-out
+
+        int optH = 24;
+        int fullH = dropdownOptions.size() * optH + 6;
+        int currentH = Math.max(10, (int) (fullH * ease));
+        int alpha = (int) (ease * 255.0f);
+
+        // Ombra esterna scura
+        drawRoundedRect(extractor, dropdownX + 2, dropdownY + 3, dropdownW, currentH, 6, (Math.min(140, alpha / 2) << 24));
+
+        // Sfondo Dark Glass solido Obsidian Minimal
+        int bgAlpha = Math.max(0, Math.min(252, (int) (alpha * 0.98f)));
+        drawRoundedRect(extractor, dropdownX, dropdownY, dropdownW, currentH, 6, (bgAlpha << 24) | 0x0A0D15);
+        drawRoundedOutline(extractor, dropdownX, dropdownY, dropdownW, currentH, 6, (alpha << 24) | 0x3B82F6);
+
+        if (progress >= 0.35f) {
+            for (int i = 0; i < dropdownOptions.size(); i++) {
+                DropdownOption opt = dropdownOptions.get(i);
+                int itemY = dropdownY + 3 + i * optH;
+                if (itemY + optH > dropdownY + currentH) break;
+
+                boolean isHovered = mouseX >= dropdownX && mouseX <= dropdownX + dropdownW && mouseY >= itemY && mouseY < itemY + optH;
+                if (isHovered) {
+                    drawRoundedRect(extractor, dropdownX + 3, itemY, dropdownW - 6, optH, 4, 0xFF182234);
+                } else if (opt.isSelected) {
+                    drawRoundedRect(extractor, dropdownX + 3, itemY, dropdownW - 6, optH, 4, 0xFF101926);
+                }
+
+                int textX = dropdownX + 10;
+
+                // Color swatches se presenti
+                if (opt.swatch1 != -1 && opt.swatch2 != -1) {
+                    drawRoundedRect(extractor, textX, itemY + 6, 7, 11, 2, 0xFF000000 | opt.swatch1);
+                    drawRoundedRect(extractor, textX + 9, itemY + 6, 7, 11, 2, 0xFF000000 | opt.swatch2);
+                    textX += 22;
+                }
+
+                int labelColor = opt.isSelected ? 0xFF38BDF8 : (isHovered ? 0xFFFFFFFF : 0xFFE2E8F0);
+                extractor.text(this.font, opt.label, textX, itemY + 4, labelColor, false);
+
+                if (opt.sublabel != null && !opt.sublabel.isEmpty()) {
+                    int subW = dropdownW - (textX - dropdownX) - 24;
+                    String trimmedSub = trimToWidth(this.font, opt.sublabel, subW);
+                    extractor.text(this.font, trimmedSub, textX, itemY + 13, 0xFF64748B, false);
+                }
+
+                if (opt.isSelected) {
+                    extractor.text(this.font, "\u2714", dropdownX + dropdownW - 16, itemY + 7, 0xFF34D399, false);
+                }
+            }
+        }
     }
 
     // -------------------------------------------------------------
@@ -2750,6 +2942,26 @@ public class LitnessOptimizerScreen extends Screen {
     @Override
     public boolean mouseClicked(net.minecraft.client.input.MouseButtonEvent event, boolean doubleClick) {
         float s = getEffectiveScale();
+        double vx = (s != 1.0f) ? (event.x() / s) : event.x();
+        double vy = (s != 1.0f) ? (event.y() / s) : event.y();
+
+        if (this.activeDropdown != DropdownType.NONE && !this.dropdownOptions.isEmpty()) {
+            int optH = 24;
+            int totalH = this.dropdownOptions.size() * optH + 6;
+            if (vx >= this.dropdownX && vx <= this.dropdownX + this.dropdownW && vy >= this.dropdownY && vy <= this.dropdownY + totalH) {
+                int idx = (int) ((vy - this.dropdownY - 3) / optH);
+                if (idx >= 0 && idx < this.dropdownOptions.size()) {
+                    DropdownOption opt = this.dropdownOptions.get(idx);
+                    opt.onSelect.run();
+                    closeDropdown();
+                    playClickSound();
+                    return true;
+                }
+            } else {
+                closeDropdown();
+            }
+        }
+
         if (s != 1.0f) {
             net.minecraft.client.input.MouseButtonEvent vEvent = new net.minecraft.client.input.MouseButtonEvent(
                     event.x() / s, event.y() / s, event.buttonInfo()

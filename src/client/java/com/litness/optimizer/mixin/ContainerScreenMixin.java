@@ -83,6 +83,12 @@ public abstract class ContainerScreenMixin extends Screen {
 
     @Inject(method = "mouseClicked", at = @At("HEAD"), cancellable = true, require = 0)
     private void litness_onContainerMouseClicked(MouseButtonEvent event, boolean doubleClick, CallbackInfoReturnable<Boolean> cir) {
+        if (((Object) this) instanceof net.minecraft.client.gui.screens.inventory.AnvilScreen anvil) {
+            if (com.litness.optimizer.gui.AnvilTooltipState.handleMouseClicked(anvil, anvil.getMenu(), event)) {
+                cir.setReturnValue(true);
+                return;
+            }
+        }
         if (com.litness.optimizer.gui.AhPriceManager.handleMouseClicked(this, event)) {
             cir.setReturnValue(true);
             return;
@@ -94,6 +100,12 @@ public abstract class ContainerScreenMixin extends Screen {
 
     @Inject(method = "mouseScrolled", at = @At("HEAD"), cancellable = true, require = 0)
     private void litness_onContainerMouseScrolled(double mouseX, double mouseY, double horizontalAmount, double verticalAmount, CallbackInfoReturnable<Boolean> cir) {
+        if (((Object) this) instanceof net.minecraft.client.gui.screens.inventory.AnvilScreen anvil) {
+            if (com.litness.optimizer.gui.AnvilTooltipState.handleMouseScrolled(anvil, mouseX, mouseY, horizontalAmount, verticalAmount)) {
+                cir.setReturnValue(true);
+                return;
+            }
+        }
         if (com.litness.optimizer.gui.AhPriceManager.handleMouseScrolled(this, mouseX, mouseY, horizontalAmount, verticalAmount)) {
             cir.setReturnValue(true);
         }
@@ -108,8 +120,23 @@ public abstract class ContainerScreenMixin extends Screen {
 
     @Inject(method = "mouseReleased", at = @At("HEAD"), cancellable = true, require = 0)
     private void litness_onContainerMouseReleased(MouseButtonEvent event, CallbackInfoReturnable<Boolean> cir) {
+        if (((Object) this) instanceof net.minecraft.client.gui.screens.inventory.AnvilScreen anvil) {
+            if (com.litness.optimizer.gui.AnvilTooltipState.handleMouseReleased(anvil, anvil.getMenu(), event)) {
+                cir.setReturnValue(true);
+                return;
+            }
+        }
         if (com.litness.optimizer.gui.AhPriceManager.handleMouseReleased(this, event)) {
             cir.setReturnValue(true);
+        }
+    }
+
+    @Inject(method = "hasClickedOutside", at = @At("HEAD"), cancellable = true, require = 0)
+    private void litness_onHasClickedOutside(double mouseX, double mouseY, int leftPos, int topPos, CallbackInfoReturnable<Boolean> cir) {
+        if (((Object) this) instanceof net.minecraft.client.gui.screens.inventory.AnvilScreen) {
+            if (com.litness.optimizer.gui.AnvilTooltipState.isInsideSidebar(mouseX, mouseY)) {
+                cir.setReturnValue(false);
+            }
         }
     }
 

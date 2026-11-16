@@ -4,6 +4,7 @@ import com.litness.optimizer.calculator.AnvilOptimizer;
 import com.litness.optimizer.calculator.AnvilOptimizer.EnchantApplied;
 import com.litness.optimizer.calculator.AnvilOptimizer.MergeStep;
 import com.litness.optimizer.calculator.AnvilOptimizer.Solution;
+import com.litness.optimizer.data.ActiveSessionManager;
 import com.litness.optimizer.data.EnchantmentDatabase;
 import com.litness.optimizer.data.EnchantmentDatabase.EnchantmentEntry;
 import com.litness.optimizer.data.ItemTypeHelper;
@@ -36,6 +37,14 @@ public class AnvilTooltipState {
     public static com.litness.optimizer.calculator.MaxabilityAnalyzer.MaxabilityResult hoveredMaxabilityResult = null;
     public static Solution cachedSolution = null;
     public static String cachedItemKey = "sword";
+    public static ItemStack savedSelectedEquipment = ItemStack.EMPTY;
+    public static int rightPanelScrollOffset = 0;
+    public static int rightPanelMaxScroll = 0;
+    public static EnchantmentEntry hoveredChecklistEnchant = null;
+
+    public static int leftSideX = -9999, leftSideY = -9999, leftSideW = 0, leftSideH = 0;
+    public static int rightSideX = -9999, rightSideY = -9999, rightSideW = 0, rightSideH = 0;
+    public static int wellX = -9999, wellY = -9999, wellW = 0, wellH = 0;
 
     public static void clearHover() {
         hoveredNextStep = null;
@@ -43,6 +52,86 @@ public class AnvilTooltipState {
         hoveredInfoModal = false;
         hoveredGhostSlotItemName = null;
         hoveredMaxabilityResult = null;
+        hoveredChecklistEnchant = null;
+    }
+
+    public static boolean isInsideSidebar(double mouseX, double mouseY) {
+        if (leftSideW > 0 && leftSideH > 0 && mouseX >= leftSideX && mouseX <= leftSideX + leftSideW && mouseY >= leftSideY && mouseY <= leftSideY + leftSideH) {
+            return true;
+        }
+        if (rightSideW > 0 && rightSideH > 0 && mouseX >= rightSideX && mouseX <= rightSideX + rightSideW && mouseY >= rightSideY && mouseY <= rightSideY + rightSideH) {
+            return true;
+        }
+        return false;
+    }
+
+    public static boolean isInsideWell(double mouseX, double mouseY) {
+        return wellW > 0 && wellH > 0 && mouseX >= wellX && mouseX <= wellX + wellW && mouseY >= wellY && mouseY <= wellY + wellH;
+    }
+
+    public static boolean isInsideRightPanel(double mouseX, double mouseY) {
+        return rightSideW > 0 && rightSideH > 0 && mouseX >= rightSideX && mouseX <= rightSideX + rightSideW && mouseY >= rightSideY && mouseY <= rightSideY + rightSideH;
+    }
+
+    public static void selectAndSaveEquipment(ItemStack stack) {
+        if (stack == null || stack.isEmpty() || !ItemTypeHelper.isEnchantableWeaponOrArmor(stack)) return;
+        savedSelectedEquipment = stack.copy();
+        explicitTargetEquip = stack.copy();
+        String itemKey = ItemTypeHelper.detectItemKey(stack);
+        String name = stack.getHoverName().getString();
+        int penalty = stack.getOrDefault(DataComponents.REPAIR_COST, 0);
+        String itemId = net.minecraft.core.registries.BuiltInRegistries.ITEM.getKey(stack.getItem()).toString();
+        ActiveSessionManager.saveAnvilEquipment(itemId, itemKey, name, penalty);
+    }
+
+    public static boolean handleMouseClicked(AnvilScreen anvil, net.minecraft.world.inventory.AnvilMenu menu, net.minecraft.client.input.MouseButtonEvent event) {
+        double mx = event.x();
+        double my = event.y();
+        int btn = event.button();
+        if (btn == 0 || btn == com.mojang.blaze3d.platform.InputConstants.MOUSE_BUTTON_LEFT) {
+            if (isInsideWell(mx, my)) {
+                ItemStack carried = menu.getCarried();
+                if (!carried.isEmpty() && ItemTypeHelper.isEnchantableWeaponOrArmor(carried)) {
+                    selectAndSaveEquipment(carried);
+                    Minecraft mc = Minecraft.getInstance();
+                    if (mc != null && mc.getSoundManager() != null) {
+                        mc.getSoundManager().play(net.minecraft.client.resources.sounds.SimpleSoundInstance.forUI(net.minecraft.sounds.SoundEvents.UI_BUTTON_CLICK, 1.0F));
+                    }
+                    return true;
+                }
+            }
+        }
+        return false;
+    }
+
+    public static boolean handleMouseReleased(AnvilScreen anvil, net.minecraft.world.inventory.AnvilMenu menu, net.minecraft.client.input.MouseButtonEvent event) {
+        double mx = event.x();
+        double my = event.y();
+        int btn = event.button();
+        if (btn == 0 || btn == com.mojang.blaze3d.platform.InputConstants.MOUSE_BUTTON_LEFT) {
+            if (isInsideWell(mx, my)) {
+                ItemStack carried = menu.getCarried();
+                if (!carried.isEmpty() && ItemTypeHelper.isEnchantableWeaponOrArmor(carried)) {
+                    selectAndSaveEquipment(carried);
+                    Minecraft mc = Minecraft.getInstance();
+                    if (mc != null && mc.getSoundManager() != null) {
+                        mc.getSoundManager().play(net.minecraft.client.resources.sounds.SimpleSoundInstance.forUI(net.minecraft.sounds.SoundEvents.UI_BUTTON_CLICK, 1.0F));
+                    }
+                    return true;
+                }
+            }
+        }
+        return false;
+    }
+
+    public static boolean handleMouseScrolled(AnvilScreen anvil, double mouseX, double mouseY, double horizontalAmount, double verticalAmount) {
+        if (isInsideRightPanel(mouseX, mouseY)) {
+            if (rightPanelMaxScroll > 0) {
+                rightPanelScrollOffset = Math.max(0, Math.min(rightPanelMaxScroll, rightPanelScrollOffset - (int)(verticalAmount * 16)));
+                return true;
+            }
+        }
+        return false;
     }
 
     public static void renderTopLayer(GuiGraphicsExtractor extractor, AnvilScreen anvil, int mouseX, int mouseY) {
@@ -56,6 +145,51 @@ public class AnvilTooltipState {
             renderStepTooltip(extractor, anvil, hoveredNextStep);
         } else if (hoveredCurrentEnchants != null && !hoveredCurrentEnchants.isEmpty()) {
             renderCurrentEnchantsTooltip(extractor, anvil, hoveredCurrentEnchants);
+        } else if (hoveredChecklistEnchant != null) {
+            renderChecklistEnchantTooltip(extractor, anvil, hoveredChecklistEnchant, mouseX, mouseY);
+        }
+    }
+
+    public static void renderChecklistEnchantTooltip(GuiGraphicsExtractor extractor, AnvilScreen anvil, EnchantmentEntry ee, int mouseX, int mouseY) {
+        if (ee == null || anvil == null) return;
+        Minecraft mc = Minecraft.getInstance();
+        Font font = mc.font;
+
+        List<Component> lines = new ArrayList<>();
+        String name = LitnessI18n.getEnchantName(ee);
+        String levelRoman = AnvilOptimizer.toRoman(ee.maxLevel > 1 ? ee.maxLevel : 1);
+        lines.add(Component.literal("§b✦ " + name + " " + levelRoman));
+        lines.add(Component.literal("§7" + LitnessI18n.t("anvil_label") + ee.getAnvilCostNumeric() + " " + LitnessI18n.t("levels").trim()));
+
+        if (ee.description != null && !ee.description.isEmpty()) {
+            List<String> wrapped = LitnessTooltipHandler.wrapText(ee.description, 36);
+            for (String w : wrapped) {
+                lines.add(Component.literal("  §8" + w));
+            }
+        }
+
+        int tipW = 0;
+        for (Component c : lines) {
+            tipW = Math.max(tipW, font.width(c));
+        }
+        tipW += 12;
+        int tipH = lines.size() * 10 + 6;
+
+        int tipX = mouseX + 12;
+        int tipY = mouseY - 10;
+        if (tipX + tipW > anvil.width - 4) tipX = mouseX - tipW - 6;
+        if (tipY + tipH > anvil.height - 4) tipY = anvil.height - tipH - 4;
+        if (tipX < 4) tipX = 4;
+        if (tipY < 4) tipY = 4;
+
+        extractor.outline(tipX - 1, tipY - 1, tipW + 2, tipH + 2, 0x80000000);
+        extractor.fill(tipX, tipY, tipX + tipW, tipY + tipH, 0xEA0D111D);
+        extractor.outline(tipX, tipY, tipW, tipH, 0xFF38BDF8);
+
+        int ty = tipY + 4;
+        for (Component line : lines) {
+            extractor.text(font, line, tipX + 6, ty, 0xFFFFFFFF, false);
+            ty += 10;
         }
     }
 

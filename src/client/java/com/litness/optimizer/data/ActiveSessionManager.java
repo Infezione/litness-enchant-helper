@@ -18,6 +18,10 @@ public class ActiveSessionManager {
         String pinnedSetId = null;
         List<String> searchEnchants = new ArrayList<>();
         String language = "it";
+        String savedAnvilItemId = null;
+        String savedAnvilItemKey = null;
+        String savedAnvilItemName = null;
+        int savedAnvilItemPenalty = 0;
     }
 
     private static final File CONFIG_FILE = new File("config/litnessoptimizer/active_session.json");
@@ -206,5 +210,38 @@ public class ActiveSessionManager {
 
     public static synchronized boolean isEnglish() {
         return "en".equalsIgnoreCase(getLanguage());
+    }
+
+    public static synchronized void saveAnvilEquipment(String itemId, String itemKey, String name, int penalty) {
+        load();
+        sessionData.savedAnvilItemId = itemId;
+        sessionData.savedAnvilItemKey = itemKey;
+        sessionData.savedAnvilItemName = name;
+        sessionData.savedAnvilItemPenalty = penalty;
+        save();
+    }
+
+    public static synchronized void saveAnvilEquipment(String itemKey, String name, int penalty) {
+        saveAnvilEquipment(null, itemKey, name, penalty);
+    }
+
+    public static synchronized String getSavedAnvilItemId() {
+        load();
+        return sessionData.savedAnvilItemId;
+    }
+
+    public static synchronized String getSavedAnvilItemKey() {
+        load();
+        return sessionData.savedAnvilItemKey;
+    }
+
+    public static synchronized String getSavedAnvilItemName() {
+        load();
+        return sessionData.savedAnvilItemName;
+    }
+
+    public static synchronized int getSavedAnvilItemPenalty() {
+        load();
+        return sessionData.savedAnvilItemPenalty;
     }
 }

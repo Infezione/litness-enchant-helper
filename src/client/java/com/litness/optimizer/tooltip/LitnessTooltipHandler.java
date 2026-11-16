@@ -756,7 +756,7 @@ public class LitnessTooltipHandler {
         if (stack == null || stack.isEmpty() || lines == null) return;
         for (Component c : lines) {
             String s = c.getString().toLowerCase();
-            if (s.contains("usura incudine") || s.contains("anvil penalty")) {
+            if (s.contains("usura incudine") || s.contains("anvil penalty") || s.contains("usura libro") || s.contains("book penalty")) {
                 return;
             }
         }
@@ -766,14 +766,6 @@ public class LitnessTooltipHandler {
         String label = LitnessI18n.isEnglish() ? "Anvil penalty" : "Usura incudine";
         String levelsText = LitnessI18n.isEnglish() ? "levels" : "livelli";
         String freeText = LitnessI18n.isEnglish() ? "free" : "liberi";
-
-        Component penaltyComp;
-        if (repairCost > 0) {
-            String freeColor = (freeLevels <= 8) ? "§c" : (freeLevels <= 15 ? "§e" : "§f");
-            penaltyComp = Component.literal("§e⚠ §f" + label + ": §e+" + repairCost + " " + levelsText + " §8· " + freeColor + freeLevels + " " + freeText);
-        } else {
-            penaltyComp = Component.literal("§8" + label + ": §a0 " + levelsText + " §8· §739 " + freeText);
-        }
 
         // Trova la posizione migliore: prima dei modificatori di attributo o a fine lore
         int insertIdx = lines.size();
@@ -789,14 +781,37 @@ public class LitnessTooltipHandler {
             }
         }
 
-        lines.add(insertIdx, penaltyComp);
-
-        // Se è un libro già lavorato, avvisa visivamente del pericolo di blocco incudine a 11 incanti
-        if (repairCost > 0 && (stack.is(Items.ENCHANTED_BOOK) || stack.is(Items.BOOK)) && ModConfig.get().warnUsedBooksInAnvil) {
-            lines.add(insertIdx + 1, Component.literal("  §c⚠ " + (LitnessI18n.isEnglish()
-                    ? "Used book! High risk of blocking at 11 enchants."
-                    : "Libro già lavorato! Rischio blocco a 11 incanti.")));
+        boolean isBook = (stack.is(Items.ENCHANTED_BOOK) || stack.is(Items.BOOK));
+        if (isBook) {
+            // Sui libri NON mostriamo "39 liberi" (solo se ha usura > 0 mostriamo l'avviso di pericolo)
+            if (repairCost > 0) {
+                String bookLabel = LitnessI18n.isEnglish() ? "Book penalty" : "Usura libro";
+                lines.add(insertIdx, Component.literal("§c⚠ §f" + bookLabel + ": §c+" + repairCost + " " + levelsText));
+                if (ModConfig.get().warnUsedBooksInAnvil) {
+                    lines.add(insertIdx + 1, Component.literal("  §c⚠ " + (LitnessI18n.isEnglish()
+                            ? "Used book! High risk of blocking at 11 enchants."
+                            : "Libro già lavorato! Rischio blocco a 11 incanti.")));
+                }
+            }
+            return;
         }
+
+        // Equipaggiamento (Armi, Armature, Strumenti)
+        int enchantCount = com.litness.optimizer.gui.AnvilTooltipState.extractAllEnchantments(stack).size();
+        Component penaltyComp;
+
+        if (enchantCount >= 12) {
+            // Massimo 12 incanti raggiunto: messaggio professionale elegante
+            String maxBadge = LitnessI18n.isEnglish() ? "MAX REACHED (12/12)" : "MASSIMO RAGGIUNTO (12/12)";
+            penaltyComp = Component.literal("§6✦ §f" + label + ": §e+" + repairCost + " " + levelsText + " §8· §a✔ " + maxBadge);
+        } else if (repairCost > 0) {
+            String freeColor = (freeLevels <= 8) ? "§c" : (freeLevels <= 15 ? "§e" : "§f");
+            penaltyComp = Component.literal("§e⚠ §f" + label + ": §e+" + repairCost + " " + levelsText + " §8· " + freeColor + freeLevels + " " + freeText + " §8(" + enchantCount + "/12)");
+        } else {
+            penaltyComp = Component.literal("§8" + label + ": §a0 " + levelsText + " §8· §7" + freeLevels + " " + freeText + " §8(" + enchantCount + "/12)");
+        }
+
+        lines.add(insertIdx, penaltyComp);
     }
 
     public static Optional<TooltipComponent> getApplicableItemsTooltipData(ItemStack stack) {
@@ -1045,7 +1060,7 @@ public class LitnessTooltipHandler {
         return result;
     }
 
-    private static List<String> wrapText(String text, int maxChars) {
+    public static List<String> wrapText(String text, int maxChars) {
         List<String> result = new ArrayList<>();
         if (text == null || text.isEmpty()) return result;
         if (text.length() <= maxChars) {
