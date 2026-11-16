@@ -169,21 +169,30 @@ public abstract class AnvilScreenMixin extends ItemCombinerScreen<AnvilMenu> {
                 activeEquipment = slot1;
                 lastExplicitEquipment = slot1.copy();
                 AnvilTooltipState.selectAndSaveEquipment(slot1);
+            } else if (!this.menu.getCarried().isEmpty() && ItemTypeHelper.isEnchantableWeaponOrArmor(this.menu.getCarried())) {
+                activeEquipment = this.menu.getCarried();
+                lastExplicitEquipment = activeEquipment.copy();
+                AnvilTooltipState.selectAndSaveEquipment(activeEquipment);
             } else if (AnvilTooltipState.savedSelectedEquipment != null && !AnvilTooltipState.savedSelectedEquipment.isEmpty()) {
-                activeEquipment = findMatchingEquipmentInInventory(AnvilTooltipState.savedSelectedEquipment);
-                if (!activeEquipment.isEmpty()) {
-                    lastExplicitEquipment = activeEquipment.copy();
-                }
+                ItemStack found = findMatchingEquipmentInInventory(AnvilTooltipState.savedSelectedEquipment);
+                activeEquipment = !found.isEmpty() ? found : AnvilTooltipState.savedSelectedEquipment;
+                lastExplicitEquipment = activeEquipment.copy();
             } else if (ActiveSessionManager.getSavedAnvilItemKey() != null) {
                 String savedId = ActiveSessionManager.getSavedAnvilItemId();
                 String savedKey = ActiveSessionManager.getSavedAnvilItemKey();
-                activeEquipment = findEquipmentBySavedDetails(savedId, savedKey);
+                ItemStack found = findEquipmentBySavedDetails(savedId, savedKey);
+                if (!found.isEmpty()) {
+                    activeEquipment = found;
+                } else {
+                    activeEquipment = createFallbackEquipment(savedId, savedKey, ActiveSessionManager.getSavedAnvilItemName(), ActiveSessionManager.getSavedAnvilItemPenalty());
+                }
                 if (!activeEquipment.isEmpty()) {
                     lastExplicitEquipment = activeEquipment.copy();
                     AnvilTooltipState.savedSelectedEquipment = activeEquipment.copy();
                 }
             } else if (!lastExplicitEquipment.isEmpty()) {
-                activeEquipment = findMatchingEquipmentInInventory(lastExplicitEquipment);
+                ItemStack found = findMatchingEquipmentInInventory(lastExplicitEquipment);
+                activeEquipment = !found.isEmpty() ? found : lastExplicitEquipment;
             } else {
                 // Se nessun oggetto è ancora stato inserito nello slot 0, controlliamo se c'è un set esplicitamente pinnato
                 String pinnedId = ActiveSessionManager.getPinnedSetId();
@@ -192,6 +201,22 @@ public abstract class AnvilScreenMixin extends ItemCombinerScreen<AnvilMenu> {
                     if (pinned != null && pinned.itemKey != null) {
                         activeEquipment = findEquipmentByKeyInInventory(pinned.itemKey);
                         if (!activeEquipment.isEmpty()) {
+                            lastExplicitEquipment = activeEquipment.copy();
+                            AnvilTooltipState.savedSelectedEquipment = activeEquipment.copy();
+                        }
+                    }
+                }
+                // Se ancora nessun equip è stato salvato o aperto, auto-seleziona arma in mano o prima arma in inventario
+                if (activeEquipment.isEmpty() && this.minecraft != null && this.minecraft.player != null) {
+                    ItemStack mainHand = this.minecraft.player.getMainHandItem();
+                    if (!mainHand.isEmpty() && ItemTypeHelper.isEnchantableWeaponOrArmor(mainHand)) {
+                        activeEquipment = mainHand;
+                        lastExplicitEquipment = activeEquipment.copy();
+                        AnvilTooltipState.savedSelectedEquipment = activeEquipment.copy();
+                    } else {
+                        ItemStack any = findAnyEquipmentInInventory();
+                        if (!any.isEmpty()) {
+                            activeEquipment = any;
                             lastExplicitEquipment = activeEquipment.copy();
                             AnvilTooltipState.savedSelectedEquipment = activeEquipment.copy();
                         }
@@ -551,7 +576,7 @@ public abstract class AnvilScreenMixin extends ItemCombinerScreen<AnvilMenu> {
         String itemKey = ItemTypeHelper.detectItemKey(activeEquipment);
         if (itemKey == null || itemKey.isEmpty()) itemKey = "sword";
 
-        // Determina gli incantesimi target
+        // Determina gli incantesimi target (priorità: Set Pinnato -> Set Salvato -> Consigliati non in conflitto)
         List<String> targetEnchantIds = new ArrayList<>();
         String pinnedId = ActiveSessionManager.getPinnedSetId();
         SavedSetsManager.CustomSet pinned = (pinnedId != null) ? SavedSetsManager.getSetById(pinnedId) : null;
@@ -577,9 +602,32 @@ public abstract class AnvilScreenMixin extends ItemCombinerScreen<AnvilMenu> {
                     }
                 }
             }
+            // Se ancora vuoto: popola con incanti presenti sull'arma + migliori consigliati NON in conflitto (max 12)
+            if (targetEnchantIds.isEmpty()) {
+                for (EnchantApplied ea : cachedSlot0Enchants) {
+                    if (!targetEnchantIds.contains(ea.id)) targetEnchantIds.add(ea.id);
+                }
+                for (EnchantmentEntry ee : EnchantmentDatabase.getAllEnchantments()) {
+                    if (targetEnchantIds.size() >= 12) break;
+                    if (targetEnchantIds.contains(ee.id)) continue;
+                    if (!EnchantmentDatabase.isApplicable(ee, itemKey)) continue;
+                    if (isEnchantConflicting(ee, cachedSlot0Enchants)) continue;
+                    boolean confWithTargets = false;
+                    for (String tid : targetEnchantIds) {
+                        EnchantmentEntry tee = EnchantmentDatabase.getEnchantment(tid);
+                        if (isEnchantPairConflicting(ee, tee)) {
+                            confWithTargets = true;
+                            break;
+                        }
+                    }
+                    if (!confWithTargets) {
+                        targetEnchantIds.add(ee.id);
+                    }
+                }
+            }
         }
 
-        // Costruisci la checklist analizzando l'oggetto e l'inventario
+        // Costruisci la checklist analizzando l'oggetto e l'inventario filtrando rigidamente i conflitti
         List<ChecklistEntry> checklist = new ArrayList<>();
         int onEquipCount = 0;
         int readyCount = 0;
@@ -608,6 +656,19 @@ public abstract class AnvilScreenMixin extends ItemCombinerScreen<AnvilMenu> {
                 checklist.add(new ChecklistEntry(ee, targetLvl, 1, 0));
                 onEquipCount++;
             } else {
+                // FILTRO CONFLITTI: Non mostrare mai tra i mancanti incantesimi che confliggono con l'arma
+                if (isEnchantConflicting(ee, cachedSlot0Enchants)) {
+                    continue;
+                }
+                boolean confWithChecklist = false;
+                for (ChecklistEntry ce : checklist) {
+                    if (isEnchantPairConflicting(ee, ce.ee)) {
+                        confWithChecklist = true;
+                        break;
+                    }
+                }
+                if (confWithChecklist) continue;
+
                 ItemStack book = findBookForEnchant(ee.id, 1);
                 if (!book.isEmpty()) {
                     int rep = book.getOrDefault(DataComponents.REPAIR_COST, 0);
@@ -788,6 +849,60 @@ public abstract class AnvilScreenMixin extends ItemCombinerScreen<AnvilMenu> {
         }
     }
 
+    private boolean isEnchantConflicting(EnchantmentEntry ee, List<EnchantApplied> existingEnchants) {
+        if (ee == null || existingEnchants == null || existingEnchants.isEmpty()) return false;
+        List<String> confs = EnchantmentDatabase.getResolvedConflicts(ee.id);
+        for (EnchantApplied exist : existingEnchants) {
+            if (exist.id.equalsIgnoreCase(ee.id)) continue;
+            EnchantmentEntry eeExist = EnchantmentDatabase.getEnchantment(exist.id);
+            if (ee.unique && eeExist != null && eeExist.unique) {
+                return true;
+            }
+            String existName = eeExist != null ? eeExist.name : exist.id;
+            String existBaseName = eeExist != null ? LitnessI18n.getBaseEnchantName(eeExist) : LitnessI18n.getBaseEnchantNameById(exist.id, exist.id);
+            String existBaseId = LitnessI18n.getBaseId(exist.id);
+            for (String c : confs) {
+                if (c.equalsIgnoreCase(existBaseName) || c.equalsIgnoreCase(existName) || c.equalsIgnoreCase(existBaseId) || c.equalsIgnoreCase(exist.id)) {
+                    return true;
+                }
+            }
+            if (eeExist != null) {
+                List<String> existConfs = EnchantmentDatabase.getResolvedConflicts(eeExist.id);
+                String eeBaseName = LitnessI18n.getBaseEnchantName(ee);
+                String eeBaseId = LitnessI18n.getBaseId(ee.id);
+                for (String c : existConfs) {
+                    if (c.equalsIgnoreCase(eeBaseName) || c.equalsIgnoreCase(ee.name) || c.equalsIgnoreCase(eeBaseId) || c.equalsIgnoreCase(ee.id)) {
+                        return true;
+                    }
+                }
+            }
+        }
+        return false;
+    }
+
+    private boolean isEnchantPairConflicting(EnchantmentEntry a, EnchantmentEntry b) {
+        if (a == null || b == null) return false;
+        if (a.id.equalsIgnoreCase(b.id)) return false;
+        if (a.unique && b.unique) return true;
+        List<String> aConfs = EnchantmentDatabase.getResolvedConflicts(a.id);
+        String bBaseName = LitnessI18n.getBaseEnchantName(b);
+        String bBaseId = LitnessI18n.getBaseId(b.id);
+        for (String c : aConfs) {
+            if (c.equalsIgnoreCase(bBaseName) || c.equalsIgnoreCase(b.name) || c.equalsIgnoreCase(bBaseId) || c.equalsIgnoreCase(b.id)) {
+                return true;
+            }
+        }
+        List<String> bConfs = EnchantmentDatabase.getResolvedConflicts(b.id);
+        String aBaseName = LitnessI18n.getBaseEnchantName(a);
+        String aBaseId = LitnessI18n.getBaseId(a.id);
+        for (String c : bConfs) {
+            if (c.equalsIgnoreCase(aBaseName) || c.equalsIgnoreCase(a.name) || c.equalsIgnoreCase(aBaseId) || c.equalsIgnoreCase(a.id)) {
+                return true;
+            }
+        }
+        return false;
+    }
+
     private ItemStack findBookForEnchant(String enchantId, int minLevel) {
         if (this.minecraft == null || this.minecraft.player == null) return ItemStack.EMPTY;
         Inventory inv = this.minecraft.player.getInventory();
@@ -840,11 +955,54 @@ public abstract class AnvilScreenMixin extends ItemCombinerScreen<AnvilMenu> {
         return ItemStack.EMPTY;
     }
 
+    private ItemStack createFallbackEquipment(String savedId, String savedKey, String savedName, int savedPenalty) {
+        String key = (savedKey != null && !savedKey.isEmpty()) ? savedKey : "sword";
+        ItemStack fallback = getItemStackForKey(key);
+        if (fallback.isEmpty()) fallback = new ItemStack(Items.NETHERITE_SWORD);
+        if (savedName != null && !savedName.isEmpty()) {
+            fallback.set(DataComponents.CUSTOM_NAME, Component.literal(savedName));
+        }
+        if (savedPenalty > 0) {
+            fallback.set(DataComponents.REPAIR_COST, savedPenalty);
+        }
+        return fallback;
+    }
+
     private ItemStack findMatchingEquipmentInInventory(ItemStack target) {
-        if (target == null || target.isEmpty() || this.minecraft == null || this.minecraft.player == null) return ItemStack.EMPTY;
+        if (target == null || target.isEmpty()) return ItemStack.EMPTY;
+        if (this.menu != null) {
+            ItemStack carried = this.menu.getCarried();
+            if (!carried.isEmpty() && carried.getItem() == target.getItem()) {
+                return carried;
+            }
+            ItemStack s0 = this.menu.getSlot(0).getItem();
+            if (!s0.isEmpty() && s0.getItem() == target.getItem()) {
+                return s0;
+            }
+            ItemStack s1 = this.menu.getSlot(1).getItem();
+            if (!s1.isEmpty() && s1.getItem() == target.getItem()) {
+                return s1;
+            }
+        }
+        if (this.minecraft == null || this.minecraft.player == null) return target;
         Inventory inv = this.minecraft.player.getInventory();
         int size = inv.getContainerSize();
-        // 1. Corrispondenza esatta (stesso item e stessa penalità)
+        String targetName = target.getHoverName().getString();
+
+        // 1. Corrispondenza perfetta: stesso item, stesso nome personalizzato e stessa penalità
+        for (int i = 0; i < size; i++) {
+            ItemStack stack = inv.getItem(i);
+            if (stack.isEmpty() || ItemTypeHelper.isContainerOrShulker(stack)) continue;
+            if (stack.getItem() == target.getItem()) {
+                int repTarget = target.getOrDefault(DataComponents.REPAIR_COST, 0);
+                int repStack = stack.getOrDefault(DataComponents.REPAIR_COST, 0);
+                if (repTarget == repStack && stack.getHoverName().getString().equals(targetName)) {
+                    return stack;
+                }
+            }
+        }
+
+        // 2. Corrispondenza per stesso item e stessa penalità
         for (int i = 0; i < size; i++) {
             ItemStack stack = inv.getItem(i);
             if (stack.isEmpty() || ItemTypeHelper.isContainerOrShulker(stack)) continue;
@@ -856,15 +1014,16 @@ public abstract class AnvilScreenMixin extends ItemCombinerScreen<AnvilMenu> {
                 }
             }
         }
-        // 2. Corrispondenza per tipo arma o armatura
+
+        // 3. Corrispondenza per stesso identico item (non sostituisce mai es. Diamond Sword con Netherite)
         for (int i = 0; i < size; i++) {
             ItemStack stack = inv.getItem(i);
             if (stack.isEmpty() || ItemTypeHelper.isContainerOrShulker(stack)) continue;
-            if (stack.getItem() == target.getItem() && ItemTypeHelper.isEnchantableWeaponOrArmor(stack)) {
+            if (stack.getItem() == target.getItem()) {
                 return stack;
             }
         }
-        return ItemStack.EMPTY;
+        return target;
     }
 
     private ItemStack findEquipmentByKeyInInventory(String targetKey) {

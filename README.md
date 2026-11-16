@@ -116,16 +116,42 @@ Sul server Litness, maxare un'arma o un pezzo d'armatura con 10–12 incantesimi
 
 ## 🌟 Ultimi Aggiornamenti - Novità Versione 1.3.1
 
-- ⚡ **Ricerca Automatica & Auto-Acquisto /ah**:
-  - Scansione ultra-veloce e intelligente di tutte le pagine della Casa d'Aste (`/ah`) con sincronizzazione sui pacchetti di rete del server.
-  - Memorizzazione precisa della posizione reale di ciascuna offerta (Pagina e Slot esatto).
-  - Cliccando su **✦ Clicca per acquistare** su qualsiasi offerta nella sidebar, la mod sfoglia le pagine da sola e apre istantaneamente il menu *"Comprare questo oggetto?"* per acquistare al volo il miglior prezzo!
-- 🎨 **Nuove Animazioni Fluidissime & Cyber UI**:
-  - Animazioni d'interfaccia fluide: Matrix Slide & Scale Pop, indicatore Cyber Neon Laser streak, Shockwave ripples al tocco o click su bottoni/card, transizioni animate tra schede e design pulito senza elementi superflui.
-- 📋 **Copia & Incolla Set**:
-  - Nuovi pulsanti **[Copia Set]** e **[Incolla Set]** nella sezione *"I Miei Set"* per esportare e importare con un clic i set personalizzati da condividere con gli amici, completi di notifica fluida animata a centro schermo.
-- 🛠️ **Risoluzione Bug & Ottimizzazioni**:
-  - Risolto definitivamente il disallineamento off-by-one dei numeri di pagina e il blocco a fine asta.
+- ⚙️ **Nuova Scheda "Impostazioni & Personalizzazione" (`[N] -> Impostazioni`)**:
+  - **Scala Interfaccia Mod (GUI Scale personalizzabile)**:
+    - Risolto definitivamente il problema dello schermo tagliato a metà per chi gioca con **GUI Scale 4** o monitor compatti.
+    - Modalità selezionabili: `Auto (Adatta schermo dinamicamente)`, `75% (Compatta)`, `90% (Media)`, `100% (Standard)`, `115% (Ingrandita)`, `130% (Molto Grande)`.
+  - **Personalizzazione Evidenziazione Libri in Incudine**:
+    - Menu a tendina con palette colori personalizzabili per Slot 1 e Slot 2 (*Neon Cyber*, *Ambra & Smeraldo*, *Fuoco & Ghiaccio*, *Matrix Hacker*, *Oro & Ametista*).
+  - **Dettagli Lore & Descrizioni Libri**:
+    - Regolabile su 4 livelli: *Completa (Costi XP, descrizioni e conflitti)*, *Compatta (Solo costi base e livello)*, *Minimale (Solo nome e livello)*, *Disattivata*.
+  - **Avviso di Sicurezza Libri Usati**:
+    - Rileva e segnala automaticamente con allerta visiva i libri già lavorati con penalità incudine (>0 liv.), proteggendo il set dal rischio di blocco a 11 incantesimi.
+
+- 🔨 **Assistente Incudine Potenziato (Drag & Drop, Clic Diretto & Salvataggio)**:
+  - **Selezione Intuitiva**: ora puoi selezionare l'arma trascinandola e rilasciandola nella barra laterale, inserendola negli slot dell'incudine, oppure semplicemente **cliccandola nel tuo inventario**.
+  - **Salvataggio & Persistenza**: l'arma selezionata rimane memorizzata e salvata anche se chiudi e riapri l'incudine.
+  - **Auto-Rilevamento Arma all'Apertura**: se apri l'incudine senza inserire nulla, l'assistente seleziona in automatico l'arma impugnata o presente nell'inventario.
+  - **Distinzione Esatta dei Tipi di Oggetti**: risolto lo scambio accidentale tra armi diverse (es. Spada in Diamante vs Netherite con nome personalizzato).
+
+- 📜 **Nuovo Pannello Destro "Stato Libri" (Checklist Intelligente Senza Conflitti)**:
+  - Analisi in tempo reale di tutti i libri necessari con barra di avanzamento e conteggio `[X/12 Libri Pronti]`.
+  - **Filtro Rigido Anti-Conflitto**: esclude categoricamente qualsiasi incantesimo incompatibile o in conflitto con quelli già presenti sull'arma o tra i mancanti.
+
+- 📖 **Lore dei Libri Pulita & Usura Incudine Professionale**:
+  - Nella sezione conflitti dei libri viene mostrato solo il **nome** del conflitto, senza spiegazioni o descrizioni superflue.
+  - Rimossa la voce ingannevole *"39 liberi"* dai libri senza usura.
+  - Sugli oggetti con 12 incanti la dicitura viene aggiornata con lo stato professionale: `✦ Usura incudine: +X livelli · ✔ MASSIMO RAGGIUNTO (12/12)`.
+
+- ⚡ **Nuova Scheda "Guida Incudine" Ridisegnata**:
+  - Schede dei singoli passi ampliate a 44px di altezza con **anteprime grafiche 3D** di Slot 1, Slot 2 e Risultato finale.
+  - Caricamento istantaneo automatico del set pinnato/salvato all'accesso alla scheda.
+  - Pillola XP color verde smeraldo ed etichette chiare e spaziate per la massima leggibilità.
+
+- 🛒 **Ricerca Automatica & Auto-Acquisto /ah**:
+  - Scansione ultra-veloce di tutte le pagine della Casa d'Aste (`/ah`) con posizionamento esatto e acquisto automatico con un clic su **✦ Clicca per acquistare**.
+
+- 📋 **Copia & Incolla Rapido dei Set**:
+  - Condivisione istantanea dei set personalizzati tramite appunti con notifica animata Cyber Matrix a centro schermo.
 
 ---
 

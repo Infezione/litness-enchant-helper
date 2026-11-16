@@ -53,11 +53,11 @@ public class LitnessOptimizerScreen extends Screen {
 
     public float getEffectiveScale() {
         int mode = ModConfig.get().guiScaleMode;
-        if (mode == 1) return 1.0f;
-        if (mode == 2) return 0.85f;
-        if (mode == 3) return 0.75f;
-        if (mode == 4) return 0.65f;
-        if (mode == 5) return 0.50f;
+        if (mode == 1) return 0.75f;
+        if (mode == 2) return 0.90f;
+        if (mode == 3) return 1.00f;
+        if (mode == 4) return 1.15f;
+        if (mode == 5) return 1.30f;
 
         // Mode 0 = Auto: adatta dinamicamente se lo schermo è piccolo (es. GUI Scale 4 su 1080p = 480x270)
         float sW = (this.width - 20.0f) / 740.0f;
@@ -194,14 +194,25 @@ public class LitnessOptimizerScreen extends Screen {
     private long tabTransitionStartTime = System.currentTimeMillis();
 
     private void switchTab(Tab newTab) {
-        if (this.currentTab != newTab) {
-            this.currentTab = newTab;
-            this.isCreatingSet = false;
-            this.activeDropdown = DropdownType.NONE;
-            this.tabTransitionStartTime = System.currentTimeMillis();
-            this.clearWidgets();
-            this.init();
+        this.currentTab = newTab;
+        this.isCreatingSet = false;
+        this.activeDropdown = DropdownType.NONE;
+        this.tabTransitionStartTime = System.currentTimeMillis();
+
+        if (newTab == Tab.CALCULATOR && simulatorSelectedEnchants.isEmpty()) {
+            String pinnedId = ActiveSessionManager.getPinnedSetId();
+            SavedSetsManager.CustomSet autoSet = (pinnedId != null) ? SavedSetsManager.getSetById(pinnedId) : null;
+            if (autoSet == null && !SavedSetsManager.getSavedSets().isEmpty()) {
+                autoSet = SavedSetsManager.getSavedSets().get(0);
+            }
+            if (autoSet != null) {
+                loadSavedSetIntoSimulator(autoSet);
+                return;
+            }
         }
+
+        this.clearWidgets();
+        this.init();
     }
 
     public LitnessOptimizerScreen(Component title) {
@@ -1513,10 +1524,31 @@ public class LitnessOptimizerScreen extends Screen {
             runCalculation();
         }
 
-        // Se non c'è una soluzione attiva, offri pulsanti rapidi per caricare un set salvato
+        // Se non c'è una soluzione attiva e non ci sono incanti selezionati, prova ad auto-caricare il set pinnato o il primo set salvato
+        if ((currentSolution == null || currentSolution.steps.isEmpty()) && simulatorSelectedEnchants.isEmpty()) {
+            String pinnedId = ActiveSessionManager.getPinnedSetId();
+            SavedSetsManager.CustomSet autoSet = (pinnedId != null) ? SavedSetsManager.getSetById(pinnedId) : null;
+            if (autoSet == null && !SavedSetsManager.getSavedSets().isEmpty()) {
+                autoSet = SavedSetsManager.getSavedSets().get(0);
+            }
+            if (autoSet != null) {
+                for (int i = 0; i < ITEM_KEYS.length; i++) {
+                    if (ITEM_KEYS[i].equalsIgnoreCase(autoSet.itemKey)) {
+                        selectedItemIndex = i;
+                        break;
+                    }
+                }
+                simulatorSelectedEnchants.clear();
+                simulatorSelectedEnchants.addAll(autoSet.enchantments);
+                calcMode = CalcMode.SIMULATOR;
+                runCalculation();
+            }
+        }
+
+        // Se ancora non c'è una soluzione attiva, offri pulsanti rapidi per caricare un set salvato
         if (currentSolution == null || currentSolution.steps.isEmpty()) {
             List<SavedSetsManager.CustomSet> sets = SavedSetsManager.getSavedSets();
-            int qY = startY + 94;
+            int qY = startY + 115;
             int count = 0;
             for (SavedSetsManager.CustomSet cs : sets) {
                 if (count >= 4) break;
@@ -1524,14 +1556,14 @@ public class LitnessOptimizerScreen extends Screen {
                 int bX = startX + (count % 2) * (panelWidth / 2);
                 int bY = qY + (count / 2) * 28;
                 SoftwareButton btnQuick = new SoftwareButton(bX, bY, (panelWidth / 2) - 6, 24,
-                        Component.literal("🛡 Carica: " + cs.name), b -> {
+                        Component.literal("🛡 Carica: " + cs.name + " (" + cs.enchantments.size() + "/12)"), b -> {
                     loadSavedSetIntoSimulator(cs);
-                });
+                }).setPrimary(true);
                 this.addRenderableWidget(btnQuick);
                 count++;
             }
 
-            int actY = qY + ((Math.max(1, count) + 1) / 2) * 28 + 8;
+            int actY = qY + ((Math.max(1, count) + 1) / 2) * 28 + 12;
             SoftwareButton btnGoCat = new SoftwareButton(startX, actY, 140, 22,
                     Component.literal("📖 Sfoglia Catalogo"), b -> switchTab(Tab.CATALOG));
             this.addRenderableWidget(btnGoCat);
@@ -1616,8 +1648,13 @@ public class LitnessOptimizerScreen extends Screen {
         simulatorSelectedEnchants.addAll(set.enchantments);
         calcMode = CalcMode.SIMULATOR;
         runCalculation();
-        statusMessage = "\u00A7aCaricato set '" + set.name + "' (" + set.enchantments.size() + "/12)!";
-        switchTab(Tab.CALCULATOR);
+        statusMessage = "§a✔ Caricato set '" + set.name + "' (" + set.enchantments.size() + "/12)!";
+        this.currentTab = Tab.CALCULATOR;
+        this.isCreatingSet = false;
+        this.activeDropdown = DropdownType.NONE;
+        this.tabTransitionStartTime = System.currentTimeMillis();
+        this.clearWidgets();
+        this.init();
     }
 
     private void updateSearch() {
@@ -2124,7 +2161,16 @@ public class LitnessOptimizerScreen extends Screen {
         }
 
         if (currentSolution == null || currentSolution.steps.isEmpty()) {
-            extractor.centeredText(this.font, "Seleziona incantesimi per calcolare i passi dell'incudine.", startX + panelWidth / 2, startY + 60, 0xFF6B7280);
+            int cardY = startY + 45;
+            int cardH = 130;
+            drawRoundedRect(extractor, startX + 20, cardY, panelWidth - 40, cardH, 8, 0xFF0B0D14);
+            drawRoundedOutline(extractor, startX + 20, cardY, panelWidth - 40, cardH, 8, 0xFF1E2334);
+            int midX = startX + panelWidth / 2;
+            ItemStack pieceStack = getItemStackForType(ITEM_KEYS[selectedItemIndex]);
+            extractor.fakeItem(pieceStack, midX - 8, cardY + 16);
+            extractor.centeredText(this.font, "§f§lGUIDA INCUDINE: " + LitnessI18n.getItemPieceName(ITEM_KEYS[selectedItemIndex]).toUpperCase(), midX, cardY + 38, 0xFFFFFFFF);
+            extractor.centeredText(this.font, "§7Nessuna simulazione attiva per questo oggetto.", midX, cardY + 54, 0xFF94A3B8);
+            extractor.centeredText(this.font, "§bSeleziona o carica un set qui sotto per calcolare l'albero di forgiatura:", midX, cardY + 70, 0xFF60A5FA);
             return;
         }
 
@@ -2163,7 +2209,7 @@ public class LitnessOptimizerScreen extends Screen {
 
         // Lista passi ottimizzati con icone 3D e card stondate paginati
         int stepY = kpiY + kpiH + 8;
-        int rowH = 32;
+        int rowH = 44;
         ItemStack pieceStack = getItemStackForType(ITEM_KEYS[selectedItemIndex]);
 
         int pageSize = CALCULATOR_PAGE_SIZE;
@@ -2180,57 +2226,61 @@ public class LitnessOptimizerScreen extends Screen {
         for (int i = startIdx; i < endIdx; i++) {
             MergeStep step = currentSolution.steps.get(i);
             int stepNum = i + 1;
-            int cardBg = step.isBookToBook ? 0xFF131724 : 0xFF101924;
-            int cardBorder = step.isBookToBook ? 0xFF1E2334 : 0xFF1E3A4B;
+            int cardBg = step.isBookToBook ? 0xFF121624 : 0xFF0F1824;
+            int cardBorder = step.isBookToBook ? 0xFF1E293B : 0xFF1E3A4B;
 
             drawRoundedRect(extractor, startX, stepY, panelWidth, rowH, 6, cardBg);
             drawRoundedOutline(extractor, startX, stepY, panelWidth, rowH, 6, cardBorder);
 
-            // Step badge a sinistra in pillola
-            drawRoundedRect(extractor, startX + 5, stepY + 7, 36, 18, 4, 0xFF1A1F30);
-            drawRoundedOutline(extractor, startX + 5, stepY + 7, 36, 18, 4, 0xFF3B82F6);
+            // Step badge a sinistra in pillola con bordo neon
+            drawRoundedRect(extractor, startX + 6, stepY + 11, 32, 22, 4, 0xFF1A1F30);
+            drawRoundedOutline(extractor, startX + 6, stepY + 11, 32, 22, 4, 0xFF3B82F6);
             String stepTag = "#" + stepNum;
-            extractor.centeredText(this.font, stepTag, startX + 23, stepY + 11, 0xFF60A5FA);
+            extractor.centeredText(this.font, stepTag, startX + 22, stepY + 17, 0xFF60A5FA);
 
-            int curX = startX + 46;
+            int curX = startX + 44;
 
-            // Slot 1: Oggetto base o Libro
+            // Slot 1: Box 3D
             ItemStack leftStack = step.isBookToBook ? new ItemStack(Items.ENCHANTED_BOOK) : pieceStack;
-            drawRoundedRect(extractor, curX - 2, stepY + 6, 20, 20, 4, 0xFF151926);
-            extractor.fakeItem(leftStack, curX, stepY + 8);
-            curX += 24;
+            drawRoundedRect(extractor, curX, stepY + 6, 32, 32, 4, 0xFF151926);
+            drawRoundedOutline(extractor, curX, stepY + 6, 32, 32, 4, step.isBookToBook ? 0xFF2D3748 : 0xFF0284C7);
+            extractor.fakeItem(leftStack, curX + 8, stepY + 14);
+            curX += 36;
 
             // Segno +
-            extractor.text(this.font, "\u00A77+", curX, stepY + 12, 0xFF9CA3AF, false);
+            extractor.text(this.font, "§7+", curX, stepY + 18, 0xFF9CA3AF, false);
             curX += 12;
 
-            // Slot 2: Sempre Libro
-            drawRoundedRect(extractor, curX - 2, stepY + 6, 20, 20, 4, 0xFF151926);
-            extractor.fakeItem(new ItemStack(Items.ENCHANTED_BOOK), curX, stepY + 8);
-            curX += 24;
+            // Slot 2: Box 3D (sempre Libro)
+            drawRoundedRect(extractor, curX, stepY + 6, 32, 32, 4, 0xFF151926);
+            drawRoundedOutline(extractor, curX, stepY + 6, 32, 32, 4, 0xFF9333EA);
+            extractor.fakeItem(new ItemStack(Items.ENCHANTED_BOOK), curX + 8, stepY + 14);
+            curX += 36;
 
             // Freccia ➔
-            extractor.text(this.font, "\u00A76\u2794", curX, stepY + 12, 0xFFF59E0B, false);
+            extractor.text(this.font, "§6➔", curX, stepY + 18, 0xFFF59E0B, false);
             curX += 14;
 
-            // Risultato
+            // Risultato: Box 3D
             ItemStack resStack = step.isBookToBook ? new ItemStack(Items.ENCHANTED_BOOK) : pieceStack;
-            drawRoundedRect(extractor, curX - 2, stepY + 6, 20, 20, 4, 0xFF151926);
-            extractor.fakeItem(resStack, curX, stepY + 8);
-            curX += 24;
+            drawRoundedRect(extractor, curX, stepY + 6, 32, 32, 4, 0xFF151926);
+            drawRoundedOutline(extractor, curX, stepY + 6, 32, 32, 4, step.isBookToBook ? 0xFF6366F1 : 0xFF10B981);
+            extractor.fakeItem(resStack, curX + 8, stepY + 14);
+            curX += 38;
 
-            // Dettaglio testuale
-            int availTextW = panelWidth - (curX - startX) - 68;
-            String textSlot1 = (step.isBookToBook ? "\u00A79" : "\u00A7e") + step.leftLabel;
-            String textSlot2 = "\u00A7d" + step.rightLabel;
-            extractor.text(this.font, trimToWidth(this.font, "1: " + textSlot1, availTextW), curX, stepY + 5, 0xFFFFFFFF, false);
-            extractor.text(this.font, trimToWidth(this.font, "2: " + textSlot2, availTextW), curX, stepY + 17, 0xFFCBD5E1, false);
+            // Dettaglio testuale (spaziato su due righe alte ben leggibili)
+            int availTextW = panelWidth - (curX - startX) - 86;
+            String textSlot1 = (step.isBookToBook ? "§9" : "§e") + step.leftLabel;
+            String textSlot2 = "§d" + step.rightLabel;
+            extractor.text(this.font, trimToWidth(this.font, "Slot 1: " + textSlot1, availTextW), curX, stepY + 9, 0xFFFFFFFF, false);
+            extractor.text(this.font, trimToWidth(this.font, "Slot 2: " + textSlot2, availTextW), curX, stepY + 23, 0xFFCBD5E1, false);
 
             // Costo XP sulla destra in pillola smeraldo
-            drawRoundedRect(extractor, startX + panelWidth - 62, stepY + 8, 56, 16, 4, 0xFF0D281E);
-            drawRoundedOutline(extractor, startX + panelWidth - 62, stepY + 8, 56, 16, 4, 0xFF10B981);
-            String costTag = "\u00A7a+" + step.cost + " liv.";
-            extractor.centeredText(this.font, costTag, startX + panelWidth - 34, stepY + 12, 0xFF34D399);
+            int pillX = startX + panelWidth - 76;
+            drawRoundedRect(extractor, pillX, stepY + 11, 70, 22, 4, 0xFF0D281E);
+            drawRoundedOutline(extractor, pillX, stepY + 11, 70, 22, 4, 0xFF10B981);
+            String costTag = "§a+" + step.cost + " liv.";
+            extractor.centeredText(this.font, costTag, pillX + 35, stepY + 17, 0xFF34D399);
 
             stepY += rowH + 4;
             if (stepY + rowH > getWinY() + getWinH() - 24) break;
@@ -2311,9 +2361,11 @@ public class LitnessOptimizerScreen extends Screen {
         ModConfig config = ModConfig.get();
 
         int rowY = startY + 30;
-        int btnW = 168;
+        int btnW = 175;
         int btnH = 20;
         int btnX = startX + panelWidth - btnW - 12;
+        int dropW = 236;
+        int dropX = Math.min(btnX, startX + panelWidth - dropW - 8);
 
         // 1. GUI Scale Dropdown
         final int dropY1 = rowY + 6 + btnH + 2;
@@ -2321,37 +2373,43 @@ public class LitnessOptimizerScreen extends Screen {
         SoftwareButton btnScale = new SoftwareButton(btnX, rowY + 6, btnW, btnH,
                 Component.literal(scaleText), b -> {
             List<DropdownOption> opts = new ArrayList<>();
-            opts.add(new DropdownOption("Auto (Adatta schermo)", "Consigliato: calcola la scala ottimale", config.guiScaleMode == 0, () -> {
+            opts.add(new DropdownOption("Auto (Adatta schermo)", "Consigliato: adatta la GUI al monitor", config.guiScaleMode == 0, () -> {
                 config.guiScaleMode = 0;
                 ModConfig.save();
                 this.clearWidgets();
                 this.init();
             }));
-            opts.add(new DropdownOption("GUI Scale 1", "Scala 100% (Molto piccolo)", config.guiScaleMode == 1, () -> {
+            opts.add(new DropdownOption("75% (Compatta)", "Ideale per schermi piccoli o GUI alta", config.guiScaleMode == 1, () -> {
                 config.guiScaleMode = 1;
                 ModConfig.save();
                 this.clearWidgets();
                 this.init();
             }));
-            opts.add(new DropdownOption("GUI Scale 2", "Scala 200% (Compatto)", config.guiScaleMode == 2, () -> {
+            opts.add(new DropdownOption("90% (Media)", "Leggermente ridotta per più spazio", config.guiScaleMode == 2, () -> {
                 config.guiScaleMode = 2;
                 ModConfig.save();
                 this.clearWidgets();
                 this.init();
             }));
-            opts.add(new DropdownOption("GUI Scale 3", "Scala 300% (Standard)", config.guiScaleMode == 3, () -> {
+            opts.add(new DropdownOption("100% (Standard)", "Scala 1:1 predefinita del gioco", config.guiScaleMode == 3, () -> {
                 config.guiScaleMode = 3;
                 ModConfig.save();
                 this.clearWidgets();
                 this.init();
             }));
-            opts.add(new DropdownOption("GUI Scale 4", "Scala 400% (Grande)", config.guiScaleMode == 4, () -> {
+            opts.add(new DropdownOption("115% (Ingrandita)", "Elementi e scritte più grandi", config.guiScaleMode == 4, () -> {
                 config.guiScaleMode = 4;
                 ModConfig.save();
                 this.clearWidgets();
                 this.init();
             }));
-            openDropdown(DropdownType.GUI_SCALE, btnX, dropY1, btnW + 24, opts);
+            opts.add(new DropdownOption("130% (Molto Grande)", "Massima grandezza per monitor grandi", config.guiScaleMode == 5, () -> {
+                config.guiScaleMode = 5;
+                ModConfig.save();
+                this.clearWidgets();
+                this.init();
+            }));
+            openDropdown(DropdownType.GUI_SCALE, dropX, dropY1, dropW, opts);
         }).setPrimary(config.guiScaleMode == 0);
         this.addRenderableWidget(btnScale);
 
@@ -2384,7 +2442,7 @@ public class LitnessOptimizerScreen extends Screen {
                     this.init();
                 }));
             }
-            openDropdown(DropdownType.PALETTE, btnX, dropY3, btnW + 24, opts);
+            openDropdown(DropdownType.PALETTE, dropX, dropY3, dropW, opts);
         });
         this.addRenderableWidget(btnPalette);
 
@@ -2395,13 +2453,13 @@ public class LitnessOptimizerScreen extends Screen {
         SoftwareButton btnLoreDetail = new SoftwareButton(btnX, rowY + 6, btnW, btnH,
                 Component.literal(loreText), b -> {
             List<DropdownOption> opts = new ArrayList<>();
-            opts.add(new DropdownOption("Completa", "Costi XP, descrizioni, conflitti ed icone", config.bookLoreDetailMode == 0, () -> {
+            opts.add(new DropdownOption("Completa", "Costi XP, descrizioni e conflitti", config.bookLoreDetailMode == 0, () -> {
                 config.bookLoreDetailMode = 0;
                 ModConfig.save();
                 this.clearWidgets();
                 this.init();
             }));
-            opts.add(new DropdownOption("Compatta", "Solo costi base XP e livello massimo", config.bookLoreDetailMode == 1, () -> {
+            opts.add(new DropdownOption("Compatta", "Solo costi base e livello massimo", config.bookLoreDetailMode == 1, () -> {
                 config.bookLoreDetailMode = 1;
                 ModConfig.save();
                 this.clearWidgets();
@@ -2419,7 +2477,7 @@ public class LitnessOptimizerScreen extends Screen {
                 this.clearWidgets();
                 this.init();
             }));
-            openDropdown(DropdownType.LORE_DETAIL, btnX, dropY4, btnW + 24, opts);
+            openDropdown(DropdownType.LORE_DETAIL, dropX, dropY4, dropW, opts);
         });
         this.addRenderableWidget(btnLoreDetail);
 

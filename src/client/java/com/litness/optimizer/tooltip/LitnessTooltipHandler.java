@@ -620,6 +620,9 @@ public class LitnessTooltipHandler {
         }
 
         // PASSO B: Scansione righe Lore ESCLUSIVAMENTE dallo snapshot originale per incantesimi custom del server
+        boolean inConflictSection = false;
+        boolean isEnchantedBook = stack.is(Items.ENCHANTED_BOOK) || stack.is(Items.BOOK);
+
         for (Component origComp : originalLinesSnapshot) {
             String rawLine = origComp.getString();
             // Ignora subito righe indentate con spazi o tab (sub-voci o descrizioni)
@@ -627,6 +630,23 @@ public class LitnessTooltipHandler {
 
             String fullText = rawLine.replace('\u00A0', ' ').replace('\u2007', ' ').trim();
             if (fullText.isEmpty()) continue;
+
+            String lower = fullText.toLowerCase();
+            if (lower.contains("conflitt") || lower.contains("conflict")) {
+                inConflictSection = true;
+                continue;
+            }
+            if (lower.contains("applicabil") || lower.contains("applicable") || lower.contains("informazioni") || lower.contains("usura") || lower.contains("requisiti")) {
+                inConflictSection = false;
+            }
+            if (inConflictSection) {
+                // Non trattare mai gli incantesimi nominati nella sezione conflitti come incantesimi del libro!
+                continue;
+            }
+            // Se è un libro incantato e ha già un incantesimo identificato, non cercarne altri nella lore (evita di spiegare conflitti o lore extra)
+            if (isEnchantedBook && !processedEnchantIds.isEmpty()) {
+                break;
+            }
 
             MatchedEnchantment match = matchEnchantment(fullText);
             if (match == null || match.entry == null || processedEnchantIds.contains(match.entry.id)) {
@@ -754,10 +774,13 @@ public class LitnessTooltipHandler {
 
     public static void appendAnvilPenaltyTooltip(ItemStack stack, List<Component> lines) {
         if (stack == null || stack.isEmpty() || lines == null) return;
-        for (Component c : lines) {
-            String s = c.getString().toLowerCase();
+
+        int existingIdx = -1;
+        for (int i = 0; i < lines.size(); i++) {
+            String s = lines.get(i).getString().toLowerCase();
             if (s.contains("usura incudine") || s.contains("anvil penalty") || s.contains("usura libro") || s.contains("book penalty")) {
-                return;
+                existingIdx = i;
+                break;
             }
         }
 
@@ -767,24 +790,16 @@ public class LitnessTooltipHandler {
         String levelsText = LitnessI18n.isEnglish() ? "levels" : "livelli";
         String freeText = LitnessI18n.isEnglish() ? "free" : "liberi";
 
-        // Trova la posizione migliore: prima dei modificatori di attributo o a fine lore
-        int insertIdx = lines.size();
-        for (int i = 0; i < lines.size(); i++) {
-            String text = lines.get(i).getString().trim().toLowerCase();
-            if (text.startsWith("when in ") || text.startsWith("quando ")
-                    || text.contains("attack damage") || text.contains("danno d'attacco")
-                    || text.contains("attack speed") || text.contains("velocità d'attacco")
-                    || text.contains("durability:") || text.contains("durabilità:")
-                    || text.contains("armor") || text.contains("armatura")) {
-                insertIdx = i;
-                break;
-            }
-        }
-
         boolean isBook = (stack.is(Items.ENCHANTED_BOOK) || stack.is(Items.BOOK));
         if (isBook) {
-            // Sui libri NON mostriamo "39 liberi" (solo se ha usura > 0 mostriamo l'avviso di pericolo)
+            // Sui libri NON mostriamo "39 liberi" (se presente lore vecchia/server lo rimuoviamo)
+            if (repairCost == 0 && existingIdx != -1) {
+                lines.remove(existingIdx);
+                return;
+            }
+            if (existingIdx != -1) return;
             if (repairCost > 0) {
+                int insertIdx = lines.size();
                 String bookLabel = LitnessI18n.isEnglish() ? "Book penalty" : "Usura libro";
                 lines.add(insertIdx, Component.literal("§c⚠ §f" + bookLabel + ": §c+" + repairCost + " " + levelsText));
                 if (ModConfig.get().warnUsedBooksInAnvil) {
@@ -809,6 +824,28 @@ public class LitnessTooltipHandler {
             penaltyComp = Component.literal("§e⚠ §f" + label + ": §e+" + repairCost + " " + levelsText + " §8· " + freeColor + freeLevels + " " + freeText + " §8(" + enchantCount + "/12)");
         } else {
             penaltyComp = Component.literal("§8" + label + ": §a0 " + levelsText + " §8· §7" + freeLevels + " " + freeText + " §8(" + enchantCount + "/12)");
+        }
+
+        if (existingIdx != -1) {
+            // Se la riga vecchia del server dice 8 liberi ma ha 12/12 o manca il conteggio, la aggiorniamo con lo stile professionale
+            if (enchantCount >= 12 || !lines.get(existingIdx).getString().contains("/12")) {
+                lines.set(existingIdx, penaltyComp);
+            }
+            return;
+        }
+
+        // Trova la posizione migliore: prima dei modificatori di attributo o a fine lore
+        int insertIdx = lines.size();
+        for (int i = 0; i < lines.size(); i++) {
+            String text = lines.get(i).getString().trim().toLowerCase();
+            if (text.startsWith("when in ") || text.startsWith("quando ")
+                    || text.contains("attack damage") || text.contains("danno d'attacco")
+                    || text.contains("attack speed") || text.contains("velocità d'attacco")
+                    || text.contains("durability:") || text.contains("durabilità:")
+                    || text.contains("armor") || text.contains("armatura")) {
+                insertIdx = i;
+                break;
+            }
         }
 
         lines.add(insertIdx, penaltyComp);

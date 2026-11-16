@@ -43,11 +43,11 @@ public class ModConfig {
 
     public static final String[] GUI_SCALE_LABELS = {
         "Auto (Adatta schermo)",
-        "100% (1.0x)",
-        "85% (0.85x)",
-        "75% (0.75x)",
-        "65% (0.65x)",
-        "50% (0.50x)"
+        "75% (Compatta)",
+        "90% (Media)",
+        "100% (Standard)",
+        "115% (Ingrandita)",
+        "130% (Molto Grande)"
     };
 
     public static final String[] LORE_DETAIL_LABELS = {

@@ -84,20 +84,42 @@ public class AnvilTooltipState {
         ActiveSessionManager.saveAnvilEquipment(itemId, itemKey, name, penalty);
     }
 
+    private static void playClickSound() {
+        Minecraft mc = Minecraft.getInstance();
+        if (mc != null && mc.getSoundManager() != null) {
+            mc.getSoundManager().play(net.minecraft.client.resources.sounds.SimpleSoundInstance.forUI(net.minecraft.sounds.SoundEvents.UI_BUTTON_CLICK, 1.0F));
+        }
+    }
+
     public static boolean handleMouseClicked(AnvilScreen anvil, net.minecraft.world.inventory.AnvilMenu menu, net.minecraft.client.input.MouseButtonEvent event) {
         double mx = event.x();
         double my = event.y();
         int btn = event.button();
         if (btn == 0 || btn == com.mojang.blaze3d.platform.InputConstants.MOUSE_BUTTON_LEFT) {
-            if (isInsideWell(mx, my)) {
+            if (isInsideWell(mx, my) || isInsideSidebar(mx, my)) {
                 ItemStack carried = menu.getCarried();
                 if (!carried.isEmpty() && ItemTypeHelper.isEnchantableWeaponOrArmor(carried)) {
                     selectAndSaveEquipment(carried);
-                    Minecraft mc = Minecraft.getInstance();
-                    if (mc != null && mc.getSoundManager() != null) {
-                        mc.getSoundManager().play(net.minecraft.client.resources.sounds.SimpleSoundInstance.forUI(net.minecraft.sounds.SoundEvents.UI_BUTTON_CLICK, 1.0F));
-                    }
+                    playClickSound();
                     return true;
+                }
+                // Se clicca con cursore vuoto: auto-seleziona l'arma in mano o la prima arma trovata
+                Minecraft mc = Minecraft.getInstance();
+                if (mc != null && mc.player != null) {
+                    ItemStack mainHand = mc.player.getMainHandItem();
+                    if (!mainHand.isEmpty() && ItemTypeHelper.isEnchantableWeaponOrArmor(mainHand)) {
+                        selectAndSaveEquipment(mainHand);
+                        playClickSound();
+                        return true;
+                    }
+                    for (int i = 0; i < mc.player.getInventory().getContainerSize(); i++) {
+                        ItemStack st = mc.player.getInventory().getItem(i);
+                        if (!st.isEmpty() && ItemTypeHelper.isEnchantableWeaponOrArmor(st)) {
+                            selectAndSaveEquipment(st);
+                            playClickSound();
+                            return true;
+                        }
+                    }
                 }
             }
         }
@@ -109,14 +131,11 @@ public class AnvilTooltipState {
         double my = event.y();
         int btn = event.button();
         if (btn == 0 || btn == com.mojang.blaze3d.platform.InputConstants.MOUSE_BUTTON_LEFT) {
-            if (isInsideWell(mx, my)) {
+            if (isInsideWell(mx, my) || isInsideSidebar(mx, my)) {
                 ItemStack carried = menu.getCarried();
                 if (!carried.isEmpty() && ItemTypeHelper.isEnchantableWeaponOrArmor(carried)) {
                     selectAndSaveEquipment(carried);
-                    Minecraft mc = Minecraft.getInstance();
-                    if (mc != null && mc.getSoundManager() != null) {
-                        mc.getSoundManager().play(net.minecraft.client.resources.sounds.SimpleSoundInstance.forUI(net.minecraft.sounds.SoundEvents.UI_BUTTON_CLICK, 1.0F));
-                    }
+                    playClickSound();
                     return true;
                 }
             }

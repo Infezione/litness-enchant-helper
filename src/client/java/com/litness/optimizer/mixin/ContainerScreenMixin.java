@@ -94,6 +94,14 @@ public abstract class ContainerScreenMixin extends Screen {
             return;
         }
         if (this.hoveredSlot != null) {
+            if (((Object) this) instanceof net.minecraft.client.gui.screens.inventory.AnvilScreen) {
+                if (this.hoveredSlot.hasItem()) {
+                    ItemStack clickedStack = this.hoveredSlot.getItem();
+                    if (com.litness.optimizer.data.ItemTypeHelper.isEnchantableWeaponOrArmor(clickedStack)) {
+                        com.litness.optimizer.gui.AnvilTooltipState.selectAndSaveEquipment(clickedStack);
+                    }
+                }
+            }
             com.litness.optimizer.gui.AhPriceManager.onSlotClicked((AbstractContainerScreen<?>) (Object) this, this.hoveredSlot);
         }
     }
