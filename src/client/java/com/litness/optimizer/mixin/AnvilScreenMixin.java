@@ -5,6 +5,7 @@ import com.litness.optimizer.calculator.AnvilOptimizer.BookInput;
 import com.litness.optimizer.calculator.AnvilOptimizer.EnchantApplied;
 import com.litness.optimizer.calculator.AnvilOptimizer.MergeStep;
 import com.litness.optimizer.calculator.AnvilOptimizer.Solution;
+import com.litness.optimizer.calculator.MaxabilityAnalyzer;
 import com.litness.optimizer.data.ActiveSessionManager;
 import com.litness.optimizer.data.EnchantmentDatabase;
 import com.litness.optimizer.data.EnchantmentDatabase.EnchantmentEntry;
@@ -12,6 +13,7 @@ import com.litness.optimizer.data.EnchantmentDatabase.ItemEntry;
 import com.litness.optimizer.data.InventoryTracker;
 import com.litness.optimizer.data.ItemTypeHelper;
 import com.litness.optimizer.data.LitnessI18n;
+import com.litness.optimizer.data.ModConfig;
 import com.litness.optimizer.data.SavedSetsManager;
 import com.litness.optimizer.gui.LitnessOptimizerScreen;
 import com.litness.optimizer.gui.AnvilTooltipState;
@@ -71,15 +73,21 @@ public abstract class AnvilScreenMixin extends ItemCombinerScreen<AnvilMenu> {
     }
 
     private int getSidebarWidth() {
-        return 182;
+        int screenW = this.width;
+        int anvilW = this.imageWidth; // 176
+        int anvilX = this.leftPos;
+        int leftAvail = anvilX - 8;
+        int rightAvail = screenW - (anvilX + anvilW) - 8;
+        int minAvail = Math.min(leftAvail, rightAvail);
+        if (minAvail < 160) {
+            return Math.max(132, minAvail);
+        }
+        return Math.min(175, minAvail);
     }
 
     private int getSidebarX() {
         int sideW = getSidebarWidth();
         int sideX = this.leftPos - sideW - 6;
-        if (sideX < 4 && (this.width - (this.leftPos + this.imageWidth)) > sideW + 10) {
-            sideX = this.leftPos + this.imageWidth + 6;
-        }
         return Math.max(4, sideX);
     }
 
@@ -540,8 +548,9 @@ public abstract class AnvilScreenMixin extends ItemCombinerScreen<AnvilMenu> {
         int rightW = Math.min(getSidebarWidth(), maxW);
         int rightH = this.imageHeight + 10;
 
-        if (rightW < 110) {
+        if (rightW < 90) {
             AnvilTooltipState.rightSideW = 0;
+            AnvilTooltipState.calc12BtnVisible = false;
             return;
         }
 
@@ -555,6 +564,7 @@ public abstract class AnvilScreenMixin extends ItemCombinerScreen<AnvilMenu> {
         LitnessOptimizerScreen.drawRoundedOutline(extractor, rightX, rightY, rightW, rightH, 8, 0xFF1E2334);
 
         if (activeEquipment == null || activeEquipment.isEmpty()) {
+            AnvilTooltipState.calc12BtnVisible = false;
             // Stato vuoto: Invito alla selezione
             LitnessOptimizerScreen.drawRoundedRect(extractor, rightX + 8, rightY + 7, 3, 13, 1, 0xFF64748B);
             extractor.text(this.font, "STATO FORGIA", rightX + 16, rightY + 9, 0xFF94A3B8, false);
@@ -576,58 +586,65 @@ public abstract class AnvilScreenMixin extends ItemCombinerScreen<AnvilMenu> {
         String itemKey = ItemTypeHelper.detectItemKey(activeEquipment);
         if (itemKey == null || itemKey.isEmpty()) itemKey = "sword";
 
-        // Determina gli incantesimi target (priorità: Set Pinnato -> Set Salvato -> Consigliati non in conflitto)
+        // Determina gli incantesimi target (priorità: Incanti sull'arma -> Set Pinnato/Salvato -> Candidati consigliati fino a 12)
         List<String> targetEnchantIds = new ArrayList<>();
+
+        // 1. Tutti gli incanti già presenti sull'arma
+        for (EnchantApplied ea : cachedSlot0Enchants) {
+            if (!targetEnchantIds.contains(ea.id)) targetEnchantIds.add(ea.id);
+        }
+
+        // 2. Set pinnato o salvato (se compatibili e non in conflitto)
         String pinnedId = ActiveSessionManager.getPinnedSetId();
         SavedSetsManager.CustomSet pinned = (pinnedId != null) ? SavedSetsManager.getSetById(pinnedId) : null;
-        if (pinned != null && pinned.itemKey != null && pinned.itemKey.equalsIgnoreCase(itemKey) && pinned.enchantments != null && !pinned.enchantments.isEmpty()) {
-            targetEnchantIds.addAll(pinned.enchantments);
+        List<String> preferredEnchants = new ArrayList<>();
+        if (pinned != null && pinned.itemKey != null && pinned.itemKey.equalsIgnoreCase(itemKey) && pinned.enchantments != null) {
+            preferredEnchants.addAll(pinned.enchantments);
         } else {
             List<SavedSetsManager.CustomSet> sets = SavedSetsManager.getSavedSets();
             if (sets != null) {
                 for (SavedSetsManager.CustomSet s : sets) {
-                    if (s.itemKey != null && s.itemKey.equalsIgnoreCase(itemKey) && s.enchantments != null && !s.enchantments.isEmpty()) {
-                        targetEnchantIds.addAll(s.enchantments);
+                    if (s.itemKey != null && s.itemKey.equalsIgnoreCase(itemKey) && s.enchantments != null) {
+                        preferredEnchants.addAll(s.enchantments);
                         break;
                     }
                 }
             }
-            if (targetEnchantIds.isEmpty() && cachedSolution != null) {
-                for (EnchantApplied ea : cachedSlot0Enchants) {
-                    if (!targetEnchantIds.contains(ea.id)) targetEnchantIds.add(ea.id);
-                }
-                for (MergeStep step : cachedSolution.steps) {
-                    for (EnchantApplied ea : step.resultEnchants) {
-                        if (!targetEnchantIds.contains(ea.id)) targetEnchantIds.add(ea.id);
-                    }
-                }
-            }
-            // Se ancora vuoto: popola con incanti presenti sull'arma + migliori consigliati NON in conflitto (max 12)
-            if (targetEnchantIds.isEmpty()) {
-                for (EnchantApplied ea : cachedSlot0Enchants) {
-                    if (!targetEnchantIds.contains(ea.id)) targetEnchantIds.add(ea.id);
-                }
-                for (EnchantmentEntry ee : EnchantmentDatabase.getAllEnchantments()) {
-                    if (targetEnchantIds.size() >= 12) break;
-                    if (targetEnchantIds.contains(ee.id)) continue;
-                    if (!EnchantmentDatabase.isApplicable(ee, itemKey)) continue;
-                    if (isEnchantConflicting(ee, cachedSlot0Enchants)) continue;
-                    boolean confWithTargets = false;
-                    for (String tid : targetEnchantIds) {
-                        EnchantmentEntry tee = EnchantmentDatabase.getEnchantment(tid);
-                        if (isEnchantPairConflicting(ee, tee)) {
-                            confWithTargets = true;
-                            break;
-                        }
-                    }
-                    if (!confWithTargets) {
-                        targetEnchantIds.add(ee.id);
-                    }
+        }
+        for (String pe : preferredEnchants) {
+            if (targetEnchantIds.size() >= 12) break;
+            if (targetEnchantIds.contains(pe)) continue;
+            EnchantmentEntry pee = EnchantmentDatabase.getEnchantment(pe);
+            if (pee == null || !EnchantmentDatabase.isApplicable(pee, itemKey)) continue;
+            if (isEnchantConflicting(pee, cachedSlot0Enchants)) continue;
+            boolean conf = false;
+            for (String tid : targetEnchantIds) {
+                EnchantmentEntry tee = EnchantmentDatabase.getEnchantment(tid);
+                if (EnchantmentDatabase.isEnchantPairConflicting(pee, tee)) {
+                    conf = true;
+                    break;
                 }
             }
+            if (!conf) targetEnchantIds.add(pe);
         }
 
-        // Costruisci la checklist analizzando l'oggetto e l'inventario filtrando rigidamente i conflitti
+        // 3. Completa con i migliori candidati applicabili (max 12)
+        List<EnchantmentEntry> candidates = MaxabilityAnalyzer.getApplicableCandidates(itemKey, cachedSlot0Enchants);
+        for (EnchantmentEntry ee : candidates) {
+            if (targetEnchantIds.size() >= 12) break;
+            if (targetEnchantIds.contains(ee.id)) continue;
+            boolean conf = false;
+            for (String tid : targetEnchantIds) {
+                EnchantmentEntry tee = EnchantmentDatabase.getEnchantment(tid);
+                if (EnchantmentDatabase.isEnchantPairConflicting(ee, tee)) {
+                    conf = true;
+                    break;
+                }
+            }
+            if (!conf) targetEnchantIds.add(ee.id);
+        }
+
+        // Costruisci checklist
         List<ChecklistEntry> checklist = new ArrayList<>();
         int onEquipCount = 0;
         int readyCount = 0;
@@ -656,13 +673,10 @@ public abstract class AnvilScreenMixin extends ItemCombinerScreen<AnvilMenu> {
                 checklist.add(new ChecklistEntry(ee, targetLvl, 1, 0));
                 onEquipCount++;
             } else {
-                // FILTRO CONFLITTI: Non mostrare mai tra i mancanti incantesimi che confliggono con l'arma
-                if (isEnchantConflicting(ee, cachedSlot0Enchants)) {
-                    continue;
-                }
+                if (isEnchantConflicting(ee, cachedSlot0Enchants)) continue;
                 boolean confWithChecklist = false;
                 for (ChecklistEntry ce : checklist) {
-                    if (isEnchantPairConflicting(ee, ce.ee)) {
+                    if (EnchantmentDatabase.isEnchantPairConflicting(ee, ce.ee)) {
                         confWithChecklist = true;
                         break;
                     }
@@ -686,118 +700,124 @@ public abstract class AnvilScreenMixin extends ItemCombinerScreen<AnvilMenu> {
             }
         }
 
-        // Ordina la checklist per stato logico
+        // Ordina checklist: 1 (Arma) -> 2 (Pronto) -> 3 (Usura) -> 4 (Manca)
         checklist.sort(Comparator.comparingInt(c -> c.status));
 
         int totalCount = checklist.size();
-        int readyTotal = onEquipCount + readyCount + warningCount;
-        boolean allReady = (readyTotal >= totalCount && totalCount > 0);
+        boolean isMaxed = (onEquipCount >= 12);
 
-        // Header
-        int headerAccent = allReady ? 0xFF10B981 : 0xFF38BDF8;
-        LitnessOptimizerScreen.drawRoundedRect(extractor, rightX + 8, rightY + 7, 3, 13, 1, headerAccent);
-        extractor.text(this.font, allReady ? "✦ FORGIA PRONTA" : "STATO LIBRI", rightX + 16, rightY + 9, allReady ? 0xFF34D399 : 0xFFFFFFFF, false);
-
-        String countPill = "[" + readyTotal + "/" + totalCount + "]";
-        extractor.text(this.font, countPill, rightX + rightW - this.font.width(countPill) - 10, rightY + 9, allReady ? 0xFF34D399 : 0xFF60A5FA, false);
-
-        // Banner di avanzamento
-        int bannerY = rightY + 23;
-        int bannerH = 26;
-        if (allReady) {
-            LitnessOptimizerScreen.drawRoundedRect(extractor, rightX + 6, bannerY, rightW - 12, bannerH, 6, 0xFF064E3B);
-            LitnessOptimizerScreen.drawRoundedOutline(extractor, rightX + 6, bannerY, rightW - 12, bannerH, 6, 0xFF10B981);
-            extractor.text(this.font, "§a✔ " + totalCount + "/" + totalCount + " Libri Pronti!", rightX + 10, bannerY + 4, 0xFF6EE7B7, false);
-            extractor.text(this.font, "§fTutti i requisiti presenti in inv.", rightX + 10, bannerY + 14, 0xFFE2E8F0, false);
-        } else {
-            LitnessOptimizerScreen.drawRoundedRect(extractor, rightX + 6, bannerY, rightW - 12, bannerH, 6, 0xFF131724);
-            LitnessOptimizerScreen.drawRoundedOutline(extractor, rightX + 6, bannerY, rightW - 12, bannerH, 6, 0xFF1E2334);
-            String progText = "§b✦ " + readyTotal + "/" + totalCount + " Trovati (" + (totalCount - readyTotal) + " mancanti)";
-            extractor.text(this.font, progText, rightX + 10, bannerY + 4, 0xFF93C5FD, false);
-
-            int barW = rightW - 24;
-            int barH = 5;
-            int barX = rightX + 10;
-            int barY = bannerY + 15;
-            LitnessOptimizerScreen.drawRoundedRect(extractor, barX, barY, barW, barH, 2, 0xFF1E293B);
-            float progress = totalCount > 0 ? (float) readyTotal / totalCount : 0f;
-            int fillW = Math.max(0, Math.min(barW, (int)(barW * progress)));
-            if (fillW > 0) {
-                LitnessOptimizerScreen.drawRoundedRect(extractor, barX, barY, fillW, barH, 2, 0xFF38BDF8);
+        // Conta quanti libri con usura (>0) ci sono nell'intero inventario
+        int totalUsedBooksInInv = 0;
+        if (this.minecraft != null && this.minecraft.player != null) {
+            for (int i = 0; i < this.minecraft.player.getInventory().getContainerSize(); i++) {
+                ItemStack st = this.minecraft.player.getInventory().getItem(i);
+                if (!st.isEmpty() && (st.is(Items.ENCHANTED_BOOK) || st.is(Items.BOOK))) {
+                    if (st.getOrDefault(DataComponents.REPAIR_COST, 0) > 0) {
+                        totalUsedBooksInInv++;
+                    }
+                }
             }
         }
 
-        // KPI Box
-        int kpiY = bannerY + bannerH + 5;
-        int kpiH = 34;
-        LitnessOptimizerScreen.drawRoundedRect(extractor, rightX + 6, kpiY, rightW - 12, kpiH, 6, 0xFF131724);
-        LitnessOptimizerScreen.drawRoundedOutline(extractor, rightX + 6, kpiY, rightW - 12, kpiH, 6, 0xFF1E2334);
+        // 1. Header (Titolo + Pillola Conteggio)
+        int headerAccent = isMaxed ? 0xFF10B981 : 0xFF38BDF8;
+        LitnessOptimizerScreen.drawRoundedRect(extractor, rightX + 8, rightY + 7, 3, 12, 1, headerAccent);
+        extractor.text(this.font, isMaxed ? "✦ SET COMPLETO" : "STATO FORGIA", rightX + 15, rightY + 9, isMaxed ? 0xFF34D399 : 0xFFFFFFFF, false);
 
-        String totalCostStr = (cachedSolution != null) ? (cachedSolution.totalCost + " liv.") : "—";
-        int peak = 0;
-        if (cachedSolution != null) {
-            for (MergeStep ms : cachedSolution.steps) peak = Math.max(peak, ms.cost);
+        String countPill = "[" + onEquipCount + "/12]";
+        int pillW = this.font.width(countPill);
+        extractor.text(this.font, countPill, rightX + rightW - pillW - 8, rightY + 9, isMaxed ? 0xFF34D399 : 0xFF60A5FA, false);
+
+        // 2. Card Equipaggiamento & Progresso
+        int cardY = rightY + 22;
+        int cardH = 26;
+        LitnessOptimizerScreen.drawRoundedRect(extractor, rightX + 6, cardY, rightW - 12, cardH, 5, 0xFF111724);
+        LitnessOptimizerScreen.drawRoundedOutline(extractor, rightX + 6, cardY, rightW - 12, cardH, 5, 0xFF1E293B);
+
+        extractor.fakeItem(activeEquipment, rightX + 8, cardY + 5);
+        String itemName = activeEquipment.getHoverName().getString();
+        extractor.text(this.font, trimToWidth(itemName, rightW - 36), rightX + 28, cardY + 4, 0xFFFFFFFF, false);
+
+        if (isMaxed) {
+            extractor.text(this.font, "§a✔ 12/12 Incanti (MAX)", rightX + 28, cardY + 14, 0xFF34D399, false);
+        } else {
+            int missing = Math.max(0, 12 - onEquipCount);
+            extractor.text(this.font, "§b✦ " + onEquipCount + "/12 §7(Mancano " + missing + ")", rightX + 28, cardY + 14, 0xFF93C5FD, false);
         }
-        String peakStr = (peak > 0) ? (peak + "/39 liv.") : "—";
-        int peakColor = (peak == 0) ? 0xFF94A3B8 : (peak <= 31 ? 0xFF34D399 : (peak <= 38 ? 0xFFF59E0B : 0xFFEF4444));
 
-        extractor.text(this.font, "§7Costo XP: §a" + totalCostStr, rightX + 10, kpiY + 4, 0xFFE2E8F0, false);
-        extractor.text(this.font, "§7Picco: ", rightX + 96, kpiY + 4, 0xFFE2E8F0, false);
-        extractor.text(this.font, peakStr, rightX + 130, kpiY + 4, peakColor, false);
-
-        String stepsStr = (cachedSolution != null) ? (cachedSolution.steps.size() + " unioni") : "—";
-        extractor.text(this.font, "§7Passi: §f" + stepsStr, rightX + 10, kpiY + 15, 0xFFE2E8F0, false);
+        // 3. Info Usura Incudine & Margine Livelli
+        int curY = cardY + cardH + 4;
+        int penY = curY;
+        int penH = 18;
+        LitnessOptimizerScreen.drawRoundedRect(extractor, rightX + 6, penY, rightW - 12, penH, 4, 0xFF0B0F19);
+        LitnessOptimizerScreen.drawRoundedOutline(extractor, rightX + 6, penY, rightW - 12, penH, 4, 0xFF1A2333);
 
         int currentPenalty = activeEquipment.getOrDefault(DataComponents.REPAIR_COST, 0);
-        int currentWork = 0;
-        while ((1 << currentWork) - 1 < currentPenalty) currentWork++;
-        int equipMerges = 0;
-        if (cachedSolution != null) {
-            for (MergeStep ms : cachedSolution.steps) {
-                if (!ms.isBookToBook) equipMerges++;
-            }
-        }
-        int finalWork = currentWork + equipMerges;
-        int finalPenalty = (1 << finalWork) - 1;
-        int freeLvls = Math.max(0, 39 - finalPenalty);
-        String usuraStr = "+" + finalPenalty + " liv · " + freeLvls + " liberi";
-        extractor.text(this.font, "§7Usura finale: §e" + usuraStr, rightX + 10, kpiY + 24, 0xFFFDE68A, false);
+        int freeLvls = Math.max(0, 39 - currentPenalty);
+        String penInfo = "§7Usura: §e+" + currentPenalty + " liv. §8| §7Liberi: " + (freeLvls > 0 ? "§a" + freeLvls : "§c0");
+        extractor.text(this.font, penInfo, rightX + 10, penY + 5, 0xFFE2E8F0, false);
+        curY += penH + 4;
 
-        int curListY = kpiY + kpiH + 5;
-
-        // Avviso usura pregressa su libri
-        if (warningCount > 0) {
-            int alertH = 22;
-            LitnessOptimizerScreen.drawRoundedRect(extractor, rightX + 6, curListY, rightW - 12, alertH, 5, 0xEE451A03);
-            LitnessOptimizerScreen.drawRoundedOutline(extractor, rightX + 6, curListY, rightW - 12, alertH, 5, 0xFFF59E0B);
-            extractor.text(this.font, "§c⚠ Usura su " + warningCount + (warningCount == 1 ? " libro!" : " libri!"), rightX + 10, curListY + 3, 0xFFFCA5A5, false);
-            extractor.text(this.font, "§eUsa libri vergini per costo min.", rightX + 10, curListY + 12, 0xFFFDE68A, false);
-            curListY += alertH + 4;
+        // 4. Avviso Libri con Usura in Inventario (se presenti)
+        if (totalUsedBooksInInv > 0 && ModConfig.get().warnUsedBooksInAnvil) {
+            int alertH = 18;
+            LitnessOptimizerScreen.drawRoundedRect(extractor, rightX + 6, curY, rightW - 12, alertH, 4, 0x4CEF4444);
+            LitnessOptimizerScreen.drawRoundedOutline(extractor, rightX + 6, curY, rightW - 12, alertH, 4, 0xFFEF4444);
+            String warnMsg = "§c⚠ " + totalUsedBooksInInv + (totalUsedBooksInInv == 1 ? " libro usato in inv!" : " libri usati in inv!");
+            extractor.text(this.font, warnMsg, rightX + 9, curY + 5, 0xFFFCA5A5, false);
+            curY += alertH + 4;
         }
 
-        // Intestazione checklist
-        extractor.text(this.font, "§7Checklist Incanti (" + readyTotal + "/" + totalCount + "):", rightX + 8, curListY, 0xFF94A3B8, false);
-        curListY += 10;
+        // 5. Pulsante Interattivo "Calcola Guida 12 Incanti"
+        int btnH = 20;
+        int btnW = rightW - 12;
+        int btnX = rightX + 6;
+        int btnY = curY;
 
-        // Area scorrevole checklist
-        int listBottomY = rightY + rightH - 8;
-        int listH = listBottomY - curListY;
+        AnvilTooltipState.calc12BtnX = btnX;
+        AnvilTooltipState.calc12BtnY = btnY;
+        AnvilTooltipState.calc12BtnW = btnW;
+        AnvilTooltipState.calc12BtnH = btnH;
+        AnvilTooltipState.calc12BtnVisible = !isMaxed;
+
+        if (!isMaxed) {
+            boolean isBtnHovered = (mouseX >= btnX && mouseX <= btnX + btnW && mouseY >= btnY && mouseY <= btnY + btnH);
+            int btnBg = isBtnHovered ? 0xFF0369A1 : 0xFF0C243B;
+            int btnBorder = isBtnHovered ? 0xFF38BDF8 : 0xFF0284C7;
+            LitnessOptimizerScreen.drawRoundedRect(extractor, btnX, btnY, btnW, btnH, 5, btnBg);
+            LitnessOptimizerScreen.drawRoundedOutline(extractor, btnX, btnY, btnW, btnH, 5, btnBorder);
+            extractor.centeredText(this.font, "§b⚡ Guida 12 Incanti", btnX + (btnW / 2), btnY + 6, 0xFFE0F2FE);
+        } else {
+            LitnessOptimizerScreen.drawRoundedRect(extractor, btnX, btnY, btnW, btnH, 5, 0xFF064E3B);
+            LitnessOptimizerScreen.drawRoundedOutline(extractor, btnX, btnY, btnW, btnH, 5, 0xFF10B981);
+            extractor.centeredText(this.font, "§a✔ 12/12 Incanti Raggiunti", btnX + (btnW / 2), btnY + 6, 0xFF6EE7B7);
+        }
+        curY += btnH + 4;
+
+        // 6. Intestazione Checklist
+        extractor.text(this.font, "§7Checklist Incanti (" + onEquipCount + "/12):", rightX + 8, curY, 0xFF94A3B8, false);
+        curY += 11;
+
+        // 7. Area scorrevole checklist
+        int listBottomY = rightY + rightH - 6;
+        int listH = listBottomY - curY;
         if (listH > 16 && !checklist.isEmpty()) {
-            int totalRowH = checklist.size() * 14;
+            int rowHeight = 15;
+            int totalRowH = checklist.size() * rowHeight;
             AnvilTooltipState.rightPanelMaxScroll = Math.max(0, totalRowH - listH);
             if (AnvilTooltipState.rightPanelScrollOffset > AnvilTooltipState.rightPanelMaxScroll) {
                 AnvilTooltipState.rightPanelScrollOffset = AnvilTooltipState.rightPanelMaxScroll;
             }
 
-            extractor.enableScissor(rightX + 4, curListY, rightX + rightW - 4, listBottomY);
+            extractor.enableScissor(rightX + 4, curY, rightX + rightW - 4, listBottomY);
             for (int i = 0; i < checklist.size(); i++) {
                 ChecklistEntry ce = checklist.get(i);
-                int rowY = curListY + i * 14 - AnvilTooltipState.rightPanelScrollOffset;
-                if (rowY + 14 < curListY || rowY > listBottomY) continue;
+                int rowY = curY + i * rowHeight - AnvilTooltipState.rightPanelScrollOffset;
+                if (rowY + rowHeight < curY || rowY > listBottomY) continue;
 
-                boolean isRowHovered = (mouseX >= rightX + 6 && mouseX <= rightX + rightW - 12 && mouseY >= rowY && mouseY < rowY + 14);
+                boolean isRowHovered = (mouseX >= rightX + 6 && mouseX <= rightX + rightW - 10 && mouseY >= rowY && mouseY < rowY + rowHeight);
                 if (isRowHovered) {
-                    LitnessOptimizerScreen.drawRoundedRect(extractor, rightX + 6, rowY, rightW - 12, 13, 3, 0xFF1E2334);
+                    LitnessOptimizerScreen.drawRoundedRect(extractor, rightX + 6, rowY, rightW - 12, rowHeight - 1, 3, 0xFF1E2334);
                     AnvilTooltipState.hoveredChecklistEnchant = ce.ee;
                 }
 
@@ -813,10 +833,10 @@ public abstract class AnvilScreenMixin extends ItemCombinerScreen<AnvilMenu> {
                         tagColor = 0xFF10B981;
                         break;
                     case 2:
-                        prefix = "§a✔ ";
+                        prefix = "§b📖 ";
                         nameColor = 0xFFFFFFFF;
                         tag = "Pronto";
-                        tagColor = 0xFF34D399;
+                        tagColor = 0xFF38BDF8;
                         break;
                     case 3:
                         prefix = "§e⚠ ";
@@ -832,19 +852,21 @@ public abstract class AnvilScreenMixin extends ItemCombinerScreen<AnvilMenu> {
                         break;
                 }
                 String eName = AnvilOptimizer.formatEnchantName(ce.ee.name, ce.targetLevel);
-                String trimmedName = trimToWidth(prefix + eName, rightW - 55);
-                extractor.text(this.font, trimmedName, rightX + 8, rowY + 2, nameColor, false);
                 int tagW = this.font.width(tag);
-                extractor.text(this.font, tag, rightX + rightW - tagW - 12, rowY + 2, tagColor, false);
+                int maxNameW = rightW - tagW - 28;
+                String trimmedName = trimToWidth(prefix + eName, maxNameW);
+
+                extractor.text(this.font, trimmedName, rightX + 8, rowY + 3, nameColor, false);
+                extractor.text(this.font, tag, rightX + rightW - tagW - 10, rowY + 3, tagColor, false);
             }
             extractor.disableScissor();
 
             if (AnvilTooltipState.rightPanelMaxScroll > 0) {
-                int sbX = rightX + rightW - 7;
+                int sbX = rightX + rightW - 6;
                 int sbH = Math.max(12, (int)((float) listH / totalRowH * listH));
-                int sbY = curListY + (int)((float) AnvilTooltipState.rightPanelScrollOffset / AnvilTooltipState.rightPanelMaxScroll * (listH - sbH));
-                LitnessOptimizerScreen.drawRoundedRect(extractor, sbX, curListY, 3, listH, 1, 0x301E293B);
-                LitnessOptimizerScreen.drawRoundedRect(extractor, sbX, sbY, 3, sbH, 1, 0xFF3B82F6);
+                int sbY = curY + (int)((float) AnvilTooltipState.rightPanelScrollOffset / AnvilTooltipState.rightPanelMaxScroll * (listH - sbH));
+                LitnessOptimizerScreen.drawRoundedRect(extractor, sbX, curY, 2, listH, 1, 0x301E293B);
+                LitnessOptimizerScreen.drawRoundedRect(extractor, sbX, sbY, 2, sbH, 1, 0xFF38BDF8);
             }
         }
     }
@@ -1357,8 +1379,19 @@ public abstract class AnvilScreenMixin extends ItemCombinerScreen<AnvilMenu> {
 
     private void openOptimizer() {
         if (this.minecraft != null) {
+            Solution sol = this.cachedSolution;
+            if (sol == null) {
+                ItemStack equip = this.menu.getSlot(0).getItem();
+                if (equip.isEmpty()) equip = AnvilTooltipState.explicitTargetEquip;
+                if (equip.isEmpty() && this.minecraft.player != null) equip = this.minecraft.player.getMainHandItem();
+                if (equip.isEmpty() && AnvilTooltipState.savedSelectedEquipment != null) equip = AnvilTooltipState.savedSelectedEquipment;
+                if (!equip.isEmpty() && ItemTypeHelper.isEnchantableWeaponOrArmor(equip)) {
+                    AnvilTooltipState.open12EnchantGuide((AnvilScreen) (Object) this);
+                    return;
+                }
+            }
             this.minecraft.setScreenAndShow(new LitnessOptimizerScreen(
-                Component.translatable("gui.litnessoptimizer.title"), this, this.menu, this.cachedSolution
+                Component.translatable("gui.litnessoptimizer.title"), this, this.menu, sol
             ));
         }
     }

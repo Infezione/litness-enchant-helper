@@ -59,6 +59,7 @@ public class ModConfig {
 
     // Opzioni configurabili
     public boolean showAnvilPenaltyTooltip = true;
+    public boolean showSlotBookNameTag = true;        // Mostra etichetta fluttuante con nome libro sopra gli slot cercati (/ah e casse)
     public int bookLoreDetailMode = 0;       // 0 = Completa, 1 = Compatta, 2 = Minimale, 3 = Disattivata
     public int colorPresetIndex = 0;         // Indice in PRESETS
     public int guiScaleMode = 0;              // 0 = Auto, 1 = 100%, 2 = 85%, 3 = 75%, 4 = 65%, 5 = 50%

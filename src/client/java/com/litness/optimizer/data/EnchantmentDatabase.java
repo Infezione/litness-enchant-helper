@@ -349,6 +349,29 @@ public class EnchantmentDatabase {
         return new ArrayList<>(cleanConflicts);
     }
 
+    public static boolean isEnchantPairConflicting(EnchantmentEntry a, EnchantmentEntry b) {
+        if (a == null || b == null) return false;
+        if (a.id.equalsIgnoreCase(b.id)) return false;
+        if (a.unique && b.unique) return true;
+        List<String> aConfs = getResolvedConflicts(a.id);
+        String bBaseName = LitnessI18n.getBaseEnchantName(b);
+        String bBaseId = LitnessI18n.getBaseId(b.id);
+        for (String c : aConfs) {
+            if (c.equalsIgnoreCase(bBaseName) || c.equalsIgnoreCase(b.name) || c.equalsIgnoreCase(bBaseId) || c.equalsIgnoreCase(b.id)) {
+                return true;
+            }
+        }
+        List<String> bConfs = getResolvedConflicts(b.id);
+        String aBaseName = LitnessI18n.getBaseEnchantName(a);
+        String aBaseId = LitnessI18n.getBaseId(a.id);
+        for (String c : bConfs) {
+            if (c.equalsIgnoreCase(aBaseName) || c.equalsIgnoreCase(a.name) || c.equalsIgnoreCase(aBaseId) || c.equalsIgnoreCase(a.id)) {
+                return true;
+            }
+        }
+        return false;
+    }
+
     public static ItemEntry getItem(String id) {
         load();
         if (id == null) return null;

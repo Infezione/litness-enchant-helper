@@ -45,6 +45,14 @@ public class AnvilTooltipState {
     public static int leftSideX = -9999, leftSideY = -9999, leftSideW = 0, leftSideH = 0;
     public static int rightSideX = -9999, rightSideY = -9999, rightSideW = 0, rightSideH = 0;
     public static int wellX = -9999, wellY = -9999, wellW = 0, wellH = 0;
+    public static int calc12BtnX = -9999, calc12BtnY = -9999, calc12BtnW = 0, calc12BtnH = 0;
+    public static boolean calc12BtnVisible = false;
+
+    public static boolean isInsideCalc12Btn(double mouseX, double mouseY) {
+        return calc12BtnVisible && calc12BtnW > 0 && calc12BtnH > 0
+                && mouseX >= calc12BtnX && mouseX <= calc12BtnX + calc12BtnW
+                && mouseY >= calc12BtnY && mouseY <= calc12BtnY + calc12BtnH;
+    }
 
     public static void clearHover() {
         hoveredNextStep = null;
@@ -53,6 +61,7 @@ public class AnvilTooltipState {
         hoveredGhostSlotItemName = null;
         hoveredMaxabilityResult = null;
         hoveredChecklistEnchant = null;
+        calc12BtnVisible = false;
     }
 
     public static boolean isInsideSidebar(double mouseX, double mouseY) {
@@ -96,7 +105,14 @@ public class AnvilTooltipState {
         double my = event.y();
         int btn = event.button();
         if (btn == 0 || btn == com.mojang.blaze3d.platform.InputConstants.MOUSE_BUTTON_LEFT) {
-            if (isInsideWell(mx, my) || isInsideSidebar(mx, my)) {
+            // 1. Click sul pulsante "Calcola Guida 12 Incanti" nel pannello destro
+            if (isInsideCalc12Btn(mx, my)) {
+                playClickSound();
+                open12EnchantGuide(anvil);
+                return true;
+            }
+
+            if (isInsideWell(mx, my) || (isInsideSidebar(mx, my) && !isInsideRightPanel(mx, my))) {
                 ItemStack carried = menu.getCarried();
                 if (!carried.isEmpty() && ItemTypeHelper.isEnchantableWeaponOrArmor(carried)) {
                     selectAndSaveEquipment(carried);
@@ -483,10 +499,8 @@ public class AnvilTooltipState {
     }
 
     public static void renderInventoryHighlightsAndBadges(GuiGraphicsExtractor extractor, AnvilScreen anvil, int leftPos, int topPos, int mouseX, int mouseY) {
-        List<HighlightedSlot> targets = getTargetInventorySlots(anvil);
-        if (targets.isEmpty()) return;
-
         Minecraft mc = Minecraft.getInstance();
+        if (mc == null) return;
         Font font = mc.font;
 
         long time = System.currentTimeMillis();
@@ -496,7 +510,52 @@ public class AnvilTooltipState {
 
         ModConfig.HighlightPreset preset = ModConfig.get().getCurrentPreset();
         HighlightedSlot hoveredTarget = null;
+        Slot hoveredUsedBookSlot = null;
+        int hoveredUsedBookPenalty = 0;
 
+        List<HighlightedSlot> targets = getTargetInventorySlots(anvil);
+        Set<Integer> targetSlotIndices = new HashSet<>();
+        for (HighlightedSlot hs : targets) {
+            if (hs.slot != null) {
+                targetSlotIndices.add(hs.slot.index);
+            }
+        }
+
+        // 1. Evidenziazione di TUTTI i libri con usura (>0 liv.) presenti nell'inventario del giocatore
+        if (ModConfig.get().warnUsedBooksInAnvil && mc.player != null) {
+            for (Slot s : anvil.getMenu().slots) {
+                if (s.container != mc.player.getInventory()) continue;
+                ItemStack st = s.getItem();
+                if (st.isEmpty() || (!st.is(Items.ENCHANTED_BOOK) && !st.is(Items.BOOK))) continue;
+                int rep = st.getOrDefault(DataComponents.REPAIR_COST, 0);
+                if (rep > 0) {
+                    int sx = leftPos + s.x;
+                    int sy = topPos + s.y;
+
+                    // Se non fa parte dei target primari, disegna il glow rosso/ambra di allerta
+                    if (!targetSlotIndices.contains(s.index)) {
+                        extractor.fill(sx, sy, sx + 16, sy + 16, 0x3CEF4444);
+                        extractor.outline(sx - 1, sy - 1, 18, 18, 0xCCEF4444);
+                    }
+
+                    // Mini-badge rosso brillante "⚠" sempre visibile sopra OGNI libro con usura
+                    int bW = 9;
+                    int bH = 8;
+                    int bx = sx + 16 - bW;
+                    int by = sy;
+                    extractor.fill(bx, by, bx + bW, by + bH, 0xEE7F1D1D);
+                    extractor.outline(bx, by, bW, bH, 0xFFEF4444);
+                    extractor.centeredText(font, "⚠", bx + (bW / 2), by, 0xFFFEE2E2);
+
+                    if (mouseX >= sx && mouseX < sx + 16 && mouseY >= sy && mouseY < sy + 16) {
+                        hoveredUsedBookSlot = s;
+                        hoveredUsedBookPenalty = rep;
+                    }
+                }
+            }
+        }
+
+        // 2. Evidenziazione degli slot target primari (Slot 1 & Slot 2)
         for (HighlightedSlot hs : targets) {
             int sx = leftPos + hs.slot.x;
             int sy = topPos + hs.slot.y;
@@ -510,11 +569,11 @@ public class AnvilTooltipState {
             int slotBorder = (borderAlpha << 24) | (baseBorder & 0x00FFFFFF);
             int slotFill = (fillAlpha << 24) | (baseColor & 0x00FFFFFF);
 
-            // 1. Evidenziazione morbida sullo slot con palette personalizzabile
+            // Evidenziazione morbida sullo slot con palette personalizzabile
             extractor.fill(sx, sy, sx + 16, sy + 16, slotFill);
             extractor.outline(sx - 1, sy - 1, 18, 18, slotBorder);
 
-            // 2. Mini-badge ultra-compatto soft [1] / [2] all'angolo superiore (massima leggibilità, mai sovrapposto)
+            // Mini-badge ultra-compatto soft [1] / [2] all'angolo superiore sinistro
             String tag = isSlot1 ? "1" : "2";
             int tagW = 8;
             int tagH = 8;
@@ -530,7 +589,7 @@ public class AnvilTooltipState {
             }
         }
 
-        // 3. Se il cursore è sopra lo slot, mostra lore morbida e discreta
+        // 3. Se il cursore è sopra uno slot target o uno slot libro usato, mostra tooltip appropriato
         if (hoveredTarget != null) {
             List<Component> tipLines = new ArrayList<>();
             boolean isSlot1 = (hoveredTarget.targetAnvilSlot == 1);
@@ -552,31 +611,106 @@ public class AnvilTooltipState {
                 tipLines.add(Component.literal("§e⚠ Attenzione: rischio blocco a 11 incanti!"));
             }
 
-            int tipW = 0;
-            for (Component c : tipLines) {
-                tipW = Math.max(tipW, font.width(c));
+            renderTipPopup(extractor, anvil, tipLines, mouseX, mouseY, isSlot1 ? preset.slot1Border : preset.slot2Border);
+        } else if (hoveredUsedBookSlot != null && ModConfig.get().warnUsedBooksInAnvil) {
+            List<Component> tipLines = new ArrayList<>();
+            tipLines.add(Component.literal("§c⚠ LIBRO USATO (Usura: +" + hoveredUsedBookPenalty + " liv.)"));
+            tipLines.add(Component.literal("§eAttenzione: rischio blocco a 11 incanti!"));
+            tipLines.add(Component.literal("§7Per creare un set 12/12 usa solo libri vergini (+0 liv.)."));
+            renderTipPopup(extractor, anvil, tipLines, mouseX, mouseY, 0xFFEF4444);
+        }
+    }
+
+    private static void renderTipPopup(GuiGraphicsExtractor extractor, AnvilScreen anvil, List<Component> tipLines, int mouseX, int mouseY, int borderColor) {
+        Minecraft mc = Minecraft.getInstance();
+        Font font = mc.font;
+        int tipW = 0;
+        for (Component c : tipLines) {
+            tipW = Math.max(tipW, font.width(c));
+        }
+        tipW += 12;
+        int tipH = tipLines.size() * 10 + 6;
+
+        int tipX = mouseX + 10;
+        int tipY = mouseY - 10;
+        if (tipX + tipW > anvil.width - 4) tipX = mouseX - tipW - 6;
+        if (tipY + tipH > anvil.height - 4) tipY = anvil.height - tipH - 4;
+        if (tipX < 4) tipX = 4;
+        if (tipY < 4) tipY = 4;
+
+        extractor.outline(tipX - 1, tipY - 1, tipW + 2, tipH + 2, 0x80000000);
+        extractor.fill(tipX, tipY, tipX + tipW, tipY + tipH, 0xEA0D111D);
+        extractor.outline(tipX, tipY, tipW, tipH, 0x80000000 | (borderColor & 0x00FFFFFF));
+
+        int ty = tipY + 4;
+        for (Component line : tipLines) {
+            extractor.text(font, line, tipX + 6, ty, 0xFFFFFFFF, false);
+            ty += 10;
+        }
+    }
+
+    public static void open12EnchantGuide(AnvilScreen anvil) {
+        if (anvil == null) return;
+        Minecraft mc = Minecraft.getInstance();
+        if (mc == null) return;
+
+        ItemStack item = anvil.getMenu().getSlot(0).getItem();
+        if (item.isEmpty()) item = explicitTargetEquip;
+        if (item.isEmpty() && mc.player != null) item = mc.player.getMainHandItem();
+        if (item.isEmpty() && savedSelectedEquipment != null) item = savedSelectedEquipment;
+        if (item.isEmpty()) item = new ItemStack(net.minecraft.world.item.Items.DIAMOND_SWORD);
+
+        String itemKey = ItemTypeHelper.detectItemKey(item);
+        if (itemKey == null || itemKey.isEmpty()) itemKey = "sword";
+
+        List<EnchantApplied> existing = extractAllEnchantments(item);
+        List<EnchantmentDatabase.EnchantmentEntry> candidates = com.litness.optimizer.calculator.MaxabilityAnalyzer.getApplicableCandidates(itemKey, existing);
+
+        List<AnvilOptimizer.BookInput> rawBooks = new ArrayList<>();
+        Set<String> targetIds = new HashSet<>();
+        for (EnchantApplied ea : existing) {
+            targetIds.add(ea.id.toLowerCase());
+            targetIds.add(LitnessI18n.getBaseId(ea.id));
+        }
+
+        // Completa fino a 12 incanti senza conflitti
+        for (EnchantmentDatabase.EnchantmentEntry ee : candidates) {
+            if (targetIds.size() >= 12) break;
+            String baseId = LitnessI18n.getBaseId(ee.id);
+            if (targetIds.contains(ee.id.toLowerCase()) || targetIds.contains(baseId)) continue;
+
+            boolean conf = false;
+            for (String tid : targetIds) {
+                EnchantmentDatabase.EnchantmentEntry tee = EnchantmentDatabase.getEnchantment(tid);
+                if (EnchantmentDatabase.isEnchantPairConflicting(ee, tee)) {
+                    conf = true;
+                    break;
+                }
             }
-            tipW += 12;
-            int tipH = tipLines.size() * 10 + 6;
-
-            int tipX = mouseX + 10;
-            int tipY = mouseY - 10;
-            if (tipX + tipW > anvil.width - 4) tipX = mouseX - tipW - 6;
-            if (tipY + tipH > anvil.height - 4) tipY = anvil.height - tipH - 4;
-            if (tipX < 4) tipX = 4;
-            if (tipY < 4) tipY = 4;
-
-            int popupBorder = isSlot1 ? preset.slot1Border : preset.slot2Border;
-            extractor.outline(tipX - 1, tipY - 1, tipW + 2, tipH + 2, 0x80000000);
-            extractor.fill(tipX, tipY, tipX + tipW, tipY + tipH, 0xEA0D111D);
-            extractor.outline(tipX, tipY, tipW, tipH, 0x80000000 | (popupBorder & 0x00FFFFFF));
-
-            int ty = tipY + 4;
-            for (Component line : tipLines) {
-                extractor.text(font, line, tipX + 6, ty, 0xFFFFFFFF, false);
-                ty += 10;
+            if (!conf) {
+                targetIds.add(ee.id.toLowerCase());
+                targetIds.add(baseId);
+                AnvilOptimizer.BookInput b = new AnvilOptimizer.BookInput(0);
+                int lvl = ee.maxLevel > 0 ? ee.maxLevel : 1;
+                b.enchantments.add(new EnchantApplied(ee.id, lvl));
+                b.explicitCost = Math.max(1, ee.getAnvilCostNumeric());
+                rawBooks.add(b);
             }
         }
+
+        int currentPenalty = item.getOrDefault(DataComponents.REPAIR_COST, 0);
+        int currentWork = 0;
+        while ((1 << currentWork) - 1 < currentPenalty) currentWork++;
+
+        EnchantmentDatabase.ItemEntry itemEntry = EnchantmentDatabase.getItem(itemKey);
+        Solution solution = AnvilOptimizer.optimize(rawBooks, currentWork, itemEntry, existing);
+
+        mc.setScreenAndShow(new LitnessOptimizerScreen(
+            Component.literal("Litness Helper"),
+            anvil,
+            anvil.getMenu(),
+            solution
+        ));
     }
 
     private static void renderGhostSlotTooltip(GuiGraphicsExtractor extractor, AnvilScreen anvil, String ghostName, int mouseX, int mouseY) {

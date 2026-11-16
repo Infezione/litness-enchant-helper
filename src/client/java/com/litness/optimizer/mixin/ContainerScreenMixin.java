@@ -219,8 +219,8 @@ public abstract class ContainerScreenMixin extends Screen {
                 extractor.fill(x + 16, y, x + 17, y + 16, 0xFF10B981);
             }
 
-            // 2. Piccola Lore Badge fluttuante SOPRA lo slot (solo sui libri!)
-            if (com.litness.optimizer.gui.AhPriceManager.isBook(stack)) {
+            // 2. Piccola Lore Badge fluttuante SOPRA lo slot (solo sui libri se abilitato nelle impostazioni!)
+            if (com.litness.optimizer.data.ModConfig.get().showSlotBookNameTag && com.litness.optimizer.gui.AhPriceManager.isBook(stack)) {
                 com.litness.optimizer.gui.AhPriceManager.EnchantBadgeInfo badge = com.litness.optimizer.gui.AhPriceManager.getEnchantBadgeInfo(stack, cachedTargetEnchants);
             if (badge != null) {
                 String badgeText = badge.getDisplayText();

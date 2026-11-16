@@ -182,7 +182,7 @@ public class MaxabilityAnalyzer {
         cachedResult = res;
     }
 
-    private static List<EnchantmentEntry> getApplicableCandidates(String itemKey, List<EnchantApplied> existing) {
+    public static List<EnchantmentEntry> getApplicableCandidates(String itemKey, List<EnchantApplied> existing) {
         List<EnchantmentEntry> list = new ArrayList<>();
         Set<String> existingIds = new HashSet<>();
         Set<String> conflictNames = new HashSet<>();

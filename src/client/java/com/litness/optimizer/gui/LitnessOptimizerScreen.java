@@ -2396,7 +2396,8 @@ public class LitnessOptimizerScreen extends Screen {
     private void initSettingsWidgets(int startX, int startY, int panelWidth, int panelHeight) {
         ModConfig config = ModConfig.get();
 
-        int rowY = startY + 30;
+        int rowY = startY + 26;
+        int rowStep = 42;
         int btnW = 175;
         int btnH = 20;
         int btnX = startX + panelWidth - btnW - 12;
@@ -2404,10 +2405,10 @@ public class LitnessOptimizerScreen extends Screen {
         int dropX = Math.min(btnX, startX + panelWidth - dropW - 8);
 
         // 1. GUI Scale Dropdown
-        final int dropY1 = rowY + 11 + btnH + 2;
+        final int dropY1 = rowY + 9 + btnH + 2;
         int safeScaleMode = Math.max(0, Math.min(config.guiScaleMode, ModConfig.GUI_SCALE_LABELS.length - 1));
         String scaleText = ModConfig.GUI_SCALE_LABELS[safeScaleMode] + " \u25BE";
-        SoftwareButton btnScale = new SoftwareButton(btnX, rowY + 11, btnW, btnH,
+        SoftwareButton btnScale = new SoftwareButton(btnX, rowY + 9, btnW, btnH,
                 Component.literal(scaleText), b -> {
             List<DropdownOption> opts = new ArrayList<>();
             opts.add(new DropdownOption("Auto (Adatta schermo)", "Consigliato: adatta la GUI al monitor", config.guiScaleMode == 0, () -> {
@@ -2451,8 +2452,8 @@ public class LitnessOptimizerScreen extends Screen {
         this.addRenderableWidget(btnScale);
 
         // 2. Tooltip Usura Incudine
-        rowY += 46;
-        SoftwareButton btnPenalty = new SoftwareButton(btnX, rowY + 11, btnW, btnH,
+        rowY += rowStep;
+        SoftwareButton btnPenalty = new SoftwareButton(btnX, rowY + 9, btnW, btnH,
                 Component.literal(config.showAnvilPenaltyTooltip ? "\u2714 ATTIVO" : "\u2716 DISATTIVO"), b -> {
             config.showAnvilPenaltyTooltip = !config.showAnvilPenaltyTooltip;
             ModConfig.save();
@@ -2462,11 +2463,23 @@ public class LitnessOptimizerScreen extends Screen {
         }).setSuccess(config.showAnvilPenaltyTooltip).setDanger(!config.showAnvilPenaltyTooltip);
         this.addRenderableWidget(btnPenalty);
 
-        // 3. Palette Colori Evidenziazione Libri (Incudine)
-        rowY += 46;
-        final int dropY3 = rowY + 11 + btnH + 2;
+        // 3. Targhetta Nome Libro su Slot (/ah e Casse)
+        rowY += rowStep;
+        SoftwareButton btnNameTag = new SoftwareButton(btnX, rowY + 9, btnW, btnH,
+                Component.literal(config.showSlotBookNameTag ? "\u2714 ATTIVO" : "\u2716 DISATTIVO"), b -> {
+            config.showSlotBookNameTag = !config.showSlotBookNameTag;
+            ModConfig.save();
+            closeDropdown();
+            this.clearWidgets();
+            this.init();
+        }).setSuccess(config.showSlotBookNameTag).setDanger(!config.showSlotBookNameTag);
+        this.addRenderableWidget(btnNameTag);
+
+        // 4. Palette Colori Evidenziazione Libri (Incudine)
+        rowY += rowStep;
+        final int dropY3 = rowY + 9 + btnH + 2;
         String paletteText = config.getCurrentPreset().name + " \u25BE";
-        SoftwareButton btnPalette = new SoftwareButton(btnX, rowY + 11, btnW, btnH,
+        SoftwareButton btnPalette = new SoftwareButton(btnX, rowY + 9, btnW, btnH,
                 Component.literal(paletteText), b -> {
             List<DropdownOption> opts = new ArrayList<>();
             for (int i = 0; i < ModConfig.PRESETS.length; i++) {
@@ -2483,12 +2496,12 @@ public class LitnessOptimizerScreen extends Screen {
         });
         this.addRenderableWidget(btnPalette);
 
-        // 4. Dettagli Lore Libri Incantati
-        rowY += 46;
-        final int dropY4 = rowY + 11 + btnH + 2;
+        // 5. Dettagli Lore Libri Incantati
+        rowY += rowStep;
+        final int dropY4 = rowY + 9 + btnH + 2;
         int safeLoreMode = Math.max(0, Math.min(config.bookLoreDetailMode, ModConfig.LORE_DETAIL_LABELS.length - 1));
         String loreText = ModConfig.LORE_DETAIL_LABELS[safeLoreMode] + " \u25BE";
-        SoftwareButton btnLoreDetail = new SoftwareButton(btnX, rowY + 11, btnW, btnH,
+        SoftwareButton btnLoreDetail = new SoftwareButton(btnX, rowY + 9, btnW, btnH,
                 Component.literal(loreText), b -> {
             List<DropdownOption> opts = new ArrayList<>();
             opts.add(new DropdownOption("Completa", "Costi XP, descrizioni e conflitti", config.bookLoreDetailMode == 0, () -> {
@@ -2519,9 +2532,9 @@ public class LitnessOptimizerScreen extends Screen {
         });
         this.addRenderableWidget(btnLoreDetail);
 
-        // 5. Avviso Libri Già Lavorati
-        rowY += 46;
-        SoftwareButton btnWarn = new SoftwareButton(btnX, rowY + 11, btnW, btnH,
+        // 6. Avviso Libri Già Lavorati
+        rowY += rowStep;
+        SoftwareButton btnWarn = new SoftwareButton(btnX, rowY + 9, btnW, btnH,
                 Component.literal(config.warnUsedBooksInAnvil ? "\u2714 ATTIVO" : "\u2716 DISATTIVO"), b -> {
             config.warnUsedBooksInAnvil = !config.warnUsedBooksInAnvil;
             ModConfig.save();
@@ -2531,12 +2544,13 @@ public class LitnessOptimizerScreen extends Screen {
         }).setSuccess(config.warnUsedBooksInAnvil).setDanger(!config.warnUsedBooksInAnvil);
         this.addRenderableWidget(btnWarn);
 
-        // 6. Reset Defaults
+        // 7. Reset Defaults
         int resetY = getWinY() + getWinH() - 24;
         SoftwareButton btnReset = new SoftwareButton(startX + 6, resetY, 150, 18,
                 Component.literal("\u21BA Ripristina Default"), b -> {
             config.guiScaleMode = 0;
             config.showAnvilPenaltyTooltip = true;
+            config.showSlotBookNameTag = true;
             config.colorPresetIndex = 0;
             config.bookLoreDetailMode = 0;
             config.warnUsedBooksInAnvil = true;
@@ -2554,58 +2568,67 @@ public class LitnessOptimizerScreen extends Screen {
 
         // Titolo sezione
         extractor.text(this.font, "\u2699 IMPOSTAZIONI & PERSONALIZZAZIONE", startX + 6, startY + 6, 0xFFFFFFFF, true);
-        extractor.text(this.font, "Personalizza scala GUI, tooltip usura incudine, colori slot e descrizioni lore.", startX + 6, startY + 18, 0xFF9CA3AF, false);
+        extractor.text(this.font, "Personalizza scala GUI, tooltip usura incudine, colori slot e descrizioni lore.", startX + 6, startY + 16, 0xFF9CA3AF, false);
 
-        int rowY = startY + 30;
-        int rowH = 42;
+        int rowY = startY + 26;
+        int rowH = 38;
+        int rowStep = 42;
         int cardW = panelWidth - 8;
 
         // Card 1: Scala Interfaccia Mod (GUI Scale)
         drawRoundedRect(extractor, startX, rowY, cardW, rowH, 6, 0xFF0B0D14);
         drawRoundedOutline(extractor, startX, rowY, cardW, rowH, 6, 0xFF1E2334);
-        extractor.text(this.font, "Scala Interfaccia Mod (GUI Scale)", startX + 10, rowY + 7, 0xFFFFFFFF, true);
-        extractor.text(this.font, "Risolve lo schermo tagliato a GUI Scale 4.", startX + 10, rowY + 19, 0xFF9CA3AF, false);
-        extractor.text(this.font, "\u00A78(Auto adatta automaticamente alle dimensioni dello schermo)", startX + 10, rowY + 29, 0xFF64748B, false);
+        extractor.text(this.font, "Scala Interfaccia Mod (GUI Scale)", startX + 10, rowY + 6, 0xFFFFFFFF, true);
+        extractor.text(this.font, "Risolve lo schermo tagliato a GUI Scale 4.", startX + 10, rowY + 17, 0xFF9CA3AF, false);
+        extractor.text(this.font, "\u00A78(Auto adatta automaticamente alle dimensioni dello schermo)", startX + 10, rowY + 26, 0xFF64748B, false);
 
         // Card 2: Lore Usura Incudine
-        rowY += 46;
+        rowY += rowStep;
         drawRoundedRect(extractor, startX, rowY, cardW, rowH, 6, 0xFF0B0D14);
         drawRoundedOutline(extractor, startX, rowY, cardW, rowH, 6, 0xFF1E2334);
-        extractor.text(this.font, "Tooltip Usura Incudine (Armi, Armature, Libri)", startX + 10, rowY + 7, 0xFFFFFFFF, true);
-        extractor.text(this.font, "Mostra: \u00A7e\u26A0 Usura incudine: +31 liv. \u00A78\u00B7 \u00A7f8 liberi \u00A77prima di 39", startX + 10, rowY + 19, 0xFF9CA3AF, false);
-        extractor.text(this.font, "\u00A78(Segnala automaticamente quando il set raggiunge 12/12 MAX)", startX + 10, rowY + 29, 0xFF64748B, false);
+        extractor.text(this.font, "Tooltip Usura Incudine (Armi, Armature, Libri)", startX + 10, rowY + 6, 0xFFFFFFFF, true);
+        extractor.text(this.font, "Mostra: \u00A7e\u26A0 Usura incudine: +31 liv. \u00A78\u00B7 \u00A7f8 liberi \u00A77prima di 39", startX + 10, rowY + 17, 0xFF9CA3AF, false);
+        extractor.text(this.font, "\u00A78(Segnala automaticamente quando il set raggiunge 12/12 MAX)", startX + 10, rowY + 26, 0xFF64748B, false);
 
-        // Card 3: Palette Colori Evidenziazione Libri
-        rowY += 46;
+        // Card 3: Targhetta Nome Libro su Slot
+        rowY += rowStep;
         drawRoundedRect(extractor, startX, rowY, cardW, rowH, 6, 0xFF0B0D14);
         drawRoundedOutline(extractor, startX, rowY, cardW, rowH, 6, 0xFF1E2334);
-        extractor.text(this.font, "Evidenziazione Libri in Incudine", startX + 10, rowY + 7, 0xFFFFFFFF, true);
+        extractor.text(this.font, "Targhetta Nome Libro su Slot (Casse & /ah)", startX + 10, rowY + 6, 0xFFFFFFFF, true);
+        extractor.text(this.font, "Mostra la targhetta con nome fluttuante sopra i libri trovati (es. 'Sacche IV').", startX + 10, rowY + 17, 0xFF9CA3AF, false);
+        extractor.text(this.font, "\u00A78(Se disattivo, mantiene solo il bordo luminoso verde/blu sullo slot)", startX + 10, rowY + 26, 0xFF64748B, false);
+
+        // Card 4: Palette Colori Evidenziazione Libri
+        rowY += rowStep;
+        drawRoundedRect(extractor, startX, rowY, cardW, rowH, 6, 0xFF0B0D14);
+        drawRoundedOutline(extractor, startX, rowY, cardW, rowH, 6, 0xFF1E2334);
+        extractor.text(this.font, "Evidenziazione Libri in Incudine", startX + 10, rowY + 6, 0xFFFFFFFF, true);
 
         // Preview campioni colori
         ModConfig.HighlightPreset preset = config.getCurrentPreset();
         int prevBox1 = preset.slot1Border;
         int prevBox2 = preset.slot2Border;
-        drawRoundedRect(extractor, startX + 10, rowY + 21, 13, 13, 3, 0xFF000000 | prevBox1);
-        extractor.text(this.font, "1", startX + 14, rowY + 24, 0xFFFFFFFF, true);
-        extractor.text(this.font, "Slot 1", startX + 27, rowY + 24, 0xFF9CA3AF, false);
+        drawRoundedRect(extractor, startX + 10, rowY + 19, 13, 13, 3, 0xFF000000 | prevBox1);
+        extractor.text(this.font, "1", startX + 14, rowY + 22, 0xFFFFFFFF, true);
+        extractor.text(this.font, "Slot 1", startX + 27, rowY + 22, 0xFF9CA3AF, false);
 
-        drawRoundedRect(extractor, startX + 70, rowY + 21, 13, 13, 3, 0xFF000000 | prevBox2);
-        extractor.text(this.font, "2", startX + 74, rowY + 24, 0xFFFFFFFF, true);
-        extractor.text(this.font, "Slot 2", startX + 87, rowY + 24, 0xFF9CA3AF, false);
+        drawRoundedRect(extractor, startX + 70, rowY + 19, 13, 13, 3, 0xFF000000 | prevBox2);
+        extractor.text(this.font, "2", startX + 74, rowY + 22, 0xFFFFFFFF, true);
+        extractor.text(this.font, "Slot 2", startX + 87, rowY + 22, 0xFF9CA3AF, false);
 
-        // Card 4: Dettagli Lore Libri Incantati
-        rowY += 46;
+        // Card 5: Dettagli Lore Libri Incantati
+        rowY += rowStep;
         drawRoundedRect(extractor, startX, rowY, cardW, rowH, 6, 0xFF0B0D14);
         drawRoundedOutline(extractor, startX, rowY, cardW, rowH, 6, 0xFF1E2334);
-        extractor.text(this.font, "Dettagli & Lore Aggiuntiva Libri", startX + 10, rowY + 7, 0xFFFFFFFF, true);
-        extractor.text(this.font, "Mostra descrizioni, costi incudine, conflitti e compatibilit\u00E0.", startX + 10, rowY + 21, 0xFF9CA3AF, false);
+        extractor.text(this.font, "Dettagli & Lore Aggiuntiva Libri", startX + 10, rowY + 6, 0xFFFFFFFF, true);
+        extractor.text(this.font, "Mostra descrizioni, costi incudine, conflitti e compatibilit\u00E0.", startX + 10, rowY + 19, 0xFF9CA3AF, false);
 
-        // Card 5: Avviso Libri Usati
-        rowY += 46;
+        // Card 6: Avviso Libri Usati
+        rowY += rowStep;
         drawRoundedRect(extractor, startX, rowY, cardW, rowH, 6, 0xFF0B0D14);
         drawRoundedOutline(extractor, startX, rowY, cardW, rowH, 6, 0xFF1E2334);
-        extractor.text(this.font, "Avviso di Sicurezza Libri Usati", startX + 10, rowY + 7, 0xFFFFFFFF, true);
-        extractor.text(this.font, "Segnala libri con usura (>0 liv.) per evitare blocco a 11 incanti.", startX + 10, rowY + 21, 0xFF9CA3AF, false);
+        extractor.text(this.font, "Avviso di Sicurezza Libri Usati", startX + 10, rowY + 6, 0xFFFFFFFF, true);
+        extractor.text(this.font, "Segnala tutti i libri con usura (>0 liv.) per evitare blocco a 11 incanti.", startX + 10, rowY + 19, 0xFF9CA3AF, false);
     }
 
     private void renderActiveDropdown(GuiGraphicsExtractor extractor, int mouseX, int mouseY) {
