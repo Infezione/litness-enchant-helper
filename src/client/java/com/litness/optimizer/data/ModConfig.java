@@ -64,8 +64,33 @@ public class ModConfig {
     public boolean warnUsedBooksInAnvil = true;
 
     private static ModConfig INSTANCE = null;
-    private static final File FILE = new File("config/litnessoptimizer/mod_config.json");
     private static final Gson GSON = new GsonBuilder().setPrettyPrinting().create();
+
+    private static File getConfigFile() {
+        try {
+            java.nio.file.Path configDir = net.fabricmc.loader.api.FabricLoader.getInstance().getConfigDir();
+            if (configDir != null) {
+                File dir = configDir.resolve("litnessoptimizer").toFile();
+                if (!dir.exists()) dir.mkdirs();
+                return new File(dir, "mod_config.json");
+            }
+        } catch (Throwable ignored) {}
+        File dir = new File("config/litnessoptimizer");
+        if (!dir.exists()) dir.mkdirs();
+        return new File(dir, "mod_config.json");
+    }
+
+    private static File getFallbackMinecraftFile() {
+        try {
+            String userHome = System.getProperty("user.home");
+            if (userHome != null) {
+                File dir = new File(userHome, "AppData/Roaming/.minecraft/config/litnessoptimizer");
+                if (!dir.exists()) dir.mkdirs();
+                return new File(dir, "mod_config.json");
+            }
+        } catch (Throwable ignored) {}
+        return null;
+    }
 
     public static synchronized ModConfig get() {
         if (INSTANCE == null) {
@@ -75,11 +100,32 @@ public class ModConfig {
     }
 
     public static synchronized void load() {
-        if (FILE.exists()) {
-            try (Reader r = Files.newBufferedReader(FILE.toPath())) {
+        File mainFile = getConfigFile();
+        if (mainFile.exists()) {
+            try (Reader r = Files.newBufferedReader(mainFile.toPath())) {
                 INSTANCE = GSON.fromJson(r, ModConfig.class);
             } catch (Exception e) {
                 e.printStackTrace();
+            }
+        }
+        if (INSTANCE == null) {
+            File fb = getFallbackMinecraftFile();
+            if (fb != null && fb.exists()) {
+                try (Reader r = Files.newBufferedReader(fb.toPath())) {
+                    INSTANCE = GSON.fromJson(r, ModConfig.class);
+                } catch (Exception e) {
+                    e.printStackTrace();
+                }
+            }
+        }
+        if (INSTANCE == null) {
+            File local = new File("config/litnessoptimizer/mod_config.json");
+            if (local.exists()) {
+                try (Reader r = Files.newBufferedReader(local.toPath())) {
+                    INSTANCE = GSON.fromJson(r, ModConfig.class);
+                } catch (Exception e) {
+                    e.printStackTrace();
+                }
             }
         }
         if (INSTANCE == null) {
@@ -92,15 +138,30 @@ public class ModConfig {
             INSTANCE = new ModConfig();
         }
         try {
-            if (FILE.getParentFile() != null) {
-                FILE.getParentFile().mkdirs();
-            }
-            try (Writer w = Files.newBufferedWriter(FILE.toPath())) {
+            File mainFile = getConfigFile();
+            if (mainFile.getParentFile() != null) mainFile.getParentFile().mkdirs();
+            try (Writer w = Files.newBufferedWriter(mainFile.toPath())) {
                 GSON.toJson(INSTANCE, w);
             }
         } catch (Exception e) {
             e.printStackTrace();
         }
+        try {
+            File fb = getFallbackMinecraftFile();
+            if (fb != null) {
+                if (fb.getParentFile() != null) fb.getParentFile().mkdirs();
+                try (Writer w = Files.newBufferedWriter(fb.toPath())) {
+                    GSON.toJson(INSTANCE, w);
+                }
+            }
+        } catch (Exception ignored) {}
+        try {
+            File local = new File("config/litnessoptimizer/mod_config.json");
+            if (local.getParentFile() != null) local.getParentFile().mkdirs();
+            try (Writer w = Files.newBufferedWriter(local.toPath())) {
+                GSON.toJson(INSTANCE, w);
+            }
+        } catch (Exception ignored) {}
     }
 
     public HighlightPreset getCurrentPreset() {

@@ -31,15 +31,52 @@ public class SavedSetsManager {
     }
 
     private static final List<CustomSet> customSets = new ArrayList<>();
-    private static final File CONFIG_FILE = new File("config/litnessoptimizer/saved_sets.json");
     private static final Gson GSON = new GsonBuilder().setPrettyPrinting().create();
     private static boolean loaded = false;
+
+    private static File getConfigFile() {
+        try {
+            java.nio.file.Path configDir = net.fabricmc.loader.api.FabricLoader.getInstance().getConfigDir();
+            if (configDir != null) {
+                File dir = configDir.resolve("litnessoptimizer").toFile();
+                if (!dir.exists()) dir.mkdirs();
+                return new File(dir, "saved_sets.json");
+            }
+        } catch (Throwable ignored) {}
+        File dir = new File("config/litnessoptimizer");
+        if (!dir.exists()) dir.mkdirs();
+        return new File(dir, "saved_sets.json");
+    }
+
+    private static File getFallbackMinecraftFile() {
+        try {
+            String userHome = System.getProperty("user.home");
+            if (userHome != null) {
+                File dir = new File(userHome, "AppData/Roaming/.minecraft/config/litnessoptimizer");
+                if (!dir.exists()) dir.mkdirs();
+                return new File(dir, "saved_sets.json");
+            }
+        } catch (Throwable ignored) {}
+        return null;
+    }
 
     public static synchronized void load() {
         if (loaded) return;
         loaded = true;
-        if (!CONFIG_FILE.exists()) return;
-        try (Reader reader = Files.newBufferedReader(CONFIG_FILE.toPath())) {
+
+        File f = getConfigFile();
+        if (!f.exists()) {
+            File fb = getFallbackMinecraftFile();
+            if (fb != null && fb.exists()) {
+                f = fb;
+            } else {
+                File local = new File("config/litnessoptimizer/saved_sets.json");
+                if (local.exists()) f = local;
+            }
+        }
+        if (!f.exists()) return;
+
+        try (Reader reader = Files.newBufferedReader(f.toPath())) {
             List<CustomSet> list = GSON.fromJson(reader, new TypeToken<List<CustomSet>>() {}.getType());
             if (list != null) {
                 customSets.clear();
@@ -52,15 +89,30 @@ public class SavedSetsManager {
 
     public static synchronized void save() {
         try {
-            if (CONFIG_FILE.getParentFile() != null) {
-                CONFIG_FILE.getParentFile().mkdirs();
-            }
-            try (Writer writer = Files.newBufferedWriter(CONFIG_FILE.toPath())) {
+            File mainFile = getConfigFile();
+            if (mainFile.getParentFile() != null) mainFile.getParentFile().mkdirs();
+            try (Writer writer = Files.newBufferedWriter(mainFile.toPath())) {
                 GSON.toJson(customSets, writer);
             }
         } catch (Exception e) {
             e.printStackTrace();
         }
+        try {
+            File fb = getFallbackMinecraftFile();
+            if (fb != null) {
+                if (fb.getParentFile() != null) fb.getParentFile().mkdirs();
+                try (Writer writer = Files.newBufferedWriter(fb.toPath())) {
+                    GSON.toJson(customSets, writer);
+                }
+            }
+        } catch (Exception ignored) {}
+        try {
+            File local = new File("config/litnessoptimizer/saved_sets.json");
+            if (local.getParentFile() != null) local.getParentFile().mkdirs();
+            try (Writer writer = Files.newBufferedWriter(local.toPath())) {
+                GSON.toJson(customSets, writer);
+            }
+        } catch (Exception ignored) {}
     }
 
     public static synchronized List<CustomSet> getSavedSets() {

@@ -184,6 +184,8 @@ public class LitnessOptimizerScreen extends Screen {
     private String lastCalculatedKey = "";
     private final Set<String> simulatorSelectedEnchants = new LinkedHashSet<>();
     private final List<EnchantmentEntry> currentVisibleSelectionEnchants = new ArrayList<>();
+    private SavedSetsManager.CustomSet activeViewingGuideSet = null;
+    private int guideSetsPage = 0;
 
     // Tasto rapido lingua
     private SoftwareButton btnLangToggle = null;
@@ -199,16 +201,8 @@ public class LitnessOptimizerScreen extends Screen {
         this.activeDropdown = DropdownType.NONE;
         this.tabTransitionStartTime = System.currentTimeMillis();
 
-        if (newTab == Tab.CALCULATOR && simulatorSelectedEnchants.isEmpty()) {
-            String pinnedId = ActiveSessionManager.getPinnedSetId();
-            SavedSetsManager.CustomSet autoSet = (pinnedId != null) ? SavedSetsManager.getSetById(pinnedId) : null;
-            if (autoSet == null && !SavedSetsManager.getSavedSets().isEmpty()) {
-                autoSet = SavedSetsManager.getSavedSets().get(0);
-            }
-            if (autoSet != null) {
-                loadSavedSetIntoSimulator(autoSet);
-                return;
-            }
+        if (newTab != Tab.CALCULATOR) {
+            this.activeViewingGuideSet = null;
         }
 
         this.clearWidgets();
@@ -1451,46 +1445,83 @@ public class LitnessOptimizerScreen extends Screen {
     // CALCOLATORE & GUIDA WIDGETS
     // -------------------------------------------------------------
     private void initGuideViewWidgets(int startX, int startY, int panelWidth, int panelHeight) {
-        // Tasti Modalità (Simulatore vs Inventario)
-        SoftwareButton btnSim = new SoftwareButton(startX, startY, 90, 20, Component.literal("Simulatore"), b -> {
-            calcMode = CalcMode.SIMULATOR;
-            runCalculation();
-            this.clearWidgets();
-            this.init();
-        }).setTabActive(calcMode == CalcMode.SIMULATOR);
-        this.addRenderableWidget(btnSim);
+        if (this.activeViewingGuideSet == null) {
+            initGuideSetsListWidgets(startX, startY, panelWidth, panelHeight);
+        } else {
+            initGuideStepsWidgets(startX, startY, panelWidth, panelHeight);
+        }
+    }
 
-        SoftwareButton btnInv = new SoftwareButton(startX + 94, startY, 90, 20, Component.literal(LitnessI18n.t("in_inventory")), b -> {
-            calcMode = CalcMode.INVENTORY;
-            runCalculation();
-            this.clearWidgets();
-            this.init();
-        }).setTabActive(calcMode == CalcMode.INVENTORY);
-        this.addRenderableWidget(btnInv);
+    private void initGuideSetsListWidgets(int startX, int startY, int panelWidth, int panelHeight) {
+        List<SavedSetsManager.CustomSet> sets = SavedSetsManager.getSavedSets();
+        if (sets.isEmpty()) {
+            SoftwareButton btnGoSets = new SoftwareButton(startX + panelWidth / 2 - 80, startY + 110, 160, 24,
+                    Component.literal("🛡 Vai a I Miei Set"), b -> switchTab(Tab.SETS)).setPrimary(true);
+            this.addRenderableWidget(btnGoSets);
+            return;
+        }
 
-        // Selettore Pezzo
-        String piece = LitnessI18n.getItemPieceName(ITEM_KEYS[selectedItemIndex]);
-        SoftwareButton btnItem = new SoftwareButton(startX + 192, startY, 90, 20, Component.literal(piece), b -> {
-            selectedItemIndex = (selectedItemIndex + 1) % ITEM_KEYS.length;
-            simulatorSelectedEnchants.clear();
-            runCalculation();
+        int rowY = startY + 30;
+        int cardH = 38;
+        int spacing = 6;
+        int maxVisible = Math.max(1, (panelHeight - 48) / (cardH + spacing));
+
+        int totalPages = Math.max(1, (int) Math.ceil((double) sets.size() / maxVisible));
+        if (guideSetsPage >= totalPages) guideSetsPage = totalPages - 1;
+        if (guideSetsPage < 0) guideSetsPage = 0;
+
+        int startIdx = guideSetsPage * maxVisible;
+        int endIdx = Math.min(sets.size(), startIdx + maxVisible);
+
+        for (int i = startIdx; i < endIdx; i++) {
+            SavedSetsManager.CustomSet set = sets.get(i);
+            int cy = rowY + (i - startIdx) * (cardH + spacing);
+
+            SoftwareButton btnShowGuide = new SoftwareButton(startX + panelWidth - 110, cy + 8, 100, 22,
+                    Component.literal("⚡ Mostra Guida"), b -> {
+                loadSavedSetIntoSimulator(set);
+            }).setPrimary(true);
+            this.addRenderableWidget(btnShowGuide);
+        }
+
+        if (totalPages > 1) {
+            int navY = getWinY() + getWinH() - 21;
+            SoftwareButton prev = new SoftwareButton(startX + panelWidth / 2 - 50, navY, 24, 18, Component.literal("◀"), b -> {
+                if (guideSetsPage > 0) {
+                    guideSetsPage--;
+                    this.clearWidgets();
+                    this.init();
+                }
+            });
+            prev.active = (guideSetsPage > 0);
+            this.addRenderableWidget(prev);
+
+            SoftwareButton next = new SoftwareButton(startX + panelWidth / 2 + 26, navY, 24, 18, Component.literal("▶"), b -> {
+                if (guideSetsPage < totalPages - 1) {
+                    guideSetsPage++;
+                    this.clearWidgets();
+                    this.init();
+                }
+            });
+            next.active = (guideSetsPage < totalPages - 1);
+            this.addRenderableWidget(next);
+        }
+    }
+
+    private void initGuideStepsWidgets(int startX, int startY, int panelWidth, int panelHeight) {
+        // Tasto Torna ai Set (Sinistra in alto)
+        SoftwareButton btnBack = new SoftwareButton(startX, startY, 115, 20,
+                Component.literal("⬅ Torna ai Set"), b -> {
+            this.activeViewingGuideSet = null;
+            this.currentSolution = null;
             this.clearWidgets();
             this.init();
         });
-        this.addRenderableWidget(btnItem);
+        this.addRenderableWidget(btnBack);
 
-        // Selettore Penalità
-        String penText = selectedPenaltyIndex == 0 ? LitnessI18n.t("penalty_zero") : LitnessI18n.t("penalty_plus") + PENALTY_STEPS[selectedPenaltyIndex] + LitnessI18n.t("levels");
-        SoftwareButton btnPen = new SoftwareButton(startX + 286, startY, 96, 20, Component.literal(penText), b -> {
-            selectedPenaltyIndex = (selectedPenaltyIndex + 1) % PENALTY_STEPS.length;
-            runCalculation();
-            this.clearWidgets();
-            this.init();
-        });
-        this.addRenderableWidget(btnPen);
-
-        // Tasto Copia Guida
-        SoftwareButton btnCopy = new SoftwareButton(startX + panelWidth - 95, startY, 95, 20, Component.literal(LitnessI18n.t("copy_guide_btn")), b -> copyGuideToClipboard()).setPrimary(true);
+        // Tasto Copia Guida (Destra in alto)
+        SoftwareButton btnCopy = new SoftwareButton(startX + panelWidth - 95, startY, 95, 20,
+                Component.literal(LitnessI18n.t("copy_guide_btn")), b -> copyGuideToClipboard()).setPrimary(true);
         btnCopy.active = (currentSolution != null && !currentSolution.steps.isEmpty());
         this.addRenderableWidget(btnCopy);
 
@@ -1518,60 +1549,6 @@ public class LitnessOptimizerScreen extends Screen {
             btnCalcNext.active = (calculatorScrollOffset < maxScroll);
         }
         this.addRenderableWidget(btnCalcNext);
-
-        String inputKey = calcMode + "|" + selectedItemIndex + "|" + selectedPenaltyIndex + "|" + String.join(",", simulatorSelectedEnchants);
-        if (!inputKey.equals(lastCalculatedKey) && !isCalculating) {
-            runCalculation();
-        }
-
-        // Se non c'è una soluzione attiva e non ci sono incanti selezionati, prova ad auto-caricare il set pinnato o il primo set salvato
-        if ((currentSolution == null || currentSolution.steps.isEmpty()) && simulatorSelectedEnchants.isEmpty()) {
-            String pinnedId = ActiveSessionManager.getPinnedSetId();
-            SavedSetsManager.CustomSet autoSet = (pinnedId != null) ? SavedSetsManager.getSetById(pinnedId) : null;
-            if (autoSet == null && !SavedSetsManager.getSavedSets().isEmpty()) {
-                autoSet = SavedSetsManager.getSavedSets().get(0);
-            }
-            if (autoSet != null) {
-                for (int i = 0; i < ITEM_KEYS.length; i++) {
-                    if (ITEM_KEYS[i].equalsIgnoreCase(autoSet.itemKey)) {
-                        selectedItemIndex = i;
-                        break;
-                    }
-                }
-                simulatorSelectedEnchants.clear();
-                simulatorSelectedEnchants.addAll(autoSet.enchantments);
-                calcMode = CalcMode.SIMULATOR;
-                runCalculation();
-            }
-        }
-
-        // Se ancora non c'è una soluzione attiva, offri pulsanti rapidi per caricare un set salvato
-        if (currentSolution == null || currentSolution.steps.isEmpty()) {
-            List<SavedSetsManager.CustomSet> sets = SavedSetsManager.getSavedSets();
-            int qY = startY + 115;
-            int count = 0;
-            for (SavedSetsManager.CustomSet cs : sets) {
-                if (count >= 4) break;
-                if (cs.enchantments.isEmpty()) continue;
-                int bX = startX + (count % 2) * (panelWidth / 2);
-                int bY = qY + (count / 2) * 28;
-                SoftwareButton btnQuick = new SoftwareButton(bX, bY, (panelWidth / 2) - 6, 24,
-                        Component.literal("🛡 Carica: " + cs.name + " (" + cs.enchantments.size() + "/12)"), b -> {
-                    loadSavedSetIntoSimulator(cs);
-                }).setPrimary(true);
-                this.addRenderableWidget(btnQuick);
-                count++;
-            }
-
-            int actY = qY + ((Math.max(1, count) + 1) / 2) * 28 + 12;
-            SoftwareButton btnGoCat = new SoftwareButton(startX, actY, 140, 22,
-                    Component.literal("📖 Sfoglia Catalogo"), b -> switchTab(Tab.CATALOG));
-            this.addRenderableWidget(btnGoCat);
-
-            SoftwareButton btnGoSets = new SoftwareButton(startX + 146, actY, 140, 22,
-                    Component.literal("🛡 I Miei Set"), b -> switchTab(Tab.SETS));
-            this.addRenderableWidget(btnGoSets);
-        }
     }
 
     private void copyGuideToClipboard() {
@@ -1638,6 +1615,7 @@ public class LitnessOptimizerScreen extends Screen {
 
     private void loadSavedSetIntoSimulator(SavedSetsManager.CustomSet set) {
         if (set == null) return;
+        this.activeViewingGuideSet = set;
         for (int i = 0; i < ITEM_KEYS.length; i++) {
             if (ITEM_KEYS[i].equalsIgnoreCase(set.itemKey)) {
                 selectedItemIndex = i;
@@ -2153,6 +2131,76 @@ public class LitnessOptimizerScreen extends Screen {
     }
 
     private void renderCalculatorTab(GuiGraphicsExtractor extractor, int startX, int startY, int panelWidth, int panelHeight, int mouseX, int mouseY) {
+        if (this.activeViewingGuideSet == null) {
+            renderGuideSetsList(extractor, startX, startY, panelWidth, panelHeight, mouseX, mouseY);
+        } else {
+            renderGuideSteps(extractor, startX, startY, panelWidth, panelHeight, mouseX, mouseY);
+        }
+    }
+
+    private void renderGuideSetsList(GuiGraphicsExtractor extractor, int startX, int startY, int panelWidth, int panelHeight, int mouseX, int mouseY) {
+        List<SavedSetsManager.CustomSet> sets = SavedSetsManager.getSavedSets();
+        extractor.text(this.font, "§f§lGUIDA INCUDINE: I TUOI SET SALVATI", startX, startY + 4, 0xFFFFFFFF, false);
+        extractor.text(this.font, "§7Seleziona un set con il tasto Guida per visualizzare i passi di forgiatura:", startX, startY + 16, 0xFF94A3B8, false);
+
+        if (sets.isEmpty()) {
+            int cardY = startY + 45;
+            int cardH = 120;
+            drawRoundedRect(extractor, startX, cardY, panelWidth, cardH, 8, 0xFF0B0D14);
+            drawRoundedOutline(extractor, startX, cardY, panelWidth, cardH, 8, 0xFF1E2334);
+            int midX = startX + panelWidth / 2;
+            extractor.fakeItem(new ItemStack(Items.ENCHANTED_BOOK), midX - 8, cardY + 20);
+            extractor.centeredText(this.font, "§fNessun set salvato trovato", midX, cardY + 44, 0xFFFFFFFF);
+            extractor.centeredText(this.font, "§7Crea prima un set nella scheda 'I Miei Set' per visualizzarne la guida.", midX, cardY + 58, 0xFF94A3B8);
+            return;
+        }
+
+        int rowY = startY + 30;
+        int cardH = 38;
+        int spacing = 6;
+        int maxVisible = Math.max(1, (panelHeight - 48) / (cardH + spacing));
+
+        int startIdx = guideSetsPage * maxVisible;
+        int endIdx = Math.min(sets.size(), startIdx + maxVisible);
+
+        for (int i = startIdx; i < endIdx; i++) {
+            SavedSetsManager.CustomSet set = sets.get(i);
+            int cy = rowY + (i - startIdx) * (cardH + spacing);
+
+            boolean isHovered = mouseX >= startX && mouseX <= startX + panelWidth && mouseY >= cy && mouseY <= cy + cardH;
+            int bg = isHovered ? 0xFF131A2A : 0xFF0B0D14;
+            int border = isHovered ? 0xFF3B82F6 : 0xFF1E2334;
+
+            drawRoundedRect(extractor, startX, cy, panelWidth, cardH, 6, bg);
+            drawRoundedOutline(extractor, startX, cy, panelWidth, cardH, 6, border);
+
+            ItemStack pieceStack = getItemStackForType(set.itemKey);
+            extractor.fakeItem(pieceStack, startX + 10, cy + 11);
+
+            String pieceName = LitnessI18n.getItemPieceName(set.itemKey);
+            String title = "§f§l" + set.name + " §7(" + pieceName + " · §b" + set.enchantments.size() + "/12 incanti§7)";
+            extractor.text(this.font, title, startX + 34, cy + 6, 0xFFFFFFFF, false);
+
+            StringBuilder sb = new StringBuilder();
+            for (int k = 0; k < set.enchantments.size(); k++) {
+                if (k > 0) sb.append(", ");
+                EnchantmentEntry ee = EnchantmentDatabase.getEnchantment(set.enchantments.get(k));
+                sb.append(ee != null ? ee.name : set.enchantments.get(k));
+            }
+            int maxTextW = panelWidth - 150;
+            String trimmedEnchants = trimToWidth(this.font, sb.toString(), maxTextW);
+            extractor.text(this.font, "§8" + trimmedEnchants, startX + 34, cy + 20, 0xFF64748B, false);
+        }
+
+        int totalPages = Math.max(1, (int) Math.ceil((double) sets.size() / maxVisible));
+        if (totalPages > 1) {
+            int navY = getWinY() + getWinH() - 17;
+            String pageStr = (guideSetsPage + 1) + " / " + totalPages + " (" + sets.size() + " set salvati)";
+            extractor.centeredText(this.font, pageStr, startX + panelWidth / 2, navY, 0xFF9CA3AF);
+        }
+    }
+
+    private void renderGuideSteps(GuiGraphicsExtractor extractor, int startX, int startY, int panelWidth, int panelHeight, int mouseX, int mouseY) {
         if (isCalculating) {
             drawRoundedRect(extractor, startX, startY + 50, panelWidth, 60, 8, 0xFF0B0D14);
             drawRoundedOutline(extractor, startX, startY + 50, panelWidth, 60, 8, 0xFF1E2334);
@@ -2162,17 +2210,20 @@ public class LitnessOptimizerScreen extends Screen {
 
         if (currentSolution == null || currentSolution.steps.isEmpty()) {
             int cardY = startY + 45;
-            int cardH = 130;
-            drawRoundedRect(extractor, startX + 20, cardY, panelWidth - 40, cardH, 8, 0xFF0B0D14);
-            drawRoundedOutline(extractor, startX + 20, cardY, panelWidth - 40, cardH, 8, 0xFF1E2334);
+            int cardH = 100;
+            drawRoundedRect(extractor, startX, cardY, panelWidth, cardH, 8, 0xFF0B0D14);
+            drawRoundedOutline(extractor, startX, cardY, panelWidth, cardH, 8, 0xFF1E2334);
             int midX = startX + panelWidth / 2;
-            ItemStack pieceStack = getItemStackForType(ITEM_KEYS[selectedItemIndex]);
-            extractor.fakeItem(pieceStack, midX - 8, cardY + 16);
-            extractor.centeredText(this.font, "§f§lGUIDA INCUDINE: " + LitnessI18n.getItemPieceName(ITEM_KEYS[selectedItemIndex]).toUpperCase(), midX, cardY + 38, 0xFFFFFFFF);
-            extractor.centeredText(this.font, "§7Nessuna simulazione attiva per questo oggetto.", midX, cardY + 54, 0xFF94A3B8);
-            extractor.centeredText(this.font, "§bSeleziona o carica un set qui sotto per calcolare l'albero di forgiatura:", midX, cardY + 70, 0xFF60A5FA);
+            extractor.centeredText(this.font, "§cImpossibile calcolare i passi per questo set.", midX, cardY + 38, 0xFFEF4444);
+            extractor.centeredText(this.font, "§7Verifica che il set contenga incantesimi validi.", midX, cardY + 54, 0xFF94A3B8);
             return;
         }
+
+        // Titolo set in forgiatura al centro
+        String setName = (activeViewingGuideSet != null) ? activeViewingGuideSet.name : LitnessI18n.getItemPieceName(ITEM_KEYS[selectedItemIndex]);
+        int setSize = (activeViewingGuideSet != null) ? activeViewingGuideSet.enchantments.size() : simulatorSelectedEnchants.size();
+        String titleStr = "§b✦ GUIDA FORGIATURA: §f" + setName + " §8(" + setSize + "/12)";
+        extractor.text(this.font, titleStr, startX + 125, startY + 6, 0xFFFFFFFF, false);
 
         // 4 KPI Stats Cards Super Stondate in alto
         int kpiW = (panelWidth - 18) / 4;
@@ -2748,84 +2799,6 @@ public class LitnessOptimizerScreen extends Screen {
             }
         }
 
-        // 4. Tooltip passo incudine hoverato nella Guida Incudine
-        if (this.currentTab == Tab.CALCULATOR && currentSolution != null && !currentSolution.steps.isEmpty()) {
-            int startX = getWinX() + SIDEBAR_W + 8;
-            int panelWidth = getWinW() - SIDEBAR_W - 16;
-            int startY = getWinY() + HEADER_H + 6;
-            int kpiY = startY + 24;
-            int kpiH = 34;
-            int stepY = kpiY + kpiH + 8;
-            int rowH = 32;
-
-            int totalSteps = currentSolution.steps.size();
-            int maxScroll = Math.max(0, totalSteps - CALCULATOR_PAGE_SIZE);
-            if (calculatorScrollOffset > maxScroll) calculatorScrollOffset = maxScroll;
-            int startIdx = calculatorScrollOffset;
-            int endIdx = Math.min(startIdx + CALCULATOR_PAGE_SIZE, totalSteps);
-
-            for (int i = startIdx; i < endIdx; i++) {
-                if (mouseX >= startX && mouseX <= startX + panelWidth && mouseY >= stepY && mouseY <= stepY + rowH) {
-                    MergeStep step = currentSolution.steps.get(i);
-                    renderStepCardTooltip(extractor, step, i + 1, mouseX, mouseY);
-                    return;
-                }
-                stepY += rowH + 4;
-            }
-        }
-    }
-
-    private void renderStepCardTooltip(GuiGraphicsExtractor extractor, MergeStep step, int stepNum, int mouseX, int mouseY) {
-        if (step == null) return;
-        List<Component> lines = new ArrayList<>();
-
-        String opType = step.isBookToBook ? (LitnessI18n.isEnglish() ? "Merge Books" : "Unisci Libri") : (LitnessI18n.isEnglish() ? "Apply to Item" : "Applica all'Oggetto");
-        lines.add(Component.literal("\u00A7b#" + stepNum + " \u00A7e" + opType + " \u00A78\u2022 \u00A7a+" + step.cost + (LitnessI18n.isEnglish() ? " lv." : " liv.")));
-
-        if (!step.rightEnchants.isEmpty()) {
-            for (AnvilOptimizer.EnchantApplied ea : step.rightEnchants) {
-                EnchantmentEntry ee = EnchantmentDatabase.getEnchantment(ea.id);
-                String eName = (ee != null) ? AnvilOptimizer.formatEnchantName(ee, ea.level) : ea.id;
-                boolean isCustom = ee != null && "custom".equalsIgnoreCase(ee.category);
-                lines.add(Component.literal((isCustom ? "\u00A7d\u2022 " : "\u00A7a\u2022 ") + eName + (isCustom ? " \u00A78[Custom]" : " \u00A78[Vanilla]")));
-                if (ee != null && ee.description != null && !ee.description.trim().isEmpty()) {
-                    for (String dLine : wrapFormattedText(ee.description.trim(), 36, "\u00A77")) {
-                        lines.add(Component.literal("  \u00A77" + dLine));
-                    }
-                }
-            }
-        }
-
-        if (step.isBookToBook && !step.leftEnchants.isEmpty()) {
-            lines.add(Component.literal("\u00A78" + (LitnessI18n.isEnglish() ? "Base (Slot 1):" : "Base (Slot 1):")));
-            for (AnvilOptimizer.EnchantApplied ea : step.leftEnchants) {
-                EnchantmentEntry ee = EnchantmentDatabase.getEnchantment(ea.id);
-                String eName = (ee != null) ? AnvilOptimizer.formatEnchantName(ee, ea.level) : ea.id;
-                lines.add(Component.literal(" \u00A79\u2022 " + eName));
-            }
-        }
-
-        int maxW = 0;
-        for (Component c : lines) maxW = Math.max(maxW, this.font.width(c));
-        int tw = Math.max(130, maxW + 12);
-        int rowH = 10;
-        int th = lines.size() * rowH + 8;
-        int tx = mouseX + 12;
-        int ty = mouseY - 8;
-
-        if (tx + tw > this.width - 4) tx = mouseX - tw - 8;
-        if (ty + th > this.height - 4) ty = this.height - th - 4;
-        if (tx < 4) tx = 4;
-        if (ty < 4) ty = 4;
-
-        drawRoundedRect(extractor, tx, ty, tw, th, 4, 0xF6090C14);
-        drawRoundedOutline(extractor, tx, ty, tw, th, 4, 0xFF3B82F6);
-
-        int cy = ty + 4;
-        for (Component c : lines) {
-            extractor.text(this.font, c, tx + 6, cy, 0xFFFFFFFF, false);
-            cy += rowH;
-        }
     }
 
     private void renderCornerPreviewExpandedTooltip(GuiGraphicsExtractor extractor, int mouseX, int mouseY) {

@@ -42,16 +42,15 @@ Sul server Litness, maxare un'arma o un pezzo d'armatura con 10–12 incantesimi
 ---
 
 ### 2. ⚡ Assistente Incudine Live con Analisi Maxabilità Reale
-![Assistente Incudine Live](docs/images/preview_anvil_v125.png)
+![Assistente Incudine Live](docs/images/preview_anvil_v131.png)
+- **Selezione Intuitiva & Drag and Drop**: seleziona l'arma trascinandola e rilasciandola nella barra sinistra, inserendola nello Slot 1 dell'incudine, oppure semplicemente cliccandola nel tuo inventario.
+- **Pannello Destro "Stato Forgia"**: checklist istantanea dei libri mancanti consigliati, con filtro rigido anti-conflitto.
 - **Analisi Istantanea Maxabilità**:
   - Rileva in automatico la penalità pregressa da lavorazione (*Prior Work Penalty*).
-  - Algoritmo matematico avanzato: gli oggetti con lavoro pregresso $\le 2$ (penalità +0, +1 e +3) vengono riconosciuti come **100% Maxabili fino a 12/12 incantesimi**.
-  - Badge verde luminoso `✔ Maxabile al 100% (12/12)` con tooltip dettagliato che spiega come unire i libri ad albero binario.
+  - Badge luminoso `✔ Maxabile al 100% (12/12)` con analisi dettagliata.
   - Se un oggetto ha penalità troppo elevata (+7, +15, +31), calcola a ritroso l'esatto numero massimo di incantesimi ancora applicabili prima del blocco (es. `Puoi ancora aggiungere fino a 8 incantesimi`).
-- **Ologramma Pulsante (Ghost Slot)**: quando lo slot 1 dell'incudine è vuoto, una sagoma dorata pulsante ti ricorda quale pezzo inserire per iniziare.
 - **Glow Celeste & Targhette Fisse `[SLOT 1]` e `[SLOT 2]` nell'Inventario**:
-  - Analizza il tuo inventario in tempo reale e illumina con un alone celeste pulsante i libri esatti necessari per il passaggio corrente.
-  - Targhette fisse sopra ogni slot per mostrarti a colpo d'occhio dove inserire ogni libro nell'incudine senza dover toccare il mouse.
+  - Analizza il tuo inventario in tempo reale e illumina con un alone pulsante i libri esatti necessari per il passaggio corrente.
 
 ---
 
@@ -116,10 +115,12 @@ Sul server Litness, maxare un'arma o un pezzo d'armatura con 10–12 incantesimi
 
 ## 🌟 Ultimi Aggiornamenti - Novità Versione 1.3.1
 
+![Impostazioni e Personalizzazione](docs/images/preview_settings.png)
+
 - ⚙️ **Nuova Scheda "Impostazioni & Personalizzazione" (`[N] -> Impostazioni`)**:
   - **Scala Interfaccia Mod (GUI Scale personalizzabile)**:
     - Risolto definitivamente il problema dello schermo tagliato a metà per chi gioca con **GUI Scale 4** o monitor compatti.
-    - Modalità selezionabili: `Auto (Adatta schermo dinamicamente)`, `75% (Compatta)`, `90% (Media)`, `100% (Standard)`, `115% (Ingrandita)`, `130% (Molto Grande)`.
+    - Modalità selezionabili: `Auto (Adatta schermo dinamicamente)`, `GUI Scale 1`, `GUI Scale 2`, `GUI Scale 3`, `GUI Scale 4`.
   - **Personalizzazione Evidenziazione Libri in Incudine**:
     - Menu a tendina con palette colori personalizzabili per Slot 1 e Slot 2 (*Neon Cyber*, *Ambra & Smeraldo*, *Fuoco & Ghiaccio*, *Matrix Hacker*, *Oro & Ametista*).
   - **Dettagli Lore & Descrizioni Libri**:
@@ -133,7 +134,7 @@ Sul server Litness, maxare un'arma o un pezzo d'armatura con 10–12 incantesimi
   - **Auto-Rilevamento Arma all'Apertura**: se apri l'incudine senza inserire nulla, l'assistente seleziona in automatico l'arma impugnata o presente nell'inventario.
   - **Distinzione Esatta dei Tipi di Oggetti**: risolto lo scambio accidentale tra armi diverse (es. Spada in Diamante vs Netherite con nome personalizzato).
 
-- 📜 **Nuovo Pannello Destro "Stato Libri" (Checklist Intelligente Senza Conflitti)**:
+- 📜 **Nuovo Pannello Destro "Stato Forgia" (Checklist Intelligente Senza Conflitti)**:
   - Analisi in tempo reale di tutti i libri necessari con barra di avanzamento e conteggio `[X/12 Libri Pronti]`.
   - **Filtro Rigido Anti-Conflitto**: esclude categoricamente qualsiasi incantesimo incompatibile o in conflitto con quelli già presenti sull'arma o tra i mancanti.
 
@@ -142,10 +143,10 @@ Sul server Litness, maxare un'arma o un pezzo d'armatura con 10–12 incantesimi
   - Rimossa la voce ingannevole *"39 liberi"* dai libri senza usura.
   - Sugli oggetti con 12 incanti la dicitura viene aggiornata con lo stato professionale: `✦ Usura incudine: +X livelli · ✔ MASSIMO RAGGIUNTO (12/12)`.
 
-- ⚡ **Nuova Scheda "Guida Incudine" Ridisegnata**:
-  - Schede dei singoli passi ampliate a 44px di altezza con **anteprime grafiche 3D** di Slot 1, Slot 2 e Risultato finale.
-  - Caricamento istantaneo automatico del set pinnato/salvato all'accesso alla scheda.
-  - Pillola XP color verde smeraldo ed etichette chiare e spaziate per la massima leggibilità.
+- ⚡ **Nuova Scheda "Guida Incudine" Pulita & Diretta**:
+  - Mostra direttamente e unicamente la lista dei tuoi **Set Salvati** con il comodo tasto `[⚡ Mostra Guida]`.
+  - Al clic, visualizza i passi di forgiatura ordinati con schede da 44px, icone 3D di Slot 1, Slot 2 e Risultato finale, pillola XP color verde smeraldo e tasto `[⬅ Torna ai Set]`.
+  - Eliminati i vecchi tooltip ingombranti che coprivano le righe durante il passaggio del mouse.
 
 - 🛒 **Ricerca Automatica & Auto-Acquisto /ah**:
   - Scansione ultra-veloce di tutte le pagine della Casa d'Aste (`/ah`) con posizionamento esatto e acquisto automatico con un clic su **✦ Clicca per acquistare**.
