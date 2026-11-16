@@ -64,7 +64,7 @@ Sul server Litness, maxare un'arma o un pezzo d'armatura con 10–12 incantesimi
 ---
 
 ### 4. 🛒 Marketplace `/ah` Smart Multi-Page Crawler
-![Assistente Prezzi AH](docs/images/preview_ah_v125.png)
+![Assistente Prezzi AH](docs/images/preview_ah.png)
 - **Pulsante `[⚡ Sfoglia Tutto]`**: scansiona in pochi secondi l'intero catalogo della Casa d'Aste (`/ah`) sfogliando automaticamente tutte le pagine e memorizzando ogni singolo libro in vendita.
 - **Navigazione Automatica su Click Offerta**: cliccando su una qualsiasi offerta nella sidebar laterale, la mod sfoglia le pagine dell'asta in automatico fino a raggiungere l'oggetto e apre direttamente il menu di conferma acquisto del server!
 - **Confronto Prezzi Netto + Tasse**:
@@ -144,6 +144,7 @@ Sul server Litness, maxare un'arma o un pezzo d'armatura con 10–12 incantesimi
   - Sugli oggetti con 12 incanti la dicitura viene aggiornata con lo stato professionale: `✦ Usura incudine: +X livelli · ✔ MASSIMO RAGGIUNTO (12/12)`.
 
 - ⚡ **Nuova Scheda "Guida Incudine" Pulita & Diretta**:
+  ![Lista Set Salvati in Guida](docs/images/preview_guide_sets.png)
   - Mostra direttamente e unicamente la lista dei tuoi **Set Salvati** con il comodo tasto `[⚡ Mostra Guida]`.
   - Al clic, visualizza i passi di forgiatura ordinati con schede da 44px, icone 3D di Slot 1, Slot 2 e Risultato finale, pillola XP color verde smeraldo e tasto `[⬅ Torna ai Set]`.
   - Eliminati i vecchi tooltip ingombranti che coprivano le righe durante il passaggio del mouse.
