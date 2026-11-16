@@ -3,6 +3,7 @@ package com.litness.optimizer.data;
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
 import com.google.gson.reflect.TypeToken;
+import com.litness.optimizer.data.EnchantmentDatabase.EnchantmentEntry;
 
 import java.io.File;
 import java.io.Reader;
@@ -331,5 +332,56 @@ public class SavedSetsManager {
             e.printStackTrace();
         }
         return null;
+    }
+
+    /**
+     * Valida un set salvato controllando la presenza di incantesimi unici multipli,
+     * conflitti reciproci diretti, o violazioni del limite dei 12 incanti.
+     */
+    public static List<String> getSetConflicts(CustomSet set) {
+        if (set == null || set.enchantments == null || set.enchantments.isEmpty()) {
+            return Collections.emptyList();
+        }
+        List<String> errors = new ArrayList<>();
+
+        // 1. Controllo incantesimi UNICI (max 1 unico per oggetto, es. Shadow Step + Aura)
+        List<EnchantmentEntry> uniqueEnchants = new ArrayList<>();
+        for (String eid : set.enchantments) {
+            EnchantmentEntry ee = EnchantmentDatabase.getEnchantment(eid);
+            if (ee != null && ee.unique) {
+                uniqueEnchants.add(ee);
+            }
+        }
+        if (uniqueEnchants.size() > 1) {
+            StringBuilder sb = new StringBuilder("2+ Unici incompatibili: ");
+            for (int i = 0; i < uniqueEnchants.size(); i++) {
+                if (i > 0) sb.append(" + ");
+                sb.append(uniqueEnchants.get(i).name);
+            }
+            sb.append(" (Max 1 Unico)");
+            errors.add(sb.toString());
+        }
+
+        // 2. Controllo conflitti reciproci diretti
+        for (int i = 0; i < set.enchantments.size(); i++) {
+            EnchantmentEntry e1 = EnchantmentDatabase.getEnchantment(set.enchantments.get(i));
+            if (e1 == null) continue;
+            for (int j = i + 1; j < set.enchantments.size(); j++) {
+                EnchantmentEntry e2 = EnchantmentDatabase.getEnchantment(set.enchantments.get(j));
+                if (e2 == null) continue;
+                if (e1.unique && e2.unique) continue; // già segnalato sopra
+
+                if (EnchantmentDatabase.isEnchantPairConflicting(e1, e2)) {
+                    errors.add("Conflitto: " + e1.name + " ⚔ " + e2.name);
+                }
+            }
+        }
+
+        // 3. Controllo limite massimo incantesimi (max 12 per oggetto)
+        if (set.enchantments.size() > 12) {
+            errors.add("Superato limite: " + set.enchantments.size() + "/12 incanti");
+        }
+
+        return errors;
     }
 }

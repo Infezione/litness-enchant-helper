@@ -1082,9 +1082,12 @@ public class LitnessOptimizerScreen extends Screen {
             int rowIdx = i - startIdx;
             int by = startY + (rowIdx * 28);
 
+            List<String> conflicts = SavedSetsManager.getSetConflicts(set);
+            boolean hasConflicts = !conflicts.isEmpty();
+
             // Tasto Carica / Guida
             SoftwareButton btnGuide = new SoftwareButton(startX + panelWidth - 238, by + 2, 46, 20,
-                    Component.literal(LitnessI18n.t("guide_btn")), b -> loadSavedSetIntoSimulator(set)).setPrimary(true);
+                    Component.literal(LitnessI18n.t("guide_btn")), b -> loadSavedSetIntoSimulator(set)).setPrimary(!hasConflicts).setDanger(hasConflicts);
             this.addRenderableWidget(btnGuide);
             savedSetButtons.add(btnGuide);
 
@@ -1230,6 +1233,14 @@ public class LitnessOptimizerScreen extends Screen {
         SoftwareButton btnSave = new SoftwareButton(startX + 4, botY, btnSaveW, 20, Component.literal(saveText), b -> {
             String name = (creatingSetNameField != null) ? creatingSetNameField.getValue().trim() : currentCreatingSetName.trim();
             if (name.isEmpty()) name = LitnessI18n.getItemPieceName(ITEM_KEYS[creatingSetItemIndex]) + " Custom";
+
+            SavedSetsManager.CustomSet tempSet = new SavedSetsManager.CustomSet("", name, ITEM_KEYS[creatingSetItemIndex], creatingSetEnchants);
+            List<String> conflicts = SavedSetsManager.getSetConflicts(tempSet);
+            if (!conflicts.isEmpty()) {
+                showCenterNotification("⚠ CONFLITTO RILEVATO", conflicts.get(0), false);
+                return;
+            }
+
             if (editingSetId != null) {
                 SavedSetsManager.updateSet(editingSetId, name, ITEM_KEYS[creatingSetItemIndex], new ArrayList<>(creatingSetEnchants));
             } else {
@@ -1379,10 +1390,10 @@ public class LitnessOptimizerScreen extends Screen {
                     for (String selId : creatingSetEnchants) {
                         EnchantmentEntry selEe = EnchantmentDatabase.getEnchantment(selId);
                         if (selEe == null) continue;
-                        List<String> conflicts = EnchantmentDatabase.getResolvedConflicts(ee.id);
-                        List<String> selConflicts = EnchantmentDatabase.getResolvedConflicts(selId);
-                        if (conflicts.contains(selEe.name) || conflicts.contains(selEe.id) ||
-                            selConflicts.contains(ee.name) || selConflicts.contains(ee.id)) {
+                        if (ee.unique && selEe.unique) {
+                            toRemove.add(selId);
+                        }
+                        if (EnchantmentDatabase.isEnchantPairConflicting(ee, selEe)) {
                             toRemove.add(selId);
                         }
                     }
@@ -1462,10 +1473,13 @@ public class LitnessOptimizerScreen extends Screen {
             SavedSetsManager.CustomSet set = sets.get(i);
             int cy = rowY + (i - startIdx) * (cardH + spacing);
 
+            List<String> conflicts = SavedSetsManager.getSetConflicts(set);
+            boolean hasConflicts = !conflicts.isEmpty();
+
             SoftwareButton btnShowGuide = new SoftwareButton(startX + panelWidth - 96, cy + 6, 90, 20,
-                    Component.literal("⚡ Guida"), b -> {
+                    Component.literal(hasConflicts ? "⚠ Conflitto" : "⚡ Guida"), b -> {
                 loadSavedSetIntoSimulator(set);
-            }).setPrimary(true);
+            }).setPrimary(!hasConflicts).setDanger(hasConflicts);
             this.addRenderableWidget(btnShowGuide);
         }
 
@@ -1600,6 +1614,14 @@ public class LitnessOptimizerScreen extends Screen {
 
     private void loadSavedSetIntoSimulator(SavedSetsManager.CustomSet set) {
         if (set == null) return;
+        List<String> conflicts = SavedSetsManager.getSetConflicts(set);
+        if (!conflicts.isEmpty()) {
+            showCenterNotification("⚠ SET INCOMPATIBILE", conflicts.get(0), false);
+            if (this.minecraft != null && this.minecraft.player != null) {
+                this.minecraft.player.sendOverlayMessage(Component.literal("§c⚠ Errore: il set '" + set.name + "' contiene incantesimi in conflitto (" + conflicts.get(0) + ")!"));
+            }
+            return;
+        }
         this.activeViewingGuideSet = set;
         for (int i = 0; i < ITEM_KEYS.length; i++) {
             if (ITEM_KEYS[i].equalsIgnoreCase(set.itemKey)) {
@@ -2037,27 +2059,39 @@ public class LitnessOptimizerScreen extends Screen {
             int rowIdx = i - startIdx;
             int curY = startY + 28 + (rowIdx * 28);
 
+            List<String> conflicts = SavedSetsManager.getSetConflicts(set);
+            boolean hasConflicts = !conflicts.isEmpty();
+
             // Card Set Salvato con scorrimento tattile e highlight su hover
             boolean isPinned = ActiveSessionManager.isSetPinned(set.id);
             boolean isRowHovered = (mouseX >= startX && mouseX <= startX + panelWidth && mouseY >= curY && mouseY <= curY + 24);
             int rowShiftX = isRowHovered ? 4 : 0;
 
-            int cardBg = isPinned ? (isRowHovered ? 0xFF1C223D : 0xFF151A2E) : (isRowHovered ? 0xFF181C2C : 0xFF121422);
-            int cardBorder = isPinned ? (isRowHovered ? 0xFF818CF8 : 0xFF6366F1) : (isRowHovered ? 0xFF3B82F6 : 0xFF222538);
+            int cardBg = hasConflicts
+                    ? (isRowHovered ? 0xFF2A1014 : 0xFF1B0B0E)
+                    : (isPinned ? (isRowHovered ? 0xFF1C223D : 0xFF151A2E) : (isRowHovered ? 0xFF181C2C : 0xFF121422));
+            int cardBorder = hasConflicts
+                    ? (isRowHovered ? 0xFFF87171 : 0xFFEF4444)
+                    : (isPinned ? (isRowHovered ? 0xFF818CF8 : 0xFF6366F1) : (isRowHovered ? 0xFF3B82F6 : 0xFF222538));
 
             extractor.fill(startX + rowShiftX, curY, startX + panelWidth, curY + 24, cardBg);
             extractor.outline(startX + rowShiftX, curY, panelWidth - rowShiftX, 24, cardBorder);
 
             if (isRowHovered) {
-                extractor.fill(startX + rowShiftX + 1, curY + 2, startX + rowShiftX + 3, curY + 22, 0xFF38BDF8);
+                extractor.fill(startX + rowShiftX + 1, curY + 2, startX + rowShiftX + 3, curY + 22, hasConflicts ? 0xFFEF4444 : 0xFF38BDF8);
             }
 
             ItemStack pieceStack = getItemStackForType(set.itemKey);
             extractor.fakeItem(pieceStack, startX + rowShiftX + 4, curY + 4);
 
             String pinBadge = isPinned ? "\u00A76[\u2605 PIN] \u00A7r" : "";
-            String title = pinBadge + "\u00A7f" + set.name + " \u00A78(" + set.enchantments.size() + "/12)";
-            extractor.text(this.font, title, startX + rowShiftX + 24, curY + 8, 0xFFFFFFFF, false);
+            if (hasConflicts) {
+                String warnTitle = pinBadge + "\u00A7c\u26A0 " + set.name + " \u00A74| \u00A7c" + conflicts.get(0);
+                extractor.text(this.font, trimToWidth(this.font, warnTitle, panelWidth - 245), startX + rowShiftX + 24, curY + 8, 0xFFFCA5A5, false);
+            } else {
+                String title = pinBadge + "\u00A7f" + set.name + " \u00A78(" + set.enchantments.size() + "/12)";
+                extractor.text(this.font, trimToWidth(this.font, title, panelWidth - 245), startX + rowShiftX + 24, curY + 8, 0xFFFFFFFF, false);
+            }
         }
 
         if (totalPages > 1) {
@@ -2152,9 +2186,12 @@ public class LitnessOptimizerScreen extends Screen {
             SavedSetsManager.CustomSet set = sets.get(i);
             int cy = rowY + (i - startIdx) * (cardH + spacing);
 
+            List<String> conflicts = SavedSetsManager.getSetConflicts(set);
+            boolean hasConflicts = !conflicts.isEmpty();
+
             boolean isHovered = mouseX >= startX && mouseX <= startX + panelWidth && mouseY >= cy && mouseY <= cy + cardH;
-            int bg = isHovered ? 0xFF131A2A : 0xFF0B0D14;
-            int border = isHovered ? 0xFF3B82F6 : 0xFF1E2334;
+            int bg = hasConflicts ? (isHovered ? 0xFF240E12 : 0xFF180A0D) : (isHovered ? 0xFF131A2A : 0xFF0B0D14);
+            int border = hasConflicts ? (isHovered ? 0xFFF87171 : 0xFFEF4444) : (isHovered ? 0xFF3B82F6 : 0xFF1E2334);
 
             drawRoundedRect(extractor, startX, cy, panelWidth, cardH, 6, bg);
             drawRoundedOutline(extractor, startX, cy, panelWidth, cardH, 6, border);
@@ -2163,18 +2200,24 @@ public class LitnessOptimizerScreen extends Screen {
             extractor.fakeItem(pieceStack, startX + 8, cy + 8);
 
             String pieceName = LitnessI18n.getItemPieceName(set.itemKey);
-            String title = "§f§l" + set.name + " §7(" + pieceName + " · §b" + set.enchantments.size() + "/12 incanti§7)";
-            extractor.text(this.font, title, startX + 30, cy + 4, 0xFFFFFFFF, false);
+            if (hasConflicts) {
+                String title = "§c§l" + set.name + " §4[§c⚠ CONFLITTO§4] §7(" + pieceName + " · §c" + set.enchantments.size() + "/12§7)";
+                extractor.text(this.font, title, startX + 30, cy + 4, 0xFFFCA5A5, false);
+                extractor.text(this.font, "§c⚠ " + conflicts.get(0), startX + 30, cy + 17, 0xFFF87171, false);
+            } else {
+                String title = "§f§l" + set.name + " §7(" + pieceName + " · §b" + set.enchantments.size() + "/12 incanti§7)";
+                extractor.text(this.font, title, startX + 30, cy + 4, 0xFFFFFFFF, false);
 
-            StringBuilder sb = new StringBuilder();
-            for (int k = 0; k < set.enchantments.size(); k++) {
-                if (k > 0) sb.append(", ");
-                EnchantmentEntry ee = EnchantmentDatabase.getEnchantment(set.enchantments.get(k));
-                sb.append(ee != null ? ee.name : set.enchantments.get(k));
+                StringBuilder sb = new StringBuilder();
+                for (int k = 0; k < set.enchantments.size(); k++) {
+                    if (k > 0) sb.append(", ");
+                    EnchantmentEntry ee = EnchantmentDatabase.getEnchantment(set.enchantments.get(k));
+                    sb.append(ee != null ? ee.name : set.enchantments.get(k));
+                }
+                int maxTextW = panelWidth - 135;
+                String trimmedEnchants = trimToWidth(this.font, sb.toString(), maxTextW);
+                extractor.text(this.font, "§8" + trimmedEnchants, startX + 30, cy + 17, 0xFF64748B, false);
             }
-            int maxTextW = panelWidth - 135;
-            String trimmedEnchants = trimToWidth(this.font, sb.toString(), maxTextW);
-            extractor.text(this.font, "§8" + trimmedEnchants, startX + 30, cy + 17, 0xFF64748B, false);
         }
 
         int totalPages = Math.max(1, (int) Math.ceil((double) sets.size() / maxVisible));

@@ -712,7 +712,9 @@ public abstract class AnvilScreenMixin extends ItemCombinerScreen<AnvilMenu> {
             for (int i = 0; i < this.minecraft.player.getInventory().getContainerSize(); i++) {
                 ItemStack st = this.minecraft.player.getInventory().getItem(i);
                 if (!st.isEmpty() && (st.is(Items.ENCHANTED_BOOK) || st.is(Items.BOOK))) {
-                    if (st.getOrDefault(DataComponents.REPAIR_COST, 0) > 0) {
+                    int rep = st.getOrDefault(DataComponents.REPAIR_COST, 0);
+                    if (rep == 0) rep = InventoryTracker.extractAnvilCostFromLore(st);
+                    if (rep > 0) {
                         totalUsedBooksInInv++;
                     }
                 }
@@ -1077,20 +1079,25 @@ public abstract class AnvilScreenMixin extends ItemCombinerScreen<AnvilMenu> {
         Inventory inv = this.minecraft.player.getInventory();
         int size = inv.getContainerSize();
         ItemStack bestCandidate = ItemStack.EMPTY;
+        ItemStack fallbackMaxed = ItemStack.EMPTY;
         int minEnchants = 999;
 
         for (int i = 0; i < size; i++) {
             ItemStack stack = inv.getItem(i);
-            if (!stack.isEmpty() && !ItemTypeHelper.isContainerOrShulker(stack) && ItemTypeHelper.isEnchantableWeaponOrArmor(stack) && !AnvilTooltipState.isItemMaxed(stack)) {
-                int ec = extractAllEnchantments(stack).size();
-                if (ec < minEnchants) {
-                    minEnchants = ec;
-                    bestCandidate = stack;
-                    if (ec == 0) break;
+            if (!stack.isEmpty() && !ItemTypeHelper.isContainerOrShulker(stack) && ItemTypeHelper.isEnchantableWeaponOrArmor(stack)) {
+                if (!AnvilTooltipState.isItemMaxed(stack)) {
+                    int ec = extractAllEnchantments(stack).size();
+                    if (ec < minEnchants) {
+                        minEnchants = ec;
+                        bestCandidate = stack;
+                        if (ec == 0) break;
+                    }
+                } else if (fallbackMaxed.isEmpty()) {
+                    fallbackMaxed = stack;
                 }
             }
         }
-        return bestCandidate;
+        return !bestCandidate.isEmpty() ? bestCandidate : fallbackMaxed;
     }
 
     private void updateAutoCalculation(ItemStack targetEquip) {
