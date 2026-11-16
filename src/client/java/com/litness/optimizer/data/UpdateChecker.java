@@ -24,13 +24,16 @@ public class UpdateChecker {
 
     public static final String CURRENT_VERSION;
     static {
-        String ver = "1.0.0";
+        String ver = "1.3.1";
         try {
             var container = FabricLoader.getInstance().getModContainer("litnessoptimizer");
             if (container.isPresent()) {
-                ver = container.get().getMetadata().getVersion().getFriendlyString();
+                String friendly = container.get().getMetadata().getVersion().getFriendlyString();
+                if (friendly != null && !friendly.trim().isEmpty() && !friendly.contains("${")) {
+                    ver = friendly.trim();
+                }
             }
-        } catch (Exception ignored) {}
+        } catch (Throwable ignored) {}
         CURRENT_VERSION = ver;
     }
 
