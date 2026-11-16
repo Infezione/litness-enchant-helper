@@ -98,7 +98,7 @@ public class LitnessOptimizerScreen extends Screen {
 
     public static final int CATALOG_PAGE_SIZE = 6;
     public static final int CREATING_SET_PAGE_SIZE = 6;
-    public static final int CALCULATOR_PAGE_SIZE = 5;
+    public static final int CALCULATOR_PAGE_SIZE = 8;
 
     // Catalogo
     private EditBox searchField;
@@ -917,13 +917,6 @@ public class LitnessOptimizerScreen extends Screen {
             });
             if (inSearch) {
                 searchBtn.setSuccess(true);
-                searchBtn.setTooltip(net.minecraft.client.gui.components.Tooltip.create(
-                    Component.literal("\u00A7cRimuovi dalla ricerca in /ah e casse")
-                ));
-            } else {
-                searchBtn.setTooltip(net.minecraft.client.gui.components.Tooltip.create(
-                    Component.literal("\u00A7aCerca ed evidenzia in /ah e casse")
-                ));
             }
             this.addRenderableWidget(searchBtn);
             catalogRowButtons.add(searchBtn);
@@ -1206,11 +1199,6 @@ public class LitnessOptimizerScreen extends Screen {
                 this.clearWidgets();
                 this.init();
             }).setSocket(true);
-            boolean isEn = LitnessI18n.isEnglish();
-            String removeTooltip = isEn ? ("\u00A7cRemove " + name + " from set") : ("\u00A7cRimuovi " + name + " dal set");
-            sockBtn.setTooltip(net.minecraft.client.gui.components.Tooltip.create(
-                Component.literal(removeTooltip)
-            ));
             this.addRenderableWidget(sockBtn);
             creatingSetEnchantButtons.add(sockBtn);
         }
@@ -1231,9 +1219,6 @@ public class LitnessOptimizerScreen extends Screen {
             switchTab(Tab.CALCULATOR);
         }).setPrimary(selCount > 0);
         btnSim.active = (selCount > 0);
-        btnSim.setTooltip(net.minecraft.client.gui.components.Tooltip.create(
-            Component.literal(isEn ? "Calculate optimal combination tree on anvil" : "Calcola i passi ottimali all'incudine")
-        ));
         this.addRenderableWidget(btnSim);
         creatingSetEnchantButtons.add(btnSim);
 
@@ -1461,10 +1446,10 @@ public class LitnessOptimizerScreen extends Screen {
             return;
         }
 
-        int rowY = startY + 30;
-        int cardH = 38;
-        int spacing = 6;
-        int maxVisible = Math.max(1, (panelHeight - 48) / (cardH + spacing));
+        int rowY = startY + 26;
+        int cardH = 32;
+        int spacing = 4;
+        int maxVisible = Math.max(1, (panelHeight - 44) / (cardH + spacing));
 
         int totalPages = Math.max(1, (int) Math.ceil((double) sets.size() / maxVisible));
         if (guideSetsPage >= totalPages) guideSetsPage = totalPages - 1;
@@ -1477,8 +1462,8 @@ public class LitnessOptimizerScreen extends Screen {
             SavedSetsManager.CustomSet set = sets.get(i);
             int cy = rowY + (i - startIdx) * (cardH + spacing);
 
-            SoftwareButton btnShowGuide = new SoftwareButton(startX + panelWidth - 110, cy + 8, 100, 22,
-                    Component.literal("⚡ Mostra Guida"), b -> {
+            SoftwareButton btnShowGuide = new SoftwareButton(startX + panelWidth - 96, cy + 6, 90, 20,
+                    Component.literal("⚡ Guida"), b -> {
                 loadSavedSetIntoSimulator(set);
             }).setPrimary(true);
             this.addRenderableWidget(btnShowGuide);
@@ -2155,10 +2140,10 @@ public class LitnessOptimizerScreen extends Screen {
             return;
         }
 
-        int rowY = startY + 30;
-        int cardH = 38;
-        int spacing = 6;
-        int maxVisible = Math.max(1, (panelHeight - 48) / (cardH + spacing));
+        int rowY = startY + 26;
+        int cardH = 32;
+        int spacing = 4;
+        int maxVisible = Math.max(1, (panelHeight - 44) / (cardH + spacing));
 
         int startIdx = guideSetsPage * maxVisible;
         int endIdx = Math.min(sets.size(), startIdx + maxVisible);
@@ -2175,11 +2160,11 @@ public class LitnessOptimizerScreen extends Screen {
             drawRoundedOutline(extractor, startX, cy, panelWidth, cardH, 6, border);
 
             ItemStack pieceStack = getItemStackForType(set.itemKey);
-            extractor.fakeItem(pieceStack, startX + 10, cy + 11);
+            extractor.fakeItem(pieceStack, startX + 8, cy + 8);
 
             String pieceName = LitnessI18n.getItemPieceName(set.itemKey);
             String title = "§f§l" + set.name + " §7(" + pieceName + " · §b" + set.enchantments.size() + "/12 incanti§7)";
-            extractor.text(this.font, title, startX + 34, cy + 6, 0xFFFFFFFF, false);
+            extractor.text(this.font, title, startX + 30, cy + 4, 0xFFFFFFFF, false);
 
             StringBuilder sb = new StringBuilder();
             for (int k = 0; k < set.enchantments.size(); k++) {
@@ -2187,9 +2172,9 @@ public class LitnessOptimizerScreen extends Screen {
                 EnchantmentEntry ee = EnchantmentDatabase.getEnchantment(set.enchantments.get(k));
                 sb.append(ee != null ? ee.name : set.enchantments.get(k));
             }
-            int maxTextW = panelWidth - 150;
+            int maxTextW = panelWidth - 135;
             String trimmedEnchants = trimToWidth(this.font, sb.toString(), maxTextW);
-            extractor.text(this.font, "§8" + trimmedEnchants, startX + 34, cy + 20, 0xFF64748B, false);
+            extractor.text(this.font, "§8" + trimmedEnchants, startX + 30, cy + 17, 0xFF64748B, false);
         }
 
         int totalPages = Math.max(1, (int) Math.ceil((double) sets.size() / maxVisible));
@@ -2258,9 +2243,9 @@ public class LitnessOptimizerScreen extends Screen {
         String maxText = (currentSolution.peakCost <= 39) ? "\u00A7a100% Maxabile" : "\u00A7cTroppo Costoso";
         extractor.text(this.font, maxText, kpi4X + 6, kpiY + 18, 0xFF34D399, false);
 
-        // Lista passi ottimizzati con icone 3D e card stondate paginati
-        int stepY = kpiY + kpiH + 8;
-        int rowH = 44;
+        // Lista passi ottimizzati con icone 3D e card stondate compatte
+        int stepY = kpiY + kpiH + 6;
+        int rowH = 32;
         ItemStack pieceStack = getItemStackForType(ITEM_KEYS[selectedItemIndex]);
 
         int pageSize = CALCULATOR_PAGE_SIZE;
@@ -2280,60 +2265,60 @@ public class LitnessOptimizerScreen extends Screen {
             int cardBg = step.isBookToBook ? 0xFF121624 : 0xFF0F1824;
             int cardBorder = step.isBookToBook ? 0xFF1E293B : 0xFF1E3A4B;
 
-            drawRoundedRect(extractor, startX, stepY, panelWidth, rowH, 6, cardBg);
-            drawRoundedOutline(extractor, startX, stepY, panelWidth, rowH, 6, cardBorder);
+            drawRoundedRect(extractor, startX, stepY, panelWidth, rowH, 5, cardBg);
+            drawRoundedOutline(extractor, startX, stepY, panelWidth, rowH, 5, cardBorder);
 
-            // Step badge a sinistra in pillola con bordo neon
-            drawRoundedRect(extractor, startX + 6, stepY + 11, 32, 22, 4, 0xFF1A1F30);
-            drawRoundedOutline(extractor, startX + 6, stepY + 11, 32, 22, 4, 0xFF3B82F6);
+            // Step badge a sinistra in pillola compatta con bordo neon
+            drawRoundedRect(extractor, startX + 5, stepY + 6, 26, 20, 4, 0xFF1A1F30);
+            drawRoundedOutline(extractor, startX + 5, stepY + 6, 26, 20, 4, 0xFF3B82F6);
             String stepTag = "#" + stepNum;
-            extractor.centeredText(this.font, stepTag, startX + 22, stepY + 17, 0xFF60A5FA);
+            extractor.centeredText(this.font, stepTag, startX + 18, stepY + 11, 0xFF60A5FA);
 
-            int curX = startX + 44;
+            int curX = startX + 36;
 
             // Slot 1: Box 3D
             ItemStack leftStack = step.isBookToBook ? new ItemStack(Items.ENCHANTED_BOOK) : pieceStack;
-            drawRoundedRect(extractor, curX, stepY + 6, 32, 32, 4, 0xFF151926);
-            drawRoundedOutline(extractor, curX, stepY + 6, 32, 32, 4, step.isBookToBook ? 0xFF2D3748 : 0xFF0284C7);
-            extractor.fakeItem(leftStack, curX + 8, stepY + 14);
-            curX += 36;
+            drawRoundedRect(extractor, curX, stepY + 5, 22, 22, 4, 0xFF151926);
+            drawRoundedOutline(extractor, curX, stepY + 5, 22, 22, 4, step.isBookToBook ? 0xFF2D3748 : 0xFF0284C7);
+            extractor.fakeItem(leftStack, curX + 3, stepY + 3);
+            curX += 26;
 
             // Segno +
-            extractor.text(this.font, "§7+", curX, stepY + 18, 0xFF9CA3AF, false);
-            curX += 12;
+            extractor.text(this.font, "§7+", curX, stepY + 11, 0xFF9CA3AF, false);
+            curX += 10;
 
             // Slot 2: Box 3D (sempre Libro)
-            drawRoundedRect(extractor, curX, stepY + 6, 32, 32, 4, 0xFF151926);
-            drawRoundedOutline(extractor, curX, stepY + 6, 32, 32, 4, 0xFF9333EA);
-            extractor.fakeItem(new ItemStack(Items.ENCHANTED_BOOK), curX + 8, stepY + 14);
-            curX += 36;
+            drawRoundedRect(extractor, curX, stepY + 5, 22, 22, 4, 0xFF151926);
+            drawRoundedOutline(extractor, curX, stepY + 5, 22, 22, 4, 0xFF9333EA);
+            extractor.fakeItem(new ItemStack(Items.ENCHANTED_BOOK), curX + 3, stepY + 3);
+            curX += 26;
 
             // Freccia ➔
-            extractor.text(this.font, "§6➔", curX, stepY + 18, 0xFFF59E0B, false);
-            curX += 14;
+            extractor.text(this.font, "§6➔", curX, stepY + 11, 0xFFF59E0B, false);
+            curX += 12;
 
             // Risultato: Box 3D
             ItemStack resStack = step.isBookToBook ? new ItemStack(Items.ENCHANTED_BOOK) : pieceStack;
-            drawRoundedRect(extractor, curX, stepY + 6, 32, 32, 4, 0xFF151926);
-            drawRoundedOutline(extractor, curX, stepY + 6, 32, 32, 4, step.isBookToBook ? 0xFF6366F1 : 0xFF10B981);
-            extractor.fakeItem(resStack, curX + 8, stepY + 14);
-            curX += 38;
+            drawRoundedRect(extractor, curX, stepY + 5, 22, 22, 4, 0xFF151926);
+            drawRoundedOutline(extractor, curX, stepY + 5, 22, 22, 4, step.isBookToBook ? 0xFF6366F1 : 0xFF10B981);
+            extractor.fakeItem(resStack, curX + 3, stepY + 3);
+            curX += 28;
 
-            // Dettaglio testuale (spaziato su due righe alte ben leggibili)
-            int availTextW = panelWidth - (curX - startX) - 86;
+            // Dettaglio testuale (spaziato su due righe compatte ben leggibili)
+            int availTextW = panelWidth - (curX - startX) - 78;
             String textSlot1 = (step.isBookToBook ? "§9" : "§e") + step.leftLabel;
             String textSlot2 = "§d" + step.rightLabel;
-            extractor.text(this.font, trimToWidth(this.font, "Slot 1: " + textSlot1, availTextW), curX, stepY + 9, 0xFFFFFFFF, false);
-            extractor.text(this.font, trimToWidth(this.font, "Slot 2: " + textSlot2, availTextW), curX, stepY + 23, 0xFFCBD5E1, false);
+            extractor.text(this.font, trimToWidth(this.font, "Slot 1: " + textSlot1, availTextW), curX, stepY + 6, 0xFFFFFFFF, false);
+            extractor.text(this.font, trimToWidth(this.font, "Slot 2: " + textSlot2, availTextW), curX, stepY + 17, 0xFFCBD5E1, false);
 
             // Costo XP sulla destra in pillola smeraldo
-            int pillX = startX + panelWidth - 76;
-            drawRoundedRect(extractor, pillX, stepY + 11, 70, 22, 4, 0xFF0D281E);
-            drawRoundedOutline(extractor, pillX, stepY + 11, 70, 22, 4, 0xFF10B981);
+            int pillX = startX + panelWidth - 68;
+            drawRoundedRect(extractor, pillX, stepY + 6, 62, 20, 4, 0xFF0D281E);
+            drawRoundedOutline(extractor, pillX, stepY + 6, 62, 20, 4, 0xFF10B981);
             String costTag = "§a+" + step.cost + " liv.";
-            extractor.centeredText(this.font, costTag, pillX + 35, stepY + 17, 0xFF34D399);
+            extractor.centeredText(this.font, costTag, pillX + 31, stepY + 11, 0xFF34D399);
 
-            stepY += rowH + 4;
+            stepY += rowH + 3;
             if (stepY + rowH > getWinY() + getWinH() - 24) break;
         }
 
@@ -2419,9 +2404,10 @@ public class LitnessOptimizerScreen extends Screen {
         int dropX = Math.min(btnX, startX + panelWidth - dropW - 8);
 
         // 1. GUI Scale Dropdown
-        final int dropY1 = rowY + 6 + btnH + 2;
-        String scaleText = ModConfig.GUI_SCALE_LABELS[config.guiScaleMode] + " \u25BE";
-        SoftwareButton btnScale = new SoftwareButton(btnX, rowY + 6, btnW, btnH,
+        final int dropY1 = rowY + 11 + btnH + 2;
+        int safeScaleMode = Math.max(0, Math.min(config.guiScaleMode, ModConfig.GUI_SCALE_LABELS.length - 1));
+        String scaleText = ModConfig.GUI_SCALE_LABELS[safeScaleMode] + " \u25BE";
+        SoftwareButton btnScale = new SoftwareButton(btnX, rowY + 11, btnW, btnH,
                 Component.literal(scaleText), b -> {
             List<DropdownOption> opts = new ArrayList<>();
             opts.add(new DropdownOption("Auto (Adatta schermo)", "Consigliato: adatta la GUI al monitor", config.guiScaleMode == 0, () -> {
@@ -2466,7 +2452,7 @@ public class LitnessOptimizerScreen extends Screen {
 
         // 2. Tooltip Usura Incudine
         rowY += 46;
-        SoftwareButton btnPenalty = new SoftwareButton(btnX, rowY + 6, btnW, btnH,
+        SoftwareButton btnPenalty = new SoftwareButton(btnX, rowY + 11, btnW, btnH,
                 Component.literal(config.showAnvilPenaltyTooltip ? "\u2714 ATTIVO" : "\u2716 DISATTIVO"), b -> {
             config.showAnvilPenaltyTooltip = !config.showAnvilPenaltyTooltip;
             ModConfig.save();
@@ -2478,9 +2464,9 @@ public class LitnessOptimizerScreen extends Screen {
 
         // 3. Palette Colori Evidenziazione Libri (Incudine)
         rowY += 46;
-        final int dropY3 = rowY + 6 + btnH + 2;
+        final int dropY3 = rowY + 11 + btnH + 2;
         String paletteText = config.getCurrentPreset().name + " \u25BE";
-        SoftwareButton btnPalette = new SoftwareButton(btnX, rowY + 6, btnW, btnH,
+        SoftwareButton btnPalette = new SoftwareButton(btnX, rowY + 11, btnW, btnH,
                 Component.literal(paletteText), b -> {
             List<DropdownOption> opts = new ArrayList<>();
             for (int i = 0; i < ModConfig.PRESETS.length; i++) {
@@ -2499,9 +2485,10 @@ public class LitnessOptimizerScreen extends Screen {
 
         // 4. Dettagli Lore Libri Incantati
         rowY += 46;
-        final int dropY4 = rowY + 6 + btnH + 2;
-        String loreText = ModConfig.LORE_DETAIL_LABELS[config.bookLoreDetailMode] + " \u25BE";
-        SoftwareButton btnLoreDetail = new SoftwareButton(btnX, rowY + 6, btnW, btnH,
+        final int dropY4 = rowY + 11 + btnH + 2;
+        int safeLoreMode = Math.max(0, Math.min(config.bookLoreDetailMode, ModConfig.LORE_DETAIL_LABELS.length - 1));
+        String loreText = ModConfig.LORE_DETAIL_LABELS[safeLoreMode] + " \u25BE";
+        SoftwareButton btnLoreDetail = new SoftwareButton(btnX, rowY + 11, btnW, btnH,
                 Component.literal(loreText), b -> {
             List<DropdownOption> opts = new ArrayList<>();
             opts.add(new DropdownOption("Completa", "Costi XP, descrizioni e conflitti", config.bookLoreDetailMode == 0, () -> {
@@ -2534,7 +2521,7 @@ public class LitnessOptimizerScreen extends Screen {
 
         // 5. Avviso Libri Già Lavorati
         rowY += 46;
-        SoftwareButton btnWarn = new SoftwareButton(btnX, rowY + 6, btnW, btnH,
+        SoftwareButton btnWarn = new SoftwareButton(btnX, rowY + 11, btnW, btnH,
                 Component.literal(config.warnUsedBooksInAnvil ? "\u2714 ATTIVO" : "\u2716 DISATTIVO"), b -> {
             config.warnUsedBooksInAnvil = !config.warnUsedBooksInAnvil;
             ModConfig.save();

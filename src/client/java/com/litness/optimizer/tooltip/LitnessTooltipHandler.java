@@ -316,7 +316,8 @@ public class LitnessTooltipHandler {
 
         // Se contiene parole chiave tecniche, di conflitti o descrittive, la ignoriamo categoricamente
         String lowerClean = clean.toLowerCase();
-        if (lowerClean.contains("conflitti") || lowerClean.contains("conflict") || clean.contains("⚔")
+        if (lowerClean.contains("conflitt") || lowerClean.contains("conflict") || lowerClean.contains("incompatibil")
+            || lowerClean.contains("non compatibile") || clean.contains("⚔")
             || clean.contains("↳") || lowerClean.contains("[max") || clean.contains("[✓")
             || clean.contains("•") || lowerClean.contains("incudine") || lowerClean.contains("penalità")
             || lowerClean.contains("applicabile") || lowerClean.contains("costo") || lowerClean.contains("livell")
@@ -468,8 +469,8 @@ public class LitnessTooltipHandler {
             return;
         }
 
-        // Se l'utente ha disattivato i dettagli dei libri, aggiungiamo solo l'usura incudine ed esciamo
-        if (ModConfig.get().bookLoreDetailMode == 2) {
+        // Se l'utente ha disattivato i dettagli dei libri (modalità 3 = Disattivata), aggiungiamo solo l'usura incudine ed esciamo
+        if (ModConfig.get().bookLoreDetailMode == 3) {
             if (ModConfig.get().showAnvilPenaltyTooltip) {
                 appendAnvilPenaltyTooltip(stack, lines);
             }
@@ -505,11 +506,21 @@ public class LitnessTooltipHandler {
                 allEnchantIdsOnBook.add(rawId);
             }
         }
+        boolean inConflictPre = false;
         for (Component origComp : originalLinesSnapshot) {
             String rawLine = origComp.getString();
             if (rawLine.startsWith(" ") || rawLine.startsWith("\t")) continue;
             String fullText = rawLine.replace('\u00A0', ' ').replace('\u2007', ' ').trim();
             if (fullText.isEmpty()) continue;
+            String lower = fullText.toLowerCase();
+            if (lower.contains("conflitt") || lower.contains("conflict") || lower.contains("incompatibil") || lower.contains("non compatibile")) {
+                inConflictPre = true;
+                continue;
+            }
+            if (lower.contains("applicabil") || lower.contains("applicable") || lower.contains("informazioni") || lower.contains("usura") || lower.contains("requisiti")) {
+                inConflictPre = false;
+            }
+            if (inConflictPre) continue;
             MatchedEnchantment match = matchEnchantment(fullText);
             if (match != null && match.entry != null) {
                 allEnchantIdsOnBook.add(match.entry.id);
@@ -575,8 +586,10 @@ public class LitnessTooltipHandler {
                 lines.add(targetLineIdx, Component.literal(icon + displayName + maxTag + rarityBadge));
             }
 
-            // Info custom costo incudine (senza indicazione di rarità)
-            if (isCustom && !hasServerCostLore) {
+            int detailMode = ModConfig.get().bookLoreDetailMode;
+
+            // Info custom costo incudine: solo se mode < 2 (Completa o Compatta)
+            if (detailMode < 2 && isCustom && !hasServerCostLore) {
                 int costNum = ee.getAnvilCostNumeric();
                 if (costNum > 0) {
                     lines.add(targetLineIdx + insertOffset, Component.literal("  §7" + com.litness.optimizer.data.LitnessI18n.t("anvil_label") + costNum + " " + com.litness.optimizer.data.LitnessI18n.t("levels").trim()));
@@ -584,22 +597,24 @@ public class LitnessTooltipHandler {
                 }
             }
 
-            // Conflitti: SOLO nomi degli incantesimi in conflitto (senza descrizioni!)
-            List<String> conflicts = EnchantmentDatabase.getResolvedConflicts(ee.id);
-            if (!conflicts.isEmpty()) {
-                List<String> wrappedConflicts = wrapConflictLines(conflicts, 45);
-                if (!wrappedConflicts.isEmpty()) {
-                    lines.add(targetLineIdx + insertOffset, Component.literal("  §c" + com.litness.optimizer.data.LitnessI18n.t("conflicts_label") + "§f" + wrappedConflicts.get(0)));
-                    insertOffset++;
-                    for (int w = 1; w < wrappedConflicts.size(); w++) {
-                        lines.add(targetLineIdx + insertOffset, Component.literal("    §f" + wrappedConflicts.get(w)));
+            // Conflitti: SOLO nomi degli incantesimi in conflitto (senza descrizioni!) - solo se mode < 2
+            if (detailMode < 2) {
+                List<String> conflicts = EnchantmentDatabase.getResolvedConflicts(ee.id);
+                if (!conflicts.isEmpty()) {
+                    List<String> wrappedConflicts = wrapConflictLines(conflicts, 45);
+                    if (!wrappedConflicts.isEmpty()) {
+                        lines.add(targetLineIdx + insertOffset, Component.literal("  §c" + com.litness.optimizer.data.LitnessI18n.t("conflicts_label") + "§f" + wrappedConflicts.get(0)));
                         insertOffset++;
+                        for (int w = 1; w < wrappedConflicts.size(); w++) {
+                            lines.add(targetLineIdx + insertOffset, Component.literal("    §f" + wrappedConflicts.get(w)));
+                            insertOffset++;
+                        }
                     }
                 }
             }
 
-            // Descrizione dell'incantesimo attivo ("Cosa fa")
-            if (ee.description != null && !ee.description.isEmpty()) {
+            // Descrizione dell'incantesimo attivo ("Cosa fa"): SOLO in modalità Completa (mode == 0)
+            if (detailMode == 0 && ee.description != null && !ee.description.isEmpty()) {
                 boolean alreadyHasDesc = false;
                 for (int checkIdx = targetLineIdx + 1; checkIdx < Math.min(targetLineIdx + 4, lines.size()); checkIdx++) {
                     String checkLine = normalize(lines.get(checkIdx).getString());
@@ -623,6 +638,21 @@ public class LitnessTooltipHandler {
         boolean inConflictSection = false;
         boolean isEnchantedBook = stack.is(Items.ENCHANTED_BOOK) || stack.is(Items.BOOK);
 
+        // Mappa conflitti noti per evitare in modo categorico che nomi di conflitti (es. Fortuna su Silk Touch) vengano trattati come incantesimi del libro
+        Set<String> conflictNamesAndIds = new HashSet<>();
+        for (EnchantmentEntry pe : matchedBookEntries) {
+            List<String> confs = EnchantmentDatabase.getResolvedConflicts(pe.id);
+            for (String c : confs) {
+                conflictNamesAndIds.add(c.toLowerCase());
+                conflictNamesAndIds.add(LitnessI18n.stripLevelSuffix(c).toLowerCase());
+                EnchantmentEntry cEe = EnchantmentDatabase.getEnchantment(c);
+                if (cEe != null) {
+                    conflictNamesAndIds.add(cEe.id.toLowerCase());
+                    conflictNamesAndIds.add(cEe.name.toLowerCase());
+                }
+            }
+        }
+
         for (Component origComp : originalLinesSnapshot) {
             String rawLine = origComp.getString();
             // Ignora subito righe indentate con spazi o tab (sub-voci o descrizioni)
@@ -632,7 +662,7 @@ public class LitnessTooltipHandler {
             if (fullText.isEmpty()) continue;
 
             String lower = fullText.toLowerCase();
-            if (lower.contains("conflitt") || lower.contains("conflict")) {
+            if (lower.contains("conflitt") || lower.contains("conflict") || lower.contains("incompatibil") || lower.contains("non compatibile")) {
                 inConflictSection = true;
                 continue;
             }
@@ -650,6 +680,11 @@ public class LitnessTooltipHandler {
 
             MatchedEnchantment match = matchEnchantment(fullText);
             if (match == null || match.entry == null || processedEnchantIds.contains(match.entry.id)) {
+                continue;
+            }
+
+            // Se l'incantesimo trovato è in realtà un conflitto dell'incantesimo del libro (es. Fortuna su Silk Touch), NON elaborarlo!
+            if (conflictNamesAndIds.contains(match.entry.id.toLowerCase()) || conflictNamesAndIds.contains(match.entry.name.toLowerCase())) {
                 continue;
             }
 
@@ -697,9 +732,10 @@ public class LitnessTooltipHandler {
             }
 
             int insertOffset = 1;
+            int detailModeB = ModConfig.get().bookLoreDetailMode;
 
-            // Info aggiuntive SOLO per Custom: Costo Incudine (senza indicazione di rarità)
-            if (isCustom && !hasServerCostLore) {
+            // Info aggiuntive SOLO per Custom: Costo Incudine (senza indicazione di rarità) - mode < 2
+            if (detailModeB < 2 && isCustom && !hasServerCostLore) {
                 int costNum = ee.getAnvilCostNumeric();
                 if (costNum > 0) {
                     String infoLine = "  §7" + com.litness.optimizer.data.LitnessI18n.t("anvil_label") + costNum + " " + com.litness.optimizer.data.LitnessI18n.t("levels").trim();
@@ -708,22 +744,24 @@ public class LitnessTooltipHandler {
                 }
             }
 
-            // Conflitti: SOLO nomi degli incantesimi in conflitto (senza descrizioni!)
-            List<String> conflicts = EnchantmentDatabase.getResolvedConflicts(ee.id);
-            if (!conflicts.isEmpty()) {
-                List<String> wrappedConflicts = wrapConflictLines(conflicts, 45);
-                if (!wrappedConflicts.isEmpty()) {
-                    lines.add(targetIdx + insertOffset, Component.literal("  §c" + com.litness.optimizer.data.LitnessI18n.t("conflicts_label") + "§f" + wrappedConflicts.get(0)));
-                    insertOffset++;
-                    for (int w = 1; w < wrappedConflicts.size(); w++) {
-                        lines.add(targetIdx + insertOffset, Component.literal("    §f" + wrappedConflicts.get(w)));
+            // Conflitti: SOLO nomi degli incantesimi in conflitto (senza descrizioni!) - mode < 2
+            if (detailModeB < 2) {
+                List<String> conflicts = EnchantmentDatabase.getResolvedConflicts(ee.id);
+                if (!conflicts.isEmpty()) {
+                    List<String> wrappedConflicts = wrapConflictLines(conflicts, 45);
+                    if (!wrappedConflicts.isEmpty()) {
+                        lines.add(targetIdx + insertOffset, Component.literal("  §c" + com.litness.optimizer.data.LitnessI18n.t("conflicts_label") + "§f" + wrappedConflicts.get(0)));
                         insertOffset++;
+                        for (int w = 1; w < wrappedConflicts.size(); w++) {
+                            lines.add(targetIdx + insertOffset, Component.literal("    §f" + wrappedConflicts.get(w)));
+                            insertOffset++;
+                        }
                     }
                 }
             }
 
-            // Descrizione dell'incantesimo attivo ("Cosa fa")
-            if (ee.description != null && !ee.description.isEmpty()) {
+            // Descrizione dell'incantesimo attivo ("Cosa fa"): SOLO in modalità Completa (mode == 0)
+            if (detailModeB == 0 && ee.description != null && !ee.description.isEmpty()) {
                 boolean alreadyHasDesc = false;
                 for (int checkIdx = targetIdx + 1; checkIdx < Math.min(targetIdx + 4, lines.size()); checkIdx++) {
                     String checkLine = normalize(lines.get(checkIdx).getString());

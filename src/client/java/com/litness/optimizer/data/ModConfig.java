@@ -52,13 +52,14 @@ public class ModConfig {
 
     public static final String[] LORE_DETAIL_LABELS = {
         "Completa (Costi, conflitti, descrizioni)",
-        "Minimale (Solo Max Lv e costi)",
-        "Disattivata (Vanilla)"
+        "Compatta (Solo costi base e livello)",
+        "Minimale (Solo nome e livello)",
+        "Disattivata (Nessuna lore aggiunta)"
     };
 
     // Opzioni configurabili
     public boolean showAnvilPenaltyTooltip = true;
-    public int bookLoreDetailMode = 0;       // 0 = Completa, 1 = Minimale, 2 = Disattivata
+    public int bookLoreDetailMode = 0;       // 0 = Completa, 1 = Compatta, 2 = Minimale, 3 = Disattivata
     public int colorPresetIndex = 0;         // Indice in PRESETS
     public int guiScaleMode = 0;              // 0 = Auto, 1 = 100%, 2 = 85%, 3 = 75%, 4 = 65%, 5 = 50%
     public boolean warnUsedBooksInAnvil = true;
