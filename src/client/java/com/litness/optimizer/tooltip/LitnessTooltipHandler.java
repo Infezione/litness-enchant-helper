@@ -4,6 +4,9 @@ import com.litness.optimizer.calculator.AnvilOptimizer;
 import com.litness.optimizer.data.EnchantmentDatabase;
 import com.litness.optimizer.data.EnchantmentDatabase.EnchantmentEntry;
 import com.litness.optimizer.data.InventoryTracker;
+import com.litness.optimizer.data.ItemTypeHelper;
+import com.litness.optimizer.data.LitnessI18n;
+import com.litness.optimizer.data.ModConfig;
 import net.fabricmc.fabric.api.client.item.v1.ItemTooltipCallback;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.screens.inventory.AnvilScreen;
@@ -452,8 +455,24 @@ public class LitnessTooltipHandler {
             return false;
         });
 
-        // 2. Lore arricchita (Max Enchant, descrizione, costi, conflitti) ESCLUSIVAMENTE sui LIBRI INCANTATI!
+        // 2. Usura incudine per armi, armature e attrezzi
+        if (ItemTypeHelper.isEnchantableWeaponOrArmor(stack)) {
+            if (ModConfig.get().showAnvilPenaltyTooltip) {
+                appendAnvilPenaltyTooltip(stack, lines);
+            }
+            return;
+        }
+
+        // 3. Lore arricchita (Max Enchant, descrizione, costi, conflitti) ESCLUSIVAMENTE sui LIBRI INCANTATI!
         if (!stack.is(Items.ENCHANTED_BOOK) && !stack.is(Items.BOOK)) {
+            return;
+        }
+
+        // Se l'utente ha disattivato i dettagli dei libri, aggiungiamo solo l'usura incudine ed esciamo
+        if (ModConfig.get().bookLoreDetailMode == 2) {
+            if (ModConfig.get().showAnvilPenaltyTooltip) {
+                appendAnvilPenaltyTooltip(stack, lines);
+            }
             return;
         }
 
@@ -704,24 +723,27 @@ public class LitnessTooltipHandler {
             }
         }
 
-        // 3. Penalità lavoro incudine se presente sul libro
-        int repairCost = stack.getOrDefault(DataComponents.REPAIR_COST, 0);
-        if (repairCost > 0) {
-            lines.add(Component.literal("§8Penalità incudine libro: §e+" + repairCost + " liv."));
+        // 3. Usura incudine sul libro (formato identico al server / screenshot)
+        if (ModConfig.get().showAnvilPenaltyTooltip) {
+            appendAnvilPenaltyTooltip(stack, lines);
         }
 
         // 4. Memorizza gli oggetti compatibili per il libro (Vanilla e Custom!)
-        Set<String> appKeys = new LinkedHashSet<>();
-        for (EnchantmentEntry ee : matchedBookEntries) {
-            if (ee.applicableTo != null) {
-                appKeys.addAll(ee.applicableTo);
+        if (ModConfig.get().bookLoreDetailMode == 0) {
+            Set<String> appKeys = new LinkedHashSet<>();
+            for (EnchantmentEntry ee : matchedBookEntries) {
+                if (ee.applicableTo != null) {
+                    appKeys.addAll(ee.applicableTo);
+                }
             }
-        }
 
-        if (!appKeys.isEmpty()) {
-            List<ItemStack> orderedStacks = getOrderedItemStacks(appKeys);
-            if (!orderedStacks.isEmpty()) {
-                cachedApplicableItems.put(stack, orderedStacks);
+            if (!appKeys.isEmpty()) {
+                List<ItemStack> orderedStacks = getOrderedItemStacks(appKeys);
+                if (!orderedStacks.isEmpty()) {
+                    cachedApplicableItems.put(stack, orderedStacks);
+                } else {
+                    cachedApplicableItems.remove(stack);
+                }
             } else {
                 cachedApplicableItems.remove(stack);
             }
@@ -730,7 +752,58 @@ public class LitnessTooltipHandler {
         }
     }
 
+    public static void appendAnvilPenaltyTooltip(ItemStack stack, List<Component> lines) {
+        if (stack == null || stack.isEmpty() || lines == null) return;
+        for (Component c : lines) {
+            String s = c.getString().toLowerCase();
+            if (s.contains("usura incudine") || s.contains("anvil penalty")) {
+                return;
+            }
+        }
+
+        int repairCost = stack.getOrDefault(DataComponents.REPAIR_COST, 0);
+        int freeLevels = Math.max(0, 39 - repairCost);
+        String label = LitnessI18n.isEnglish() ? "Anvil penalty" : "Usura incudine";
+        String levelsText = LitnessI18n.isEnglish() ? "levels" : "livelli";
+        String freeText = LitnessI18n.isEnglish() ? "free" : "liberi";
+
+        Component penaltyComp;
+        if (repairCost > 0) {
+            String freeColor = (freeLevels <= 8) ? "§c" : (freeLevels <= 15 ? "§e" : "§f");
+            penaltyComp = Component.literal("§e⚠ §f" + label + ": §e+" + repairCost + " " + levelsText + " §8· " + freeColor + freeLevels + " " + freeText);
+        } else {
+            penaltyComp = Component.literal("§8" + label + ": §a0 " + levelsText + " §8· §739 " + freeText);
+        }
+
+        // Trova la posizione migliore: prima dei modificatori di attributo o a fine lore
+        int insertIdx = lines.size();
+        for (int i = 0; i < lines.size(); i++) {
+            String text = lines.get(i).getString().trim().toLowerCase();
+            if (text.startsWith("when in ") || text.startsWith("quando ")
+                    || text.contains("attack damage") || text.contains("danno d'attacco")
+                    || text.contains("attack speed") || text.contains("velocità d'attacco")
+                    || text.contains("durability:") || text.contains("durabilità:")
+                    || text.contains("armor") || text.contains("armatura")) {
+                insertIdx = i;
+                break;
+            }
+        }
+
+        lines.add(insertIdx, penaltyComp);
+
+        // Se è un libro già lavorato, avvisa visivamente del pericolo di blocco incudine a 11 incanti
+        if (repairCost > 0 && (stack.is(Items.ENCHANTED_BOOK) || stack.is(Items.BOOK)) && ModConfig.get().warnUsedBooksInAnvil) {
+            lines.add(insertIdx + 1, Component.literal("  §c⚠ " + (LitnessI18n.isEnglish()
+                    ? "Used book! High risk of blocking at 11 enchants."
+                    : "Libro già lavorato! Rischio blocco a 11 incanti.")));
+        }
+    }
+
     public static Optional<TooltipComponent> getApplicableItemsTooltipData(ItemStack stack) {
+        if (ModConfig.get().bookLoreDetailMode != 0) {
+            return Optional.empty();
+        }
+
         if (stack == null || stack.isEmpty() || (!stack.is(Items.ENCHANTED_BOOK) && !stack.is(Items.BOOK))) {
             return Optional.empty();
         }

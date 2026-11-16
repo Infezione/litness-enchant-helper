@@ -8,6 +8,7 @@ import com.litness.optimizer.data.EnchantmentDatabase;
 import com.litness.optimizer.data.EnchantmentDatabase.EnchantmentEntry;
 import com.litness.optimizer.data.ItemTypeHelper;
 import com.litness.optimizer.data.LitnessI18n;
+import com.litness.optimizer.data.ModConfig;
 import com.litness.optimizer.mixin.AnvilScreenMixin;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.Font;
@@ -338,10 +339,9 @@ public class AnvilTooltipState {
         long time = System.currentTimeMillis();
         double wave = (Math.sin(time / 200.0) + 1.0) / 2.0; // 0.0 to 1.0
         int borderAlpha = (int)(0x90 + wave * 0x6F); // 144 to 255
-        int cyanBorder = (borderAlpha << 24) | 0x38BDF8;
         int fillAlpha = (int)(0x35 + wave * 0x25); // 53 to 90
-        int cyanFill = (fillAlpha << 24) | 0x0EA5E9;
 
+        ModConfig.HighlightPreset preset = ModConfig.get().getCurrentPreset();
         HighlightedSlot hoveredTarget = null;
 
         for (HighlightedSlot hs : targets) {
@@ -349,10 +349,15 @@ public class AnvilTooltipState {
             int sy = topPos + hs.slot.y;
             boolean isSlot1 = (hs.targetAnvilSlot == 1);
 
-            int slotBorder = isSlot1 ? ((borderAlpha << 24) | 0x38BDF8) : ((borderAlpha << 24) | 0xC084FC);
-            int slotFill = isSlot1 ? ((fillAlpha << 24) | 0x0EA5E9) : ((fillAlpha << 24) | 0xA855F7);
+            int baseColor = isSlot1 ? preset.slot1Color : preset.slot2Color;
+            int baseBorder = isSlot1 ? preset.slot1Border : preset.slot2Border;
+            int pillBg = isSlot1 ? preset.slot1PillBg : preset.slot2PillBg;
+            int pillBorder = isSlot1 ? preset.slot1Border : preset.slot2Border;
 
-            // 1. Evidenziazione morbida sullo slot (Ciano per Slot 1, Viola per Slot 2)
+            int slotBorder = (borderAlpha << 24) | (baseBorder & 0x00FFFFFF);
+            int slotFill = (fillAlpha << 24) | (baseColor & 0x00FFFFFF);
+
+            // 1. Evidenziazione morbida sullo slot con palette personalizzabile
             extractor.fill(sx, sy, sx + 16, sy + 16, slotFill);
             extractor.outline(sx - 1, sy - 1, 18, 18, slotBorder);
 
@@ -362,9 +367,6 @@ public class AnvilTooltipState {
             int tagH = 8;
             int tagX = sx + 1;
             int tagY = sy + 1;
-
-            int pillBg = isSlot1 ? 0xF00369A1 : 0xF06D28D9;
-            int pillBorder = isSlot1 ? 0xFF38BDF8 : 0xFFC084FC;
 
             extractor.fill(tagX, tagY, tagX + tagW, tagY + tagH, pillBg);
             extractor.outline(tagX, tagY, tagW, tagH, pillBorder);
@@ -382,11 +384,19 @@ public class AnvilTooltipState {
             String itemDesc = (hoveredTarget.bookName != null && !hoveredTarget.bookName.isEmpty()) 
                     ? hoveredTarget.bookName 
                     : (isSlot1 ? "Oggetto Base" : "Libro");
+
+            ItemStack hoveredStack = hoveredTarget.slot.getItem();
+            int repCost = (!hoveredStack.isEmpty()) ? hoveredStack.getOrDefault(DataComponents.REPAIR_COST, 0) : 0;
             
             if (isSlot1) {
-                tipLines.add(Component.literal("§7Slot 1 • §b" + itemDesc));
+                tipLines.add(Component.literal("§7Slot 1 • §f" + itemDesc));
             } else {
-                tipLines.add(Component.literal("§7Slot 2 • §d" + itemDesc));
+                tipLines.add(Component.literal("§7Slot 2 • §f" + itemDesc));
+            }
+
+            if (repCost > 0 && (hoveredStack.is(Items.ENCHANTED_BOOK) || hoveredStack.is(Items.BOOK)) && ModConfig.get().warnUsedBooksInAnvil) {
+                tipLines.add(Component.literal("§c⚠ Usura incudine libro: +" + repCost + " liv."));
+                tipLines.add(Component.literal("§e⚠ Attenzione: rischio blocco a 11 incanti!"));
             }
 
             int tipW = 0;
@@ -403,9 +413,10 @@ public class AnvilTooltipState {
             if (tipX < 4) tipX = 4;
             if (tipY < 4) tipY = 4;
 
+            int popupBorder = isSlot1 ? preset.slot1Border : preset.slot2Border;
             extractor.outline(tipX - 1, tipY - 1, tipW + 2, tipH + 2, 0x80000000);
             extractor.fill(tipX, tipY, tipX + tipW, tipY + tipH, 0xEA0D111D);
-            extractor.outline(tipX, tipY, tipW, tipH, isSlot1 ? 0x8038BDF8 : 0x80C084FC);
+            extractor.outline(tipX, tipY, tipW, tipH, 0x80000000 | (popupBorder & 0x00FFFFFF));
 
             int ty = tipY + 4;
             for (Component line : tipLines) {

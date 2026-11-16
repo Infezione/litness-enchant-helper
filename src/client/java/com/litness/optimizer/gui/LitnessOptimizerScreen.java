@@ -14,6 +14,7 @@ import com.litness.optimizer.data.ItemTypeHelper;
 import com.litness.optimizer.data.LitnessI18n;
 import com.litness.optimizer.data.SavedSetsManager;
 import com.litness.optimizer.data.SavedSetsManager.CustomSet;
+import com.litness.optimizer.data.ModConfig;
 import com.litness.optimizer.tooltip.LitnessTooltipHandler;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.GuiGraphicsExtractor;
@@ -34,7 +35,8 @@ public class LitnessOptimizerScreen extends Screen {
     public enum Tab {
         CATALOG,
         SETS,
-        CALCULATOR
+        CALCULATOR,
+        SETTINGS
     }
 
     public enum CalcMode {
@@ -49,21 +51,46 @@ public class LitnessOptimizerScreen extends Screen {
     private EnchantmentEntry selectedCatalogEnchant = null;
     private SoftwareButton btnToggleInspectorSet = null;
 
+    public float getEffectiveScale() {
+        int mode = ModConfig.get().guiScaleMode;
+        if (mode == 1) return 1.0f;
+        if (mode == 2) return 0.85f;
+        if (mode == 3) return 0.75f;
+        if (mode == 4) return 0.65f;
+        if (mode == 5) return 0.50f;
+
+        // Mode 0 = Auto: adatta dinamicamente se lo schermo è piccolo (es. GUI Scale 4 su 1080p = 480x270)
+        float sW = (this.width - 20.0f) / 740.0f;
+        float sH = (this.height - 16.0f) / 450.0f;
+        float auto = Math.min(1.0f, Math.min(sW, sH));
+        return Math.max(0.40f, auto);
+    }
+
+    public int getVirtualWidth() {
+        float s = getEffectiveScale();
+        return s != 1.0f ? (int) (this.width / s) : this.width;
+    }
+
+    public int getVirtualHeight() {
+        float s = getEffectiveScale();
+        return s != 1.0f ? (int) (this.height / s) : this.height;
+    }
+
     // Dimensioni finestra stile Software Desktop (Marloww client style)
     private int getWinW() {
-        return Math.min(740, this.width - 20);
+        return Math.min(740, getVirtualWidth() - 20);
     }
 
     private int getWinH() {
-        return Math.min(450, this.height - 16);
+        return Math.min(450, getVirtualHeight() - 16);
     }
 
     private int getWinX() {
-        return (this.width - getWinW()) / 2;
+        return (getVirtualWidth() - getWinW()) / 2;
     }
 
     private int getWinY() {
-        return (this.height - getWinH()) / 2;
+        return (getVirtualHeight() - getWinH()) / 2;
     }
 
     private static final int HEADER_H = 32;
@@ -700,7 +727,7 @@ public class LitnessOptimizerScreen extends Screen {
                 .setDanger(true);
         this.addRenderableWidget(this.btnClose);
 
-        // 3. BARRA LATERALE SINISTRA (1: Catalogo -> 2: I Miei Set -> 3: Guida Incudine)
+        // 3. BARRA LATERALE SINISTRA (1: Catalogo -> 2: I Miei Set -> 3: Guida Incudine -> 4: Impostazioni)
         int tabY = winY + HEADER_H + 6;
         int tabH = 26;
 
@@ -722,6 +749,12 @@ public class LitnessOptimizerScreen extends Screen {
         }).setSidebar(true).setTabActive(this.currentTab == Tab.CALCULATOR);
         this.addRenderableWidget(tabCalc);
 
+        SoftwareButton tabSettings = new SoftwareButton(winX + 6, tabY + (tabH * 3) + 12, SIDEBAR_W - 12, tabH,
+                Component.literal("⚙ " + (LitnessI18n.isEnglish() ? "Settings" : "Impostazioni")), b -> {
+            switchTab(Tab.SETTINGS);
+        }).setSidebar(true).setTabActive(this.currentTab == Tab.SETTINGS);
+        this.addRenderableWidget(tabSettings);
+
         // 4. AREA CONTENUTO PRINCIPALE
         int contentX = winX + SIDEBAR_W + 8;
         int contentY = winY + HEADER_H + 6;
@@ -732,8 +765,10 @@ public class LitnessOptimizerScreen extends Screen {
             initCatalogWidgets(contentX, contentY, contentW, contentH);
         } else if (this.currentTab == Tab.SETS) {
             initSavedSetsViewWidgets(contentX, contentY, contentW, contentH);
-        } else {
+        } else if (this.currentTab == Tab.CALCULATOR) {
             initGuideViewWidgets(contentX, contentY, contentW, contentH);
+        } else {
+            initSettingsWidgets(contentX, contentY, contentW, contentH);
         }
     }
 
@@ -1476,6 +1511,34 @@ public class LitnessOptimizerScreen extends Screen {
         if (!inputKey.equals(lastCalculatedKey) && !isCalculating) {
             runCalculation();
         }
+
+        // Se non c'è una soluzione attiva, offri pulsanti rapidi per caricare un set salvato
+        if (currentSolution == null || currentSolution.steps.isEmpty()) {
+            List<SavedSetsManager.CustomSet> sets = SavedSetsManager.getSavedSets();
+            int qY = startY + 94;
+            int count = 0;
+            for (SavedSetsManager.CustomSet cs : sets) {
+                if (count >= 4) break;
+                if (cs.enchantments.isEmpty()) continue;
+                int bX = startX + (count % 2) * (panelWidth / 2);
+                int bY = qY + (count / 2) * 28;
+                SoftwareButton btnQuick = new SoftwareButton(bX, bY, (panelWidth / 2) - 6, 24,
+                        Component.literal("🛡 Carica: " + cs.name), b -> {
+                    loadSavedSetIntoSimulator(cs);
+                });
+                this.addRenderableWidget(btnQuick);
+                count++;
+            }
+
+            int actY = qY + ((Math.max(1, count) + 1) / 2) * 28 + 8;
+            SoftwareButton btnGoCat = new SoftwareButton(startX, actY, 140, 22,
+                    Component.literal("📖 Sfoglia Catalogo"), b -> switchTab(Tab.CATALOG));
+            this.addRenderableWidget(btnGoCat);
+
+            SoftwareButton btnGoSets = new SoftwareButton(startX + 146, actY, 140, 22,
+                    Component.literal("🛡 I Miei Set"), b -> switchTab(Tab.SETS));
+            this.addRenderableWidget(btnGoSets);
+        }
     }
 
     private void copyGuideToClipboard() {
@@ -1626,10 +1689,49 @@ public class LitnessOptimizerScreen extends Screen {
             } else {
                 // Simulazione teorica dai selezionati
                 if (simulatorSelectedEnchants.isEmpty()) {
-                    for (SavedSetsManager.CustomSet cs : SavedSetsManager.getSavedSets()) {
-                        if (cs != null && cs.itemKey.equalsIgnoreCase(itemKey) && !cs.enchantments.isEmpty()) {
-                            simulatorSelectedEnchants.addAll(cs.enchantments);
-                            break;
+                    // 1. Controlla prima il set pinnato globale attivo nell'HUD
+                    String pinnedId = ActiveSessionManager.getPinnedSetId();
+                    SavedSetsManager.CustomSet pinned = (pinnedId != null) ? SavedSetsManager.getSetById(pinnedId) : null;
+                    if (pinned != null && !pinned.enchantments.isEmpty()) {
+                        simulatorSelectedEnchants.addAll(pinned.enchantments);
+                        for (int i = 0; i < ITEM_KEYS.length; i++) {
+                            if (ITEM_KEYS[i].equalsIgnoreCase(pinned.itemKey)) {
+                                selectedItemIndex = i;
+                                break;
+                            }
+                        }
+                    }
+                    // 2. Se ancora vuoto, cerca per l'item selezionato o in mano al giocatore
+                    if (simulatorSelectedEnchants.isEmpty()) {
+                        String handKey = (this.minecraft != null && this.minecraft.player != null)
+                                ? ItemTypeHelper.detectItemKey(this.minecraft.player.getMainHandItem()) : "";
+                        for (SavedSetsManager.CustomSet cs : SavedSetsManager.getSavedSets()) {
+                            if (cs != null && !cs.enchantments.isEmpty()) {
+                                if (cs.itemKey.equalsIgnoreCase(itemKey) || (!handKey.isEmpty() && cs.itemKey.equalsIgnoreCase(handKey))) {
+                                    simulatorSelectedEnchants.addAll(cs.enchantments);
+                                    for (int i = 0; i < ITEM_KEYS.length; i++) {
+                                        if (ITEM_KEYS[i].equalsIgnoreCase(cs.itemKey)) {
+                                            selectedItemIndex = i;
+                                            break;
+                                        }
+                                    }
+                                    break;
+                                }
+                            }
+                        }
+                    }
+                    // 3. Fallback: carica il primo set salvato qualsiasi
+                    if (simulatorSelectedEnchants.isEmpty()) {
+                        List<SavedSetsManager.CustomSet> allSets = SavedSetsManager.getSavedSets();
+                        if (!allSets.isEmpty() && !allSets.get(0).enchantments.isEmpty()) {
+                            SavedSetsManager.CustomSet first = allSets.get(0);
+                            simulatorSelectedEnchants.addAll(first.enchantments);
+                            for (int i = 0; i < ITEM_KEYS.length; i++) {
+                                if (ITEM_KEYS[i].equalsIgnoreCase(first.itemKey)) {
+                                    selectedItemIndex = i;
+                                    break;
+                                }
+                            }
                         }
                     }
                 }
@@ -1675,8 +1777,17 @@ public class LitnessOptimizerScreen extends Screen {
     // -------------------------------------------------------------
     @Override
     public void extractRenderState(GuiGraphicsExtractor extractor, int mouseX, int mouseY, float delta) {
-        // 1. Sfondo trasparente scuro
+        // 1. Sfondo trasparente scuro a tutto schermo fisico
         extractor.fill(0, 0, this.width, this.height, 0xC507080E);
+
+        float s = getEffectiveScale();
+        int vMouseX = (s != 1.0f) ? (int) (mouseX / s) : mouseX;
+        int vMouseY = (s != 1.0f) ? (int) (mouseY / s) : mouseY;
+
+        extractor.pose().pushMatrix();
+        if (s != 1.0f) {
+            extractor.pose().scale(s, s);
+        }
 
         int winW = getWinW();
         int winH = getWinH();
@@ -1695,7 +1806,7 @@ public class LitnessOptimizerScreen extends Screen {
         drawRoundedRect(extractor, winX + 10, winY + 9, 3, 14, 2, 0xFF3B82F6);
         extractor.text(this.font, "Litness Enchant", winX + 20, winY + 12, 0xFFFFFFFF, false);
         int brandW = this.font.width("Litness Enchant ");
-        extractor.text(this.font, "v1.3 | By Waaxey", winX + 20 + brandW, winY + 12, 0xFF60A5FA, false);
+        extractor.text(this.font, "v1.3.1 | By Waaxey", winX + 20 + brandW, winY + 12, 0xFF60A5FA, false);
 
         // Bandiera pixel nel pulsante lingua
         if (this.btnLangToggle != null) {
@@ -1713,6 +1824,8 @@ public class LitnessOptimizerScreen extends Screen {
             targetPillY = tabY0 + tabH0 + 4;
         } else if (this.currentTab == Tab.CALCULATOR) {
             targetPillY = tabY0 + (tabH0 * 2) + 8;
+        } else if (this.currentTab == Tab.SETTINGS) {
+            targetPillY = tabY0 + (tabH0 * 3) + 12;
         }
 
         if (this.animatedPillY < 0) {
@@ -1757,15 +1870,17 @@ public class LitnessOptimizerScreen extends Screen {
         extractor.pose().translate(-centerX, -centerY + offsetY);
 
         if (this.currentTab == Tab.CATALOG) {
-            renderCatalogTab(extractor, contentX, contentY, contentW, contentH, mouseX, mouseY);
+            renderCatalogTab(extractor, contentX, contentY, contentW, contentH, vMouseX, vMouseY);
         } else if (this.currentTab == Tab.SETS) {
-            renderSavedSetsTab(extractor, contentX, contentY, contentW, contentH, mouseX, mouseY);
+            renderSavedSetsTab(extractor, contentX, contentY, contentW, contentH, vMouseX, vMouseY);
+        } else if (this.currentTab == Tab.CALCULATOR) {
+            renderCalculatorTab(extractor, contentX, contentY, contentW, contentH, vMouseX, vMouseY);
         } else {
-            renderCalculatorTab(extractor, contentX, contentY, contentW, contentH, mouseX, mouseY);
+            renderSettingsTab(extractor, contentX, contentY, contentW, contentH, vMouseX, vMouseY);
         }
 
         // Render widget standard (pulsanti e campi testo) trasformati insieme al contenuto
-        super.extractRenderState(extractor, mouseX, mouseY, delta);
+        super.extractRenderState(extractor, vMouseX, vMouseY, delta);
 
         extractor.pose().popMatrix();
 
@@ -1780,10 +1895,12 @@ public class LitnessOptimizerScreen extends Screen {
         }
 
         // 8. Tooltip flottanti in primo piano
-        renderFloatingTooltips(extractor, mouseX, mouseY);
+        renderFloatingTooltips(extractor, vMouseX, vMouseY);
 
         // 9. Notifica animata fluida a centro schermo
         renderAnimatedCenterToast(extractor);
+
+        extractor.pose().popMatrix(); // Chiusura matrice scala GUI
     }
 
     private void renderCatalogTab(GuiGraphicsExtractor extractor, int startX, int startY, int panelWidth, int panelHeight, int mouseX, int mouseY) {
@@ -2120,6 +2237,145 @@ public class LitnessOptimizerScreen extends Screen {
             String pageStr = "Passi " + (startIdx + 1) + "-" + endIdx + " di " + totalSteps + " \u00A78(Scorri con rotellina)";
             extractor.centeredText(this.font, pageStr, startX + panelWidth / 2, navY, 0xFF9CA3AF);
         }
+    }
+
+    // -------------------------------------------------------------
+    // IMPOSTAZIONI WIDGETS & RENDERING
+    // -------------------------------------------------------------
+    private void initSettingsWidgets(int startX, int startY, int panelWidth, int panelHeight) {
+        ModConfig config = ModConfig.get();
+
+        int rowY = startY + 30;
+        int btnW = 164;
+        int btnH = 20;
+        int btnX = startX + panelWidth - btnW - 12;
+
+        // 1. GUI Scale
+        SoftwareButton btnScale = new SoftwareButton(btnX, rowY + 6, btnW, btnH,
+                Component.literal(ModConfig.GUI_SCALE_LABELS[config.guiScaleMode]), b -> {
+            config.guiScaleMode = (config.guiScaleMode + 1) % ModConfig.GUI_SCALE_LABELS.length;
+            ModConfig.save();
+            this.clearWidgets();
+            this.init();
+        }).setPrimary(config.guiScaleMode == 0);
+        this.addRenderableWidget(btnScale);
+
+        // 2. Tooltip Usura Incudine
+        rowY += 46;
+        SoftwareButton btnPenalty = new SoftwareButton(btnX, rowY + 6, btnW, btnH,
+                Component.literal(config.showAnvilPenaltyTooltip ? "✔ ATTIVO" : "✖ DISATTIVO"), b -> {
+            config.showAnvilPenaltyTooltip = !config.showAnvilPenaltyTooltip;
+            ModConfig.save();
+            this.clearWidgets();
+            this.init();
+        }).setSuccess(config.showAnvilPenaltyTooltip).setDanger(!config.showAnvilPenaltyTooltip);
+        this.addRenderableWidget(btnPenalty);
+
+        // 3. Palette Colori Evidenziazione Libri (Incudine)
+        rowY += 46;
+        SoftwareButton btnPalette = new SoftwareButton(btnX, rowY + 6, btnW, btnH,
+                Component.literal(config.getCurrentPreset().name), b -> {
+            config.colorPresetIndex = (config.colorPresetIndex + 1) % ModConfig.PRESETS.length;
+            ModConfig.save();
+            this.clearWidgets();
+            this.init();
+        });
+        this.addRenderableWidget(btnPalette);
+
+        // 4. Dettagli Lore Libri Incantati
+        rowY += 46;
+        SoftwareButton btnLoreDetail = new SoftwareButton(btnX, rowY + 6, btnW, btnH,
+                Component.literal(ModConfig.LORE_DETAIL_LABELS[config.bookLoreDetailMode]), b -> {
+            config.bookLoreDetailMode = (config.bookLoreDetailMode + 1) % ModConfig.LORE_DETAIL_LABELS.length;
+            ModConfig.save();
+            this.clearWidgets();
+            this.init();
+        });
+        this.addRenderableWidget(btnLoreDetail);
+
+        // 5. Avviso Libri Già Lavorati
+        rowY += 46;
+        SoftwareButton btnWarn = new SoftwareButton(btnX, rowY + 6, btnW, btnH,
+                Component.literal(config.warnUsedBooksInAnvil ? "✔ ATTIVO" : "✖ DISATTIVO"), b -> {
+            config.warnUsedBooksInAnvil = !config.warnUsedBooksInAnvil;
+            ModConfig.save();
+            this.clearWidgets();
+            this.init();
+        }).setSuccess(config.warnUsedBooksInAnvil).setDanger(!config.warnUsedBooksInAnvil);
+        this.addRenderableWidget(btnWarn);
+
+        // 6. Reset Defaults
+        int resetY = getWinY() + getWinH() - 24;
+        SoftwareButton btnReset = new SoftwareButton(startX + 6, resetY, 150, 18,
+                Component.literal("↺ Ripristina Default"), b -> {
+            config.guiScaleMode = 0;
+            config.showAnvilPenaltyTooltip = true;
+            config.colorPresetIndex = 0;
+            config.bookLoreDetailMode = 0;
+            config.warnUsedBooksInAnvil = true;
+            ModConfig.save();
+            showCenterNotification("Ripristinato", "Impostazioni predefinite ricaricate", true);
+            this.clearWidgets();
+            this.init();
+        });
+        this.addRenderableWidget(btnReset);
+    }
+
+    private void renderSettingsTab(GuiGraphicsExtractor extractor, int startX, int startY, int panelWidth, int panelHeight, int mouseX, int mouseY) {
+        ModConfig config = ModConfig.get();
+
+        // Titolo sezione
+        extractor.text(this.font, "⚙ IMPOSTAZIONI & PERSONALIZZAZIONE", startX + 6, startY + 6, 0xFFFFFFFF, true);
+        extractor.text(this.font, "Personalizza scala GUI, tooltip usura incudine, colori slot e descrizioni lore.", startX + 6, startY + 18, 0xFF9CA3AF, false);
+
+        int rowY = startY + 30;
+        int rowH = 42;
+        int cardW = panelWidth - 8;
+
+        // Card 1: Scala Interfaccia Mod (GUI Scale)
+        drawRoundedRect(extractor, startX, rowY, cardW, rowH, 6, 0xFF0B0D14);
+        drawRoundedOutline(extractor, startX, rowY, cardW, rowH, 6, 0xFF1E2334);
+        extractor.text(this.font, "Scala Interfaccia Mod (GUI Scale)", startX + 10, rowY + 7, 0xFFFFFFFF, true);
+        extractor.text(this.font, "Risolve il problema dello schermo tagliato per chi usa GUI Scale 4 (Auto adatta da sola)", startX + 10, rowY + 21, 0xFF6B7280, false);
+
+        // Card 2: Lore Usura Incudine
+        rowY += 46;
+        drawRoundedRect(extractor, startX, rowY, cardW, rowH, 6, 0xFF0B0D14);
+        drawRoundedOutline(extractor, startX, rowY, cardW, rowH, 6, 0xFF1E2334);
+        extractor.text(this.font, "Tooltip Usura Incudine (Armi, Armature, Libri)", startX + 10, rowY + 7, 0xFFFFFFFF, true);
+        extractor.text(this.font, "Mostra: \u00A7e⚠ Usura incudine: +31 liv. \u00A78· \u00A7f8 liberi \u00A77prima del limite 39", startX + 10, rowY + 21, 0xFF6B7280, false);
+
+        // Card 3: Palette Colori Evidenziazione Libri
+        rowY += 46;
+        drawRoundedRect(extractor, startX, rowY, cardW, rowH, 6, 0xFF0B0D14);
+        drawRoundedOutline(extractor, startX, rowY, cardW, rowH, 6, 0xFF1E2334);
+        extractor.text(this.font, "Evidenziazione Libri in Incudine", startX + 10, rowY + 7, 0xFFFFFFFF, true);
+
+        // Mostra preview mini campioni colori [1] e [2]
+        ModConfig.HighlightPreset preset = config.getCurrentPreset();
+        int prevBox1 = preset.slot1Border;
+        int prevBox2 = preset.slot2Border;
+        drawRoundedRect(extractor, startX + 10, rowY + 21, 13, 13, 3, 0xFF000000 | prevBox1);
+        extractor.text(this.font, "1", startX + 14, rowY + 24, 0xFFFFFFFF, true);
+        extractor.text(this.font, "Slot 1", startX + 27, rowY + 24, 0xFF9CA3AF, false);
+
+        drawRoundedRect(extractor, startX + 70, rowY + 21, 13, 13, 3, 0xFF000000 | prevBox2);
+        extractor.text(this.font, "2", startX + 74, rowY + 24, 0xFFFFFFFF, true);
+        extractor.text(this.font, "Slot 2", startX + 87, rowY + 24, 0xFF9CA3AF, false);
+
+        // Card 4: Dettagli Lore Libri Incantati
+        rowY += 46;
+        drawRoundedRect(extractor, startX, rowY, cardW, rowH, 6, 0xFF0B0D14);
+        drawRoundedOutline(extractor, startX, rowY, cardW, rowH, 6, 0xFF1E2334);
+        extractor.text(this.font, "Dettagli & Lore Aggiuntiva Libri", startX + 10, rowY + 7, 0xFFFFFFFF, true);
+        extractor.text(this.font, "Regola descrizioni, costi incudine, conflitti e icone degli oggetti compatibili", startX + 10, rowY + 21, 0xFF6B7280, false);
+
+        // Card 5: Avviso Libri Usati
+        rowY += 46;
+        drawRoundedRect(extractor, startX, rowY, cardW, rowH, 6, 0xFF0B0D14);
+        drawRoundedOutline(extractor, startX, rowY, cardW, rowH, 6, 0xFF1E2334);
+        extractor.text(this.font, "Avviso di Sicurezza Libri Usati", startX + 10, rowY + 7, 0xFFFFFFFF, true);
+        extractor.text(this.font, "Segnala libri con usura (>0 liv.) per evitare di bloccare il set a 11 incanti", startX + 10, rowY + 21, 0xFF6B7280, false);
     }
 
     // -------------------------------------------------------------
@@ -2492,13 +2748,63 @@ public class LitnessOptimizerScreen extends Screen {
     }
 
     @Override
+    public boolean mouseClicked(net.minecraft.client.input.MouseButtonEvent event, boolean doubleClick) {
+        float s = getEffectiveScale();
+        if (s != 1.0f) {
+            net.minecraft.client.input.MouseButtonEvent vEvent = new net.minecraft.client.input.MouseButtonEvent(
+                    event.x() / s, event.y() / s, event.buttonInfo()
+            );
+            return super.mouseClicked(vEvent, doubleClick);
+        }
+        return super.mouseClicked(event, doubleClick);
+    }
+
+    @Override
+    public boolean mouseReleased(net.minecraft.client.input.MouseButtonEvent event) {
+        float s = getEffectiveScale();
+        if (s != 1.0f) {
+            net.minecraft.client.input.MouseButtonEvent vEvent = new net.minecraft.client.input.MouseButtonEvent(
+                    event.x() / s, event.y() / s, event.buttonInfo()
+            );
+            return super.mouseReleased(vEvent);
+        }
+        return super.mouseReleased(event);
+    }
+
+    @Override
+    public boolean mouseDragged(net.minecraft.client.input.MouseButtonEvent event, double dx, double dy) {
+        float s = getEffectiveScale();
+        if (s != 1.0f) {
+            net.minecraft.client.input.MouseButtonEvent vEvent = new net.minecraft.client.input.MouseButtonEvent(
+                    event.x() / s, event.y() / s, event.buttonInfo()
+            );
+            return super.mouseDragged(vEvent, dx / s, dy / s);
+        }
+        return super.mouseDragged(event, dx, dy);
+    }
+
+    @Override
+    public void mouseMoved(double mouseX, double mouseY) {
+        float s = getEffectiveScale();
+        if (s != 1.0f) {
+            super.mouseMoved(mouseX / s, mouseY / s);
+            return;
+        }
+        super.mouseMoved(mouseX, mouseY);
+    }
+
+    @Override
     public boolean mouseScrolled(double mouseX, double mouseY, double horizontalAmount, double verticalAmount) {
+        float s = getEffectiveScale();
+        double vMouseX = (s != 1.0f) ? (mouseX / s) : mouseX;
+        double vMouseY = (s != 1.0f) ? (mouseY / s) : mouseY;
+
         int winX = getWinX();
         int winY = getWinY();
         int winW = getWinW();
         int winH = getWinH();
-        if (mouseX < winX || mouseX > winX + winW || mouseY < winY || mouseY > winY + winH) {
-            return super.mouseScrolled(mouseX, mouseY, horizontalAmount, verticalAmount);
+        if (vMouseX < winX || vMouseX > winX + winW || vMouseY < winY || vMouseY > winY + winH) {
+            return super.mouseScrolled(vMouseX, vMouseY, horizontalAmount, verticalAmount);
         }
 
         if (this.currentTab == Tab.CATALOG) {
