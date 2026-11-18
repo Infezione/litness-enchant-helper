@@ -964,9 +964,10 @@ public abstract class AnvilScreenMixin extends ItemCombinerScreen<AnvilMenu> {
     private ItemStack findEquipmentBySavedDetails(String savedItemId, String savedItemKey) {
         if (this.minecraft == null || this.minecraft.player == null) return ItemStack.EMPTY;
         Inventory inv = this.minecraft.player.getInventory();
-        int size = inv.getContainerSize();
+        // Solo slot hotbar + inventario principale (0-35), mai slot armatura (36-39) o offhand (40)
+        final int MAX_INVENTORY_SLOT = 36;
         if (savedItemId != null && !savedItemId.isEmpty()) {
-            for (int i = 0; i < size; i++) {
+            for (int i = 0; i < MAX_INVENTORY_SLOT; i++) {
                 ItemStack stack = inv.getItem(i);
                 if (stack.isEmpty() || ItemTypeHelper.isContainerOrShulker(stack)) continue;
                 String id = net.minecraft.core.registries.BuiltInRegistries.ITEM.getKey(stack.getItem()).toString();
@@ -996,6 +997,7 @@ public abstract class AnvilScreenMixin extends ItemCombinerScreen<AnvilMenu> {
 
     private ItemStack findMatchingEquipmentInInventory(ItemStack target) {
         if (target == null || target.isEmpty()) return ItemStack.EMPTY;
+        // Se slot 0 dell'incudine ha già l'item, restituisci quello direttamente
         if (this.menu != null) {
             ItemStack s0 = this.menu.getSlot(0).getItem();
             if (!s0.isEmpty() && s0.getItem() == target.getItem()) {
@@ -1004,11 +1006,14 @@ public abstract class AnvilScreenMixin extends ItemCombinerScreen<AnvilMenu> {
         }
         if (this.minecraft == null || this.minecraft.player == null) return target;
         Inventory inv = this.minecraft.player.getInventory();
-        int size = inv.getContainerSize();
+        // IMPORTANTE: limitare la ricerca ai soli slot 0-35 (hotbar + inventario principale)
+        // Escludere slot 36-39 (armatura equipaggiata) e slot 40 (offhand)
+        // per evitare di leggere gli enchant dall'armatura indossata invece che dall'incudine
+        final int MAX_INVENTORY_SLOT = 36;
         String targetName = target.getHoverName().getString();
 
         // 1. Corrispondenza perfetta: stesso item, stesso nome personalizzato e stessa penalità
-        for (int i = 0; i < size; i++) {
+        for (int i = 0; i < MAX_INVENTORY_SLOT; i++) {
             ItemStack stack = inv.getItem(i);
             if (stack.isEmpty() || ItemTypeHelper.isContainerOrShulker(stack)) continue;
             if (stack.getItem() == target.getItem()) {
@@ -1021,7 +1026,7 @@ public abstract class AnvilScreenMixin extends ItemCombinerScreen<AnvilMenu> {
         }
 
         // 2. Corrispondenza per stesso item e stessa penalità
-        for (int i = 0; i < size; i++) {
+        for (int i = 0; i < MAX_INVENTORY_SLOT; i++) {
             ItemStack stack = inv.getItem(i);
             if (stack.isEmpty() || ItemTypeHelper.isContainerOrShulker(stack)) continue;
             if (stack.getItem() == target.getItem()) {
@@ -1034,7 +1039,7 @@ public abstract class AnvilScreenMixin extends ItemCombinerScreen<AnvilMenu> {
         }
 
         // 3. Corrispondenza per stesso identico item (non sostituisce mai es. Diamond Sword con Netherite)
-        for (int i = 0; i < size; i++) {
+        for (int i = 0; i < MAX_INVENTORY_SLOT; i++) {
             ItemStack stack = inv.getItem(i);
             if (stack.isEmpty() || ItemTypeHelper.isContainerOrShulker(stack)) continue;
             if (stack.getItem() == target.getItem()) {
@@ -1047,11 +1052,12 @@ public abstract class AnvilScreenMixin extends ItemCombinerScreen<AnvilMenu> {
     private ItemStack findEquipmentByKeyInInventory(String targetKey) {
         if (targetKey == null || this.minecraft == null || this.minecraft.player == null) return ItemStack.EMPTY;
         Inventory inv = this.minecraft.player.getInventory();
-        int size = inv.getContainerSize();
+        // Solo slot hotbar + inventario principale (0-35), mai slot armatura (36-39) o offhand (40)
+        final int MAX_INVENTORY_SLOT = 36;
         ItemStack bestCandidate = ItemStack.EMPTY;
         int minEnchants = 999;
 
-        for (int i = 0; i < size; i++) {
+        for (int i = 0; i < MAX_INVENTORY_SLOT; i++) {
             ItemStack stack = inv.getItem(i);
             if (!stack.isEmpty() && !ItemTypeHelper.isContainerOrShulker(stack) && ItemTypeHelper.isEnchantableWeaponOrArmor(stack)) {
                 String k = ItemTypeHelper.detectItemKey(stack);
@@ -1071,12 +1077,13 @@ public abstract class AnvilScreenMixin extends ItemCombinerScreen<AnvilMenu> {
     private ItemStack findAnyEquipmentInInventory() {
         if (this.minecraft == null || this.minecraft.player == null) return ItemStack.EMPTY;
         Inventory inv = this.minecraft.player.getInventory();
-        int size = inv.getContainerSize();
+        // Solo slot hotbar + inventario principale (0-35), mai slot armatura (36-39) o offhand (40)
+        final int MAX_INVENTORY_SLOT = 36;
         ItemStack bestCandidate = ItemStack.EMPTY;
         ItemStack fallbackMaxed = ItemStack.EMPTY;
         int minEnchants = 999;
 
-        for (int i = 0; i < size; i++) {
+        for (int i = 0; i < MAX_INVENTORY_SLOT; i++) {
             ItemStack stack = inv.getItem(i);
             if (!stack.isEmpty() && !ItemTypeHelper.isContainerOrShulker(stack) && ItemTypeHelper.isEnchantableWeaponOrArmor(stack)) {
                 if (!AnvilTooltipState.isItemMaxed(stack)) {
