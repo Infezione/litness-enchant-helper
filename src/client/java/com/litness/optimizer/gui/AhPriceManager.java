@@ -159,7 +159,7 @@ public class AhPriceManager {
     private static long lastContainerRemovedTime = 0;
 
     public static boolean isAutoScanning() {
-        return isAutoScanning;
+        return false;
     }
 
     public static long getLastAutoScanClick() {
@@ -1654,6 +1654,13 @@ public class AhPriceManager {
         return false;
     }
 
+    public static boolean handleCharTyped(CharacterEvent event) {
+        if (searchBox != null && searchBox.isFocused() && searchBox.visible) {
+            return searchBox.charTyped(event);
+        }
+        return false;
+    }
+
     public static void updateAutocompleteSuggestions(String query) {
         currentSuggestions.clear();
         hoveredSuggestionIndex = -1;
@@ -1785,52 +1792,6 @@ public class AhPriceManager {
             return true;
         }
 
-        // 2b. Click sul pulsante [Ricerca Automatica] o sul footer interattivo
-        boolean clickedScan = (btnScanW > 0 && btnScanH > 0
-                && mouseX >= btnScanX && mouseX <= btnScanX + btnScanW
-                && mouseY >= btnScanY && mouseY <= btnScanY + btnScanH);
-        boolean clickedFooter = (footerBtnW > 0 && footerBtnH > 0
-                && mouseX >= footerBtnX && mouseX <= footerBtnX + footerBtnW
-                && mouseY >= footerBtnY && mouseY <= footerBtnY + footerBtnH);
-        if (isLeftClick && (clickedScan || clickedFooter)) {
-            Minecraft mc = Minecraft.getInstance();
-            if (isAutoScanning) {
-                isAutoScanning = false;
-                autoScanReturning = false;
-                autoScanPageCount = 0;
-                lastAutoScanKeys.clear();
-                if (mc.player != null) {
-                    mc.player.sendOverlayMessage(Component.literal("§c• Ricerca automatica interrotta"));
-                }
-            } else {
-                isAutoScanning = true;
-                hasSelectedBooksCategory = true;
-                hasAutoScannedThisSession = false;
-                autoScanReturning = false;
-                autoScanPageCount = 0;
-                autoScanCurrentPage = 1;
-                autoScanWaitingNewPage = false;
-                autoScanPreviousKeys.clear();
-                lastScannedTotalPages = 1;
-                lastAutoScanClick = System.currentTimeMillis();
-                lastAutoScanKeys.clear();
-                cachedListings.clear();
-                pageToListings.clear();
-                currentAhPage = 1;
-
-                // Clicca IMMEDIATAMENTE sullo slot del libro (Slot 7)
-                int bookSlot = findBookCategorySlot(containerScreen);
-                if (bookSlot >= 0 && bookSlot < containerScreen.getMenu().slots.size()) {
-                    Slot sBook = containerScreen.getMenu().slots.get(bookSlot);
-                    clickSlot(containerScreen, sBook);
-                }
-                if (mc.player != null) {
-                    mc.player.sendOverlayMessage(Component.literal("§e✦ Apertura sezione Libri e avvio ricerca automatica..."));
-                }
-            }
-            return true;
-        }
-
         // 3. Click sulla barra di ricerca
         if (isLeftClick && searchBox != null && searchBox.visible) {
             if (mouseX >= lastSearchBoxX && mouseX <= lastSearchBoxX + lastSearchBoxW &&
@@ -1883,41 +1844,18 @@ public class AhPriceManager {
             AhListing targetListing = clickedListing;
             if (isLeftClick) {
                 Minecraft mc = Minecraft.getInstance();
-
-                // 1. Controlla prima se l'oggetto si trova già nella pagina visualizzata attualmente:
                 int slotIdx = findSlotForListing(containerScreen, targetListing);
-
                 if (slotIdx >= 0) {
-                    Slot targetSlot = containerScreen.getMenu().slots.get(slotIdx);
-                    pendingBuyKey = targetListing.key;
-                    pendingBuyPrice = targetListing.price;
-                    pendingBuyTime = System.currentTimeMillis();
-                    clickSlot(containerScreen, targetSlot);
-                    autoNavListing = null;
-                    autoNavAttempts = 0;
-                    autoNavWaitRetries = 0;
-                    autoNavArrivalStartTime = 0;
-                    autoNavTrackedPage = -1;
                     if (mc.player != null) {
-                        mc.player.sendOverlayMessage(Component.literal("§a✔ Apertura menu acquisto per " + targetListing.getDisplayNameWithLevel()));
+                        mc.player.sendOverlayMessage(Component.literal("§a✔ Trovato qui nello Slot " + slotIdx + "! Clicca il libro nella cassa"));
+                    }
+                    return true;
+                } else {
+                    if (mc.player != null) {
+                        mc.player.sendOverlayMessage(Component.literal("§e✦ " + targetListing.getDisplayNameWithLevel() + " a " + targetListing.formattedPrice + " da " + targetListing.seller + ": Pagina " + targetListing.page + " (Slot " + targetListing.slot + ")"));
                     }
                     return true;
                 }
-
-                // 2. L'oggetto si trova su un'altra pagina: avvia navigazione automatica controllata!
-                autoNavListing = targetListing;
-                autoNavAttempts = 0;
-                autoNavWaitRetries = 0;
-                autoNavArrivalStartTime = 0;
-                autoNavLastClick = 0; // Trigger immediato al prossimo tick
-                autoNavWaitingNewPage = false;
-                autoNavPreviousKeys.clear();
-                // La pagina di partenza è la pagina reale in cui ci troviamo (es. 8 se abbiamo completato lo scan)
-                autoNavTrackedPage = Math.max(1, currentAhPage);
-                if (mc.player != null) {
-                    mc.player.sendOverlayMessage(Component.literal("§e✦ Nav: da Pag. " + autoNavTrackedPage + " verso Pag. " + targetListing.page + " per " + targetListing.getDisplayNameWithLevel() + " (" + targetListing.price + "$)..."));
-                }
-                return true;
             } else if (isRightClick) {
                 cachedListings.remove(targetListing.key);
                 for (Set<String> pageSet : pageToListings.values()) {
@@ -1995,213 +1933,7 @@ public class AhPriceManager {
     }
 
     public static void tickAutoNavigation(AbstractContainerScreen<?> screen) {
-        long now = System.currentTimeMillis();
-        if (screen == null || !isAuctionHouse(screen)) {
-            if (isAutoScanning && (now - lastAutoScanClick < 3500)) {
-                return; // Attendi che il server stabilizzi la nuova schermata
-            }
-            if (autoNavListing != null && (now - autoNavLastClick < 3500)) {
-                return;
-            }
-            autoNavListing = null;
-            autoNavAttempts = 0;
-            autoNavWaitRetries = 0;
-            autoNavTrackedPage = -1;
-            isAutoScanning = false;
-            autoScanReturning = false;
-            autoScanPageCount = 0;
-            autoScanWaitRetries = 0;
-            return;
-        }
-
-        Minecraft mc = Minecraft.getInstance();
-
-        // 1. RICERCA AUTOMATICA SUPER VELOCE DI TUTTE LE PAGINE
-        if (isAutoScanning) {
-            long elapsed = now - lastAutoScanClick;
-
-            // Se stiamo aspettando che il server invii la nuova pagina dopo il click:
-            if (autoScanWaitingNewPage) {
-                // Se dopo 700ms le offerte non cambiano, probabilmente abbiamo raggiunto la fine dello sfoglio
-                if (elapsed > 700) {
-                    isAutoScanning = false;
-                    autoScanWaitingNewPage = false;
-                    currentAhPage = autoScanCurrentPage;
-                    lastScannedTotalPages = autoScanCurrentPage;
-                    if (mc.player != null) {
-                        mc.player.sendOverlayMessage(Component.literal("§a✔ Ricerca completata: " + cachedListings.size() + " offerte salvate (fino a Pagina " + autoScanCurrentPage + ")!"));
-                    }
-                    return;
-                }
-                return; // Attendi che scanCurrentContainer rilevi il cambio effettivo delle offerte
-            }
-
-            // Minimo 160ms tra i click
-            if (elapsed < 160) return;
-
-            // Cerca la freccia per la pagina successiva
-            int nextSlot = findNextPageSlot(screen);
-            if (nextSlot < 0 || autoScanCurrentPage >= 25) {
-                // Nessuna freccia per andare avanti o limite raggiunto: siamo arrivati all'ULTIMA pagina!
-                isAutoScanning = false;
-                autoScanWaitingNewPage = false;
-                currentAhPage = autoScanCurrentPage;
-                lastScannedTotalPages = autoScanCurrentPage;
-                if (mc.player != null) {
-                    mc.player.sendOverlayMessage(Component.literal("§a✔ Ricerca completata: " + cachedListings.size() + " offerte salvate (fino a Pagina " + autoScanCurrentPage + ")!"));
-                }
-                return;
-            }
-
-            // Salva le chiavi della pagina corrente e clicca per avanzare
-            autoScanPreviousKeys = new HashSet<>(lastScreenListingKeys);
-            autoScanWaitingNewPage = true;
-            lastAutoScanClick = now;
-            Slot s = screen.getMenu().slots.get(nextSlot);
-            clickSlot(screen, s);
-            if (mc.player != null) {
-                mc.player.sendOverlayMessage(Component.literal("§e✦ Ricerca /ah pagina " + autoScanCurrentPage + " ➔ " + (autoScanCurrentPage + 1) + " (" + cachedListings.size() + " offerte)..."));
-            }
-            return;
-        }
-
-        // 2. NAVIGAZIONE AUTOMATICA PER TROVARE E COMPRARE L'OFFERTA NELLA POSIZIONE SALVATA (PAGINA + SLOT)
-        if (autoNavListing != null) {
-            int targetPage = Math.max(1, autoNavListing.page);
-            int targetSlot = autoNavListing.slot;
-
-            // Inizializza autoNavTrackedPage se non ancora settato (prima iterazione)
-            if (autoNavTrackedPage < 1) {
-                autoNavTrackedPage = Math.max(1, currentAhPage);
-            }
-
-            // Controllo 1: L'oggetto desiderato è comparso a schermo (nello slot esatto salvato o in qualsiasi slot d'asta)?
-            int directSlot = findSlotForListing(screen, autoNavListing);
-            if (directSlot >= 0) {
-                Slot s = screen.getMenu().slots.get(directSlot);
-                pendingBuyKey = autoNavListing.key;
-                pendingBuyPrice = autoNavListing.price;
-                pendingBuyTime = now;
-                clickSlot(screen, s);
-                if (mc.player != null) {
-                    mc.player.sendOverlayMessage(Component.literal("§a✔ Trovato a Pagina " + autoNavTrackedPage + " (Slot " + directSlot + ")! Apertura acquisto..."));
-                }
-                autoNavListing = null;
-                autoNavAttempts = 0;
-                autoNavWaitRetries = 0;
-                autoNavArrivalStartTime = 0;
-                autoNavTrackedPage = -1;
-                autoNavWaitingNewPage = false;
-                return;
-            }
-
-            // Se stiamo aspettando che il server aggiorni l'inventario dopo un click freccia:
-            if (autoNavWaitingNewPage) {
-                long elapsed = now - autoNavLastClick;
-                if (elapsed < 350) {
-                    return; // Attendi che i pacchetti di rete aggiornino la schermata
-                }
-                autoNavWaitingNewPage = false;
-            }
-
-            // Ritardo di sicurezza tra i click di cambio pagina per dare respiro alla connessione (200ms)
-            if (now - autoNavLastClick < 200) return;
-
-            autoNavAttempts++;
-            if (autoNavAttempts >= 80) {
-                if (mc.player != null) {
-                    mc.player.sendOverlayMessage(Component.literal("§c• Timeout navigazione: impossibile raggiungere Pagina " + targetPage));
-                }
-                autoNavListing = null;
-                autoNavAttempts = 0;
-                autoNavWaitRetries = 0;
-                autoNavArrivalStartTime = 0;
-                autoNavTrackedPage = -1;
-                autoNavWaitingNewPage = false;
-                return;
-            }
-
-            int prevSlot = findPrevPageSlot(screen);
-            int nextSlot = findNextPageSlot(screen);
-
-            // A) Ci troviamo a una pagina successiva rispetto alla pagina target salvata: SFOGLIA A RITROSO!
-            if (autoNavTrackedPage > targetPage) {
-                int clickSlotIdx = (prevSlot >= 0) ? prevSlot : 48;
-                if (clickSlotIdx < screen.getMenu().slots.size()) {
-                    Slot s = screen.getMenu().slots.get(clickSlotIdx);
-                    ItemStack stack = s.getItem();
-                    if (!stack.is(Items.BARRIER) && !isGlassPane(stack)) {
-                        autoNavPreviousKeys = new HashSet<>(lastScreenListingKeys);
-                        autoNavWaitingNewPage = true;
-                        autoNavLastClick = now;
-                        autoNavArrivalStartTime = 0;
-                        autoNavTrackedPage--;
-                        currentAhPage = autoNavTrackedPage;
-                        clickSlot(screen, s);
-                        if (mc.player != null) {
-                            mc.player.sendOverlayMessage(Component.literal("§e✦ Pag. " + (autoNavTrackedPage + 1) + " ➔ " + autoNavTrackedPage + " (target: " + targetPage + ")"));
-                        }
-                        return;
-                    }
-                }
-                // Se non c'è possibilità di andare indietro, siamo arrivati a pagina 1
-                autoNavTrackedPage = 1;
-                currentAhPage = 1;
-            }
-
-            // B) Ci troviamo a una pagina precedente rispetto alla pagina target salvata: SFOGLIA IN AVANTI!
-            if (autoNavTrackedPage < targetPage) {
-                int clickSlotIdx = (nextSlot >= 0) ? nextSlot : 50;
-                if (clickSlotIdx < screen.getMenu().slots.size()) {
-                    Slot s = screen.getMenu().slots.get(clickSlotIdx);
-                    ItemStack stack = s.getItem();
-                    if (!stack.is(Items.BARRIER) && !isGlassPane(stack)) {
-                        autoNavPreviousKeys = new HashSet<>(lastScreenListingKeys);
-                        autoNavWaitingNewPage = true;
-                        autoNavLastClick = now;
-                        autoNavArrivalStartTime = 0;
-                        autoNavTrackedPage++;
-                        currentAhPage = autoNavTrackedPage;
-                        clickSlot(screen, s);
-                        if (mc.player != null) {
-                            mc.player.sendOverlayMessage(Component.literal("§e✦ Pag. " + (autoNavTrackedPage - 1) + " ➔ " + autoNavTrackedPage + " (target: " + targetPage + ")"));
-                        }
-                        return;
-                    }
-                }
-            }
-
-            // C) Ci troviamo esattamente alla pagina target memorizzata!
-            if (autoNavTrackedPage == targetPage) {
-                if (autoNavArrivalStartTime <= 0) {
-                    autoNavArrivalStartTime = now;
-                    if (mc.player != null) {
-                        mc.player.sendOverlayMessage(Component.literal("§b✦ Arrivato a Pagina " + targetPage + ", attendo caricamento..."));
-                    }
-                }
-                // Attendi fino a 1.2s che gli item della pagina target si stabilizzino via pacchetti di rete
-                if (now - autoNavArrivalStartTime < 1200) {
-                    return;
-                }
-
-                // Se dopo 1.2s l'item non compare nello slot salvato né su questa pagina, l'offerta è stata rimossa
-                cachedListings.remove(autoNavListing.key);
-                for (Set<String> pageSet : pageToListings.values()) {
-                    pageSet.remove(autoNavListing.key);
-                }
-                recalculateMinPrices();
-                if (mc.player != null) {
-                    mc.player.sendOverlayMessage(Component.literal("§c• Offerta a Pagina " + targetPage + " (Slot " + targetSlot + ") gia' acquistata o rimossa"));
-                }
-                autoNavListing = null;
-                autoNavAttempts = 0;
-                autoNavWaitRetries = 0;
-                autoNavArrivalStartTime = 0;
-                autoNavTrackedPage = -1;
-                autoNavWaitingNewPage = false;
-                return;
-            }
-        }
+        // Disabilitata qualsiasi scansione/navigazione automatica con invio pacchetti: conformita' assoluta alle regole server (Zero Macro/Bot)
     }
 
     public static void renderAhSidebar(GuiGraphicsExtractor extractor, AbstractContainerScreen<?> screen, int leftPos, int topPos, int imageWidth, int imageHeight, int mouseX, int mouseY, float delta) {
@@ -2252,6 +1984,9 @@ public class AhPriceManager {
         boolean hasQuery = !rawQuery.isEmpty();
         boolean hasFilter = searchEnchants != null && !searchEnchants.isEmpty();
 
+        // Intestazione
+        extractor.text(font, "§b✦ AH HELPER", sideX + 8, sideY + 7, 0xFF38BDF8, false);
+
         // Tasto [Azzera]
         btnClearW = 38;
         btnClearX = sideX + sideW - btnClearW - 6;
@@ -2263,21 +1998,14 @@ public class AhPriceManager {
         LitnessOptimizerScreen.drawRoundedOutline(extractor, btnClearX, btnClearY, btnClearW, btnClearH, 4, btnBorder);
         extractor.centeredText(font, "Azzera", btnClearX + (btnClearW / 2), btnClearY + 2, isClearHovered ? 0xFFFCA5A5 : 0xFF94A3B8);
 
-        // Tasto [Ricerca Automatica]
-        btnScanX = sideX + 6;
-        btnScanW = btnClearX - btnScanX - 5;
-        btnScanY = sideY + 5;
-        isScanHovered = mouseX >= btnScanX && mouseX <= btnScanX + btnScanW && mouseY >= btnScanY && mouseY <= btnScanY + btnScanH;
-        String scanText = isAutoScanning ? "⏹ Ferma Ricerca" : "⚡ Ricerca Automatica";
-        int scanBg = isAutoScanning ? 0xFF065F46 : (isScanHovered ? 0xFF1E3A8A : 0xFF181D2E);
-        int scanBorder = isAutoScanning ? 0xFF10B981 : (isScanHovered ? 0xFF3B82F6 : 0xFF1E2334);
-        LitnessOptimizerScreen.drawRoundedRect(extractor, btnScanX, btnScanY, btnScanW, btnScanH, 4, scanBg);
-        LitnessOptimizerScreen.drawRoundedOutline(extractor, btnScanX, btnScanY, btnScanW, btnScanH, 4, scanBorder);
-        extractor.centeredText(font, scanText, btnScanX + (btnScanW / 2), btnScanY + 2, isAutoScanning ? 0xFF6EE7B7 : (isScanHovered ? 0xFF93C5FD : 0xFF60A5FA));
+        btnScanX = -9999;
+        btnScanY = -9999;
+        btnScanW = 0;
+        btnScanH = 0;
 
         // Barra di Ricerca Rapida Standard
         int searchBoxX = sideX + 6;
-        int searchBoxY = sideY + 22;
+        int searchBoxY = sideY + 20;
         int searchBoxW = sideW - 12;
         int searchBoxH = 18;
         lastSearchBoxX = searchBoxX;
@@ -2294,26 +2022,6 @@ public class AhPriceManager {
         }
 
         int curY = searchBoxY + searchBoxH + 5;
-
-        // Banner animato HUD durante navigazione per acquisto offerta
-        if (autoNavListing != null) {
-            int navBannerY = curY;
-            int navBannerH = 20;
-            curY += navBannerH + 4;
-
-            long time = System.currentTimeMillis();
-            double p = (Math.sin(time / 140.0) + 1.0) / 2.0;
-            int pulseAlpha = (int)(0x90 + p * 0x6F);
-
-            LitnessOptimizerScreen.drawRoundedRect(extractor, sideX + 6, navBannerY, sideW - 12, navBannerH, 4, 0xEE0B182B);
-            LitnessOptimizerScreen.drawRoundedOutline(extractor, sideX + 6, navBannerY, sideW - 12, navBannerH, 4, 0xFF3B82F6);
-            extractor.fill(sideX + 10, navBannerY + 6, sideX + 14, navBannerY + 14, (pulseAlpha << 24) | 0x38BDF8);
-
-            String navMsg = "✦ Destinazione: Pagina " + autoNavListing.page + " (Slot " + autoNavListing.slot + ")";
-            extractor.text(font, navMsg, sideX + 18, navBannerY + 3, 0xFF67E8F9, false);
-            String navSub = autoNavListing.getDisplayNameWithLevel() + " §a" + autoNavListing.price + "$ \u00A78(" + autoNavListing.seller + ")";
-            extractor.text(font, navSub, sideX + 18, navBannerY + 11, 0xFF94A3B8, false);
-        }
 
         if (!hasQuery && !hasFilter) {
             scrollOffset = 0;
@@ -2406,8 +2114,8 @@ public class AhPriceManager {
             if (cachedListings.isEmpty()) {
                 extractor.centeredText(font, "0 libri scansionati", sideX + (sideW / 2), boxY + 28, 0xFF60A5FA);
                 extractor.centeredText(font, "Sfoglia le pagine", sideX + (sideW / 2), boxY + 44, 0xFFE2E8F0);
-                extractor.centeredText(font, "di /ah o premi [Ricerca Automatica]", sideX + (sideW / 2), boxY + 54, 0xFFE2E8F0);
-                extractor.centeredText(font, "per leggere i prezzi!", sideX + (sideW / 2), boxY + 64, 0xFFE2E8F0);
+                extractor.centeredText(font, "di /ah per leggere", sideX + (sideW / 2), boxY + 54, 0xFFE2E8F0);
+                extractor.centeredText(font, "i prezzi dei libri!", sideX + (sideW / 2), boxY + 64, 0xFFE2E8F0);
             } else {
                 extractor.centeredText(font, "0 offerte trovate", sideX + (sideW / 2), boxY + 28, 0xFF60A5FA);
                 extractor.centeredText(font, "Nessun venditore per", sideX + (sideW / 2), boxY + 44, 0xFFE2E8F0);
@@ -2630,18 +2338,16 @@ public class AhPriceManager {
             LitnessOptimizerScreen.drawRoundedRect(extractor, scrollBarX, scrollThumbY, scrollBarW, scrollThumbH, 2, thumbColor);
         }
 
-        // Footer informativo e interattivo per avviare o fermare la scansione
-        int footerBoxH = 15;
+        // Footer informativo
+        int footerBoxH = 14;
         int footerY = sideY + sideH - footerBoxH;
-        footerBtnX = sideX + 1;
-        footerBtnY = footerY;
-        footerBtnW = sideW - 2;
-        footerBtnH = footerBoxH - 1;
-        boolean isFooterHovered = mouseX >= footerBtnX && mouseX <= footerBtnX + footerBtnW && mouseY >= footerBtnY && mouseY <= footerBtnY + footerBtnH;
-        int footerBg = isAutoScanning ? 0xFF064E3B : (isFooterHovered ? 0xFF1E293B : 0xFF0D0F18);
-        LitnessOptimizerScreen.drawRoundedRect(extractor, footerBtnX, footerBtnY, footerBtnW, footerBtnH, 6, footerBg);
-        String footerMsg = isAutoScanning ? "§e✦ Ricerca in corso... (clicca Stop)" : (isFooterHovered ? "§b⚡ Clicca per avviare la ricerca automatica" : "Ricerca Automatica /ah");
-        extractor.centeredText(font, footerMsg, sideX + (sideW / 2), footerY + 3, isAutoScanning ? 0xFFFDE047 : (isFooterHovered ? 0xFF38BDF8 : 0xFF64748B));
+        footerBtnX = -9999;
+        footerBtnY = -9999;
+        footerBtnW = 0;
+        footerBtnH = 0;
+        LitnessOptimizerScreen.drawRoundedRect(extractor, sideX + 1, footerY, sideW - 2, footerBoxH - 1, 6, 0xFF0D0F18);
+        String footerMsg = cachedListings.isEmpty() ? "§7Sfoglia l'AH per salvare le offerte" : ("§8Offerte salvate: §a" + cachedListings.size());
+        extractor.centeredText(font, footerMsg, sideX + (sideW / 2), footerY + 3, 0xFF94A3B8);
 
         // Bordo finale contenitore
         LitnessOptimizerScreen.drawRoundedOutline(extractor, sideX, sideY, sideW, sideH, 8, 0xFF1E2334);

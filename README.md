@@ -1,5 +1,8 @@
 # ⚡ Litness Enchant v1.3.1 | By Waaxey
 
+> [!WARNING]
+> **DISCLAIMER**: Questo progetto non è affiliato, approvato o supportato da Litness Ltd. Lo usi a tuo rischio: potrebbe contenere bug o smettere di funzionare in qualsiasi momento. Litness Ltd non si assume alcuna responsabilità per ban, perdita di dati, account o oggetti, né per qualsiasi altro danno derivante dal suo utilizzo. Per assistenza contatta l'autore del progetto, non lo staff di Litness.
+
 [![DOWNLOAD MOD (.JAR)](https://img.shields.io/badge/⚡%20SCARICA%20SUBITO%20LA%20MOD%20(.JAR)-VERSIONE%201.3.1-22c55e?style=for-the-badge&logo=curseforge&logoColor=white)](https://github.com/Infezione/litness-enchant-helper/releases/download/v1.3.1/LitnessEnchantHelper-1.3.1.jar)
 [![ULTIMI AGGIORNAMENTI](https://img.shields.io/badge/🌟%20ULTIMI%20AGGIORNAMENTI-VEDI%20LE%20NOVITÀ-6366f1?style=for-the-badge&logo=sparkles&logoColor=white)](#ultimi-aggiornamenti)
 

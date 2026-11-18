@@ -1097,7 +1097,6 @@ public abstract class AnvilScreenMixin extends ItemCombinerScreen<AnvilMenu> {
         if (currentHash == lastSlot0Hash && quickInvHash == lastQuickInvHash) {
             return;
         }
-        lastSlot0Hash = currentHash;
         lastQuickInvHash = quickInvHash;
 
         // Rileva tutti i libri dall'inventario e dall'incudine (SOLO libri sciolti, MAI shulker o contenitori!)

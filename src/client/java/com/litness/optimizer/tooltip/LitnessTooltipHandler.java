@@ -314,12 +314,19 @@ public class LitnessTooltipHandler {
         clean = clean.replaceAll("(?i)§[0-9a-fk-orx]", "").trim();
         if (clean.isEmpty()) return null;
 
+        // Rimuove simboli iniziali decorativi e bullet (es: "• ", "⚡ ", "✦ ", "» ")
+        clean = clean.replaceAll("^[•✦⚡*\\-◆★✧✨⚔⚜✪✯⚙☠🗡🛡🏹⛏►»↳\\s]+", "").trim();
+
+        // Rimuove qualsiasi tag tra parentesi quadre o tonde (es: "[Max II]", "[EPICO]", "[RARO]", "[COMUNE]", "[MOLTO SPECIALE]")
+        clean = clean.replaceAll("\\[[^\\]]*\\]", "").replaceAll("\\([^\\)]*\\)", "").trim();
+        if (clean.isEmpty()) return null;
+
         // Se contiene parole chiave tecniche, di conflitti o descrittive, la ignoriamo categoricamente
         String lowerClean = clean.toLowerCase();
         if (lowerClean.contains("conflitt") || lowerClean.contains("conflict") || lowerClean.contains("incompatibil")
             || lowerClean.contains("non compatibile") || clean.contains("⚔")
-            || clean.contains("↳") || lowerClean.contains("[max") || clean.contains("[✓")
-            || clean.contains("•") || lowerClean.contains("incudine") || lowerClean.contains("penalità")
+            || clean.contains("↳") || clean.contains("[✓")
+            || lowerClean.contains("incudine") || lowerClean.contains("penalità")
             || lowerClean.contains("applicabile") || lowerClean.contains("costo") || lowerClean.contains("livell")
             || lowerClean.contains("requisiti") || lowerClean.contains("informazioni") || lowerClean.contains("limite")
             || lowerClean.contains("danno") || lowerClean.contains("probabilità") || lowerClean.contains("secondi")) {

@@ -68,6 +68,15 @@ public abstract class ContainerScreenMixin extends Screen {
         }
     }
 
+    @Inject(method = "charTyped", at = @At("HEAD"), cancellable = true, require = 0)
+    private void litness_onContainerCharTyped(net.minecraft.client.input.CharacterEvent event, CallbackInfoReturnable<Boolean> cir) {
+        if (com.litness.optimizer.gui.AhPriceManager.isAuctionHouse((AbstractContainerScreen<?>) (Object) this)) {
+            if (com.litness.optimizer.gui.AhPriceManager.handleCharTyped(event)) {
+                cir.setReturnValue(true);
+            }
+        }
+    }
+
     @Inject(method = "extractTooltip", at = @At("HEAD"), cancellable = true, require = 0)
     private void litness_clampAnvilTooltip(GuiGraphicsExtractor extractor, int mouseX, int mouseY, CallbackInfo ci) {
         if (((Object) this) instanceof net.minecraft.client.gui.screens.inventory.AnvilScreen) {
