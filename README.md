@@ -66,14 +66,15 @@ Sul server Litness, maxare un'arma o un pezzo d'armatura con 10–12 incantesimi
 
 ---
 
-### 4. 🛒 Marketplace `/ah` Smart Multi-Page Crawler
-![Assistente Prezzi AH](docs/images/preview_ah.png)
-- **Pulsante `[⚡ Sfoglia Tutto]`**: scansiona in pochi secondi l'intero catalogo della Casa d'Aste (`/ah`) sfogliando automaticamente tutte le pagine e memorizzando ogni singolo libro in vendita.
-- **Navigazione Automatica su Click Offerta**: cliccando su una qualsiasi offerta nella sidebar laterale, la mod sfoglia le pagine dell'asta in automatico fino a raggiungere l'oggetto e apre direttamente il menu di conferma acquisto del server!
+### 4. 🛒 Assistente Prezzi & Ricerca Libri `/ah`
+- **Barra di Ricerca Rapida**: digita il nome di qualsiasi incantesimo per filtrare all'istante le offerte migliori con autocompletamento intelligente.
+- **Tracciamento Prezzi Passivo & Sicuro (100% Legit, Zero Botting)**:
+  - Navigando normalmente tra le pagine della Casa d'Aste (`/ah`), la mod memorizza passivamente i libri in vendita e calcola il miglior prezzo disponibile.
+  - Nessun macro-click o automazione bannabile: totale conformità al regolamento di gioco.
 - **Confronto Prezzi Netto + Tasse**:
   - Calcola istantaneamente il prezzo netto e le relative tasse di compravendita del server (es. `Netto: 12.500$ + 1.500$ tax`).
   - Classifica ordinata dei venditori più convenienti dal più economico al più costoso.
-- **Rimozione Automatica delle Inserzioni Vendute**: rileva in tempo reale quando un libro viene acquistato o rimosso e lo cancella istantaneamente dalla barra laterale.
+- **Promemoria Posizione Offerte**: cliccando su un'offerta salvata nella barra laterale, ricevi l'indicazione esatta di **Pagina** e **Slot** in cui trovare il libro al prezzo migliore.
 - **Highlight Colorato degli Slot**:
   - 🟠 **Arancione Oro**: evidenzia il libro con il **Miglior Prezzo** assoluto.
   - 🟢 **Verde Smeraldo**: evidenzia tutti gli altri libri lisci corrispondenti alla ricerca.
@@ -153,8 +154,8 @@ Sul server Litness, maxare un'arma o un pezzo d'armatura con 10–12 incantesimi
   - Al clic, visualizza i passi di forgiatura ordinati con schede da 44px, icone 3D di Slot 1, Slot 2 e Risultato finale, pillola XP color verde smeraldo e tasto `[⬅ Torna ai Set]`.
   - Eliminati i vecchi tooltip ingombranti che coprivano le righe durante il passaggio del mouse.
 
-- 🛒 **Ricerca Automatica & Auto-Acquisto /ah**:
-  - Scansione ultra-veloce di tutte le pagine della Casa d'Aste (`/ah`) con posizionamento esatto e acquisto automatico con un clic su **✦ Clicca per acquistare**.
+- 🛒 **Assistente Ricerca Libri `/ah`**:
+  - Ricerca rapida con autocompletamento e tracciamento passivo dei prezzi migliori tra tutte le pagine consultate senza automazioni rischiose.
 
 - 📋 **Copia & Incolla Rapido dei Set**:
   - Condivisione istantanea dei set personalizzati tramite appunti con notifica animata Cyber Matrix a centro schermo.
@@ -169,8 +170,8 @@ Sul server Litness, maxare un'arma o un pezzo d'armatura con 10–12 incantesimi
   - Sostituito il vecchio sistema di calcolo con il potente algoritmo DP ad albero binario: combina fino a 12 incanti con picchi di soli 20-28 livelli XP.
 - ⚡ **Fix Matematico Maxabilità su Incudine**:
   - Eliminato il falso allarme "Troppo Costoso" per gli oggetti a lavoro 2 (penalità +3); ora tutti gli oggetti con penalità +0, +1 e +3 vengono correttamente riconosciuti come **100% Maxabili (12/12)**.
-- 🛒 **Auto-Crawler Multi-Pagina `/ah` (`[⚡ Sfoglia Tutto]`)**:
-  - Scansiona e memorizza tutti i libri di tutte le pagine dell'asta, con auto-navigazione e apertura automatica della schermata di acquisto al clic sull'offerta più conveniente.
+- 🛒 **Assistente Prezzi `/ah` (Legit & Sicuro)**:
+  - Tracciamento passivo dei prezzi dei libri e autocompletamento rapido in conformità al regolamento del server.
 - 🛡️ **Fix Loop Infinito & Null-Safety**:
   - Risolto il blocco su *"Calcolo in corso..."* quando nessun libro era selezionato.
   - Aggiunta protezione completa contro i crash su unpin/pin dei set.
@@ -182,7 +183,8 @@ Sul server Litness, maxare un'arma o un pezzo d'armatura con 10–12 incantesimi
 | Tasto / Controllo | Azione |
 | :--- | :--- |
 | **`N`** | Apri il menu principale (Catalogo / I Miei Set / Guida Incudine) |
-| **`[⚡ Ricerca Automatica]`** | Scansiona tutte le pagine della Casa d'Aste (`/ah`) |
+| **`Cerca incanto...`** | Barra di ricerca con autocompletamento nella Casa d'Aste (`/ah`) |
+| **`[Azzera]`** | Resetta i filtri attivi di ricerca in `/ah` |
 | **`[Copia Set]`** | Esporta e copia negli appunti la configurazione del set da passare agli amici |
 | **`[Incolla Set]`** | Importa istantaneamente negli appunti un set condiviso |
 | **`[📋 Guida Passi]`** | Apri la guida ottimale direttamente dalla schermata dell'incudine |
