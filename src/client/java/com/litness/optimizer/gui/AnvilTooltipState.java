@@ -62,7 +62,9 @@ public class AnvilTooltipState {
 
     public static void resetAnvilEquipment(AnvilScreen anvil) {
         isAnvilCleared = true;
-        clearedItemInstance = ItemStack.EMPTY;
+        clearedItemInstance = (anvil != null && anvil.getMenu().getSlot(0).hasItem())
+                ? anvil.getMenu().getSlot(0).getItem().copy()
+                : ItemStack.EMPTY;
         savedSelectedEquipment = ItemStack.EMPTY;
         explicitTargetEquip = ItemStack.EMPTY;
         cachedSolution = null;
@@ -570,7 +572,6 @@ public class AnvilTooltipState {
                 ItemStack st = s.getItem();
                 if (st.isEmpty() || (!st.is(Items.ENCHANTED_BOOK) && !st.is(Items.BOOK))) continue;
                 int rep = st.getOrDefault(DataComponents.REPAIR_COST, 0);
-                if (rep == 0) rep = InventoryTracker.extractAnvilCostFromLore(st);
                 if (rep > 0) {
                     int sx = leftPos + s.x;
                     int sy = topPos + s.y;
@@ -642,7 +643,6 @@ public class AnvilTooltipState {
 
             ItemStack hoveredStack = hoveredTarget.slot.getItem();
             int repCost = (!hoveredStack.isEmpty()) ? hoveredStack.getOrDefault(DataComponents.REPAIR_COST, 0) : 0;
-            if (repCost == 0 && !hoveredStack.isEmpty()) repCost = InventoryTracker.extractAnvilCostFromLore(hoveredStack);
             
             if (isSlot1) {
                 tipLines.add(Component.literal("§7Slot 1 • §f" + itemDesc));

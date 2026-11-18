@@ -189,22 +189,28 @@ public abstract class AnvilScreenMixin extends ItemCombinerScreen<AnvilMenu> {
             boolean equipInSlot0 = false;
 
             if (!slot0.isEmpty() && ItemTypeHelper.isEnchantableWeaponOrArmor(slot0)) {
-                String slot0Key = ItemTypeHelper.detectItemKey(slot0);
-                if (this.cachedItemKey != null && !this.cachedItemKey.equalsIgnoreCase(slot0Key)) {
-                    // Nuovo tipo di oggetto rilevato nello slot 0: invalida immediatamente la cache del vecchio item
-                    this.cachedSolution = null;
-                    this.lastSlot0Hash = 0;
-                    this.lastInvBooksHash = 0;
-                    this.cachedItemKey = slot0Key;
-                    com.litness.optimizer.gui.AnvilTooltipState.cachedSolution = null;
-                    com.litness.optimizer.gui.AnvilTooltipState.cachedItemKey = slot0Key;
+                boolean wasClearedSameItem = com.litness.optimizer.gui.AnvilTooltipState.isAnvilCleared
+                        && !com.litness.optimizer.gui.AnvilTooltipState.clearedItemInstance.isEmpty()
+                        && ItemStack.matches(slot0, com.litness.optimizer.gui.AnvilTooltipState.clearedItemInstance);
+
+                if (!wasClearedSameItem) {
+                    String slot0Key = ItemTypeHelper.detectItemKey(slot0);
+                    if (this.cachedItemKey != null && !this.cachedItemKey.equalsIgnoreCase(slot0Key)) {
+                        // Nuovo tipo di oggetto rilevato nello slot 0: invalida immediatamente la cache del vecchio item
+                        this.cachedSolution = null;
+                        this.lastSlot0Hash = 0;
+                        this.lastInvBooksHash = 0;
+                        this.cachedItemKey = slot0Key;
+                        com.litness.optimizer.gui.AnvilTooltipState.cachedSolution = null;
+                        com.litness.optimizer.gui.AnvilTooltipState.cachedItemKey = slot0Key;
+                    }
+                    com.litness.optimizer.gui.AnvilTooltipState.isAnvilCleared = false;
+                    com.litness.optimizer.gui.AnvilTooltipState.clearedItemInstance = ItemStack.EMPTY;
+                    activeEquipment = slot0;
+                    lastExplicitEquipment = slot0.copy();
+                    com.litness.optimizer.gui.AnvilTooltipState.selectAndSaveEquipment(slot0);
+                    equipInSlot0 = true;
                 }
-                com.litness.optimizer.gui.AnvilTooltipState.isAnvilCleared = false;
-                com.litness.optimizer.gui.AnvilTooltipState.clearedItemInstance = ItemStack.EMPTY;
-                activeEquipment = slot0;
-                lastExplicitEquipment = slot0.copy();
-                com.litness.optimizer.gui.AnvilTooltipState.selectAndSaveEquipment(slot0);
-                equipInSlot0 = true;
             } else if (!com.litness.optimizer.gui.AnvilTooltipState.isAnvilCleared) {
                 if (com.litness.optimizer.gui.AnvilTooltipState.savedSelectedEquipment != null && !com.litness.optimizer.gui.AnvilTooltipState.savedSelectedEquipment.isEmpty()) {
                     ItemStack found = findMatchingEquipmentInInventory(com.litness.optimizer.gui.AnvilTooltipState.savedSelectedEquipment);
@@ -436,34 +442,6 @@ public abstract class AnvilScreenMixin extends ItemCombinerScreen<AnvilMenu> {
                         extractor.text(this.font, "Nessun libro compatibile", sideX + 10, moveY + 18, 0xFFE2E8F0, false);
                         extractor.text(this.font, "trovato nell'inventario.", sideX + 10, moveY + 30, 0xFF94A3B8, false);
                         extractor.text(this.font, "Premi [N] per simulare!", sideX + 10, moveY + 43, 0xFF60A5FA, false);
-                    }
-                }
-
-                // Render Ghost Slot nello slot 0 dell'incudine se lo slot 0 è vuoto
-                if (slot0.isEmpty()) {
-                    net.minecraft.world.inventory.Slot s0 = this.menu.getSlot(0);
-                    int slot0X = this.leftPos + (s0 != null ? s0.x : 27);
-                    int slot0Y = this.topPos + (s0 != null ? s0.y : 47);
-
-                    ItemStack ghostItem = activeEquipment;
-                    String ghostName = activeEquipment.getHoverName().getString();
-                    if (cachedSolution != null && !cachedSolution.steps.isEmpty() && cachedSolution.steps.get(0).isBookToBook) {
-                        ghostItem = new ItemStack(Items.ENCHANTED_BOOK);
-                        ghostName = cachedSolution.steps.get(0).leftLabel;
-                    }
-
-                    long time = System.currentTimeMillis();
-                    double wave = (Math.sin(time / 260.0) + 1.0) / 2.0;
-                    int borderAlpha = (int)(0x60 + wave * 0x80);
-                    LitnessOptimizerScreen.drawRoundedOutline(extractor, slot0X - 1, slot0Y - 1, 18, 18, 4, (borderAlpha << 24) | 0x3B82F6);
-                    int bgAlpha = (int)(0x15 + wave * 0x25);
-                    LitnessOptimizerScreen.drawRoundedRect(extractor, slot0X, slot0Y, 16, 16, 3, (bgAlpha << 24) | 0x3B82F6);
-                    extractor.fakeItem(ghostItem, slot0X, slot0Y);
-                    int holoAlpha = (int)(0x40 + (1.0 - wave) * 0x40);
-                    LitnessOptimizerScreen.drawRoundedRect(extractor, slot0X, slot0Y, 16, 16, 3, (holoAlpha << 24) | 0x090B10);
-
-                    if (mouseX >= slot0X && mouseX < slot0X + 16 && mouseY >= slot0Y && mouseY < slot0Y + 16) {
-                        com.litness.optimizer.gui.AnvilTooltipState.hoveredGhostSlotItemName = ghostName;
                     }
                 }
             } else {
@@ -706,7 +684,6 @@ public abstract class AnvilScreenMixin extends ItemCombinerScreen<AnvilMenu> {
                 ItemStack st = this.minecraft.player.getInventory().getItem(i);
                 if (!st.isEmpty() && (st.is(Items.ENCHANTED_BOOK) || st.is(Items.BOOK))) {
                     int rep = st.getOrDefault(DataComponents.REPAIR_COST, 0);
-                    if (rep == 0) rep = InventoryTracker.extractAnvilCostFromLore(st);
                     if (rep > 0) {
                         totalUsedBooksInInv++;
                     }

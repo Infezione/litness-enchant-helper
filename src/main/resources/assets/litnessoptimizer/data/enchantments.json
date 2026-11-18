@@ -1,4 +1,4 @@
-﻿{
+﻿﻿{
     "schemaVersion":  1,
     "items":  [
                   {
@@ -6,134 +6,134 @@
                       "name":  "Elmo",
                       "group":  "Armature",
                       "texture":  "diamond_helmet",
-                      "emoji":  "ðŸª–"
+                      "emoji":  ""
                   },
                   {
                       "id":  "chest",
                       "name":  "Corazza",
                       "group":  "Armature",
                       "texture":  "diamond_chestplate",
-                      "emoji":  "ðŸ¥‹"
+                      "emoji":  ""
                   },
                   {
                       "id":  "legs",
                       "name":  "Gambali",
                       "group":  "Armature",
                       "texture":  "diamond_leggings",
-                      "emoji":  "ðŸ‘–"
+                      "emoji":  ""
                   },
                   {
                       "id":  "boots",
                       "name":  "Stivali",
                       "group":  "Armature",
                       "texture":  "diamond_boots",
-                      "emoji":  "ðŸ¥¾"
+                      "emoji":  ""
                   },
                   {
                       "id":  "sword",
                       "name":  "Spada",
                       "group":  "Armi",
                       "texture":  "diamond_sword",
-                      "emoji":  "ðŸ—¡ï¸"
+                      "emoji":  ""
                   },
                   {
                       "id":  "axe",
                       "name":  "Ascia",
                       "group":  "Armi",
                       "texture":  "diamond_axe",
-                      "emoji":  "ðŸª“"
+                      "emoji":  ""
                   },
                   {
                       "id":  "mace",
                       "name":  "Mazza",
                       "group":  "Armi",
                       "texture":  "mace",
-                      "emoji":  "ðŸ”¨"
+                      "emoji":  ""
                   },
                   {
                       "id":  "trident",
                       "name":  "Tridente",
                       "group":  "Armi",
                       "texture":  "trident",
-                      "emoji":  "ðŸ”±"
+                      "emoji":  ""
                   },
                   {
                       "id":  "bow",
                       "name":  "Arco",
                       "group":  "Armi",
                       "texture":  "bow",
-                      "emoji":  "ðŸ¹"
+                      "emoji":  ""
                   },
                   {
                       "id":  "xbow",
                       "name":  "Balestra",
                       "group":  "Armi",
                       "texture":  "crossbow_standby",
-                      "emoji":  "ðŸŽ¯"
+                      "emoji":  ""
                   },
                   {
                       "id":  "pick",
                       "name":  "Piccone",
                       "group":  "Attrezzi",
                       "texture":  "diamond_pickaxe",
-                      "emoji":  "â›ï¸"
+                      "emoji":  ""
                   },
                   {
                       "id":  "shovel",
                       "name":  "Pala",
                       "group":  "Attrezzi",
                       "texture":  "diamond_shovel",
-                      "emoji":  "ðŸ¥„"
+                      "emoji":  ""
                   },
                   {
                       "id":  "hoe",
                       "name":  "Zappa",
                       "group":  "Attrezzi",
                       "texture":  "diamond_hoe",
-                      "emoji":  "ðŸŒ¾"
+                      "emoji":  ""
                   },
                   {
                       "id":  "rod",
                       "name":  "Canna da pesca",
                       "group":  "Attrezzi",
                       "texture":  "fishing_rod",
-                      "emoji":  "ðŸŽ£"
+                      "emoji":  ""
                   },
                   {
                       "id":  "shears",
                       "name":  "Cesoie",
                       "group":  "Attrezzi",
                       "texture":  "shears",
-                      "emoji":  "âœ‚ï¸"
+                      "emoji":  ""
                   },
                   {
                       "id":  "flint",
                       "name":  "Acciarino",
                       "group":  "Attrezzi",
                       "texture":  "flint_and_steel",
-                      "emoji":  "ðŸ”¥"
+                      "emoji":  ""
                   },
                   {
                       "id":  "elytra",
                       "name":  "Elitre",
                       "group":  "Altro",
                       "texture":  "elytra",
-                      "emoji":  "ðŸ¦‹"
+                      "emoji":  ""
                   },
                   {
                       "id":  "shield",
                       "name":  "Scudo",
                       "group":  "Altro",
                       "texture":  null,
-                      "emoji":  "ðŸ›¡ï¸"
+                      "emoji":  ""
                   }
               ],
     "enchantments":  [
                          {
                              "id":  "aqua_affinity",
-                             "name":  "AffinitÃ  all\u0027acqua",
+                             "name":  "Affinita' all\u0027acqua",
                              "category":  "vanilla",
-                             "description":  "Aumenta la velocitÃ  di estrazione sott\u0027acqua.",
+                             "description":  "Aumenta la velocita' di estrazione sott\u0027acqua.",
                              "maxLevel":  1,
                              "applicableTo":  [
                                                   "helmet"
@@ -212,7 +212,7 @@
                          },
                          {
                              "id":  "density",
-                             "name":  "DensitÃ ",
+                             "name":  "Densita'",
                              "category":  "vanilla",
                              "description":  "Aumenta i danni da schianto in base alla distanza di caduta.",
                              "maxLevel":  5,
@@ -226,7 +226,7 @@
                              "id":  "depth_strider",
                              "name":  "Passo anfibio",
                              "category":  "vanilla",
-                             "description":  "Aumenta la velocitÃ  di movimento sott\u0027acqua.",
+                             "description":  "Aumenta la velocita' di movimento sott\u0027acqua.",
                              "maxLevel":  3,
                              "applicableTo":  [
                                                   "boots"
@@ -238,7 +238,7 @@
                              "id":  "efficiency",
                              "name":  "Efficienza",
                              "category":  "vanilla",
-                             "description":  "Aumenta la velocitÃ  di estrazione e di alcune azioni degli attrezzi.",
+                             "description":  "Aumenta la velocita' di estrazione e di alcune azioni degli attrezzi.",
                              "maxLevel":  5,
                              "applicableTo":  [
                                                   "pick",
@@ -306,7 +306,7 @@
                              "id":  "fortune",
                              "name":  "Fortuna",
                              "category":  "vanilla",
-                             "description":  "Aumenta la quantitÃ  o la probabilitÃ  di ottenere drop da certi blocchi.",
+                             "description":  "Aumenta la quantita' o la probabilita' di ottenere drop da certi blocchi.",
                              "maxLevel":  3,
                              "applicableTo":  [
                                                   "pick",
@@ -343,7 +343,7 @@
                          },
                          {
                              "id":  "infinity",
-                             "name":  "InfinitÃ ",
+                             "name":  "Infinita'",
                              "category":  "vanilla",
                              "description":  "Permette di scoccare frecce normali senza consumarle, se ne hai almeno una.",
                              "maxLevel":  1,
@@ -379,7 +379,7 @@
                          },
                          {
                              "id":  "loyalty",
-                             "name":  "LealtÃ ",
+                             "name":  "Lealta'",
                              "category":  "vanilla",
                              "description":  "Fa ritornare il tridente dopo il lancio.",
                              "maxLevel":  3,
@@ -393,7 +393,7 @@
                              "id":  "luck_of_the_sea",
                              "name":  "Fortuna del mare",
                              "category":  "vanilla",
-                             "description":  "Aumenta la probabilitÃ  di pescare tesori.",
+                             "description":  "Aumenta la probabilita' di pescare tesori.",
                              "maxLevel":  3,
                              "applicableTo":  [
                                                   "rod"
@@ -405,7 +405,7 @@
                              "id":  "lure",
                              "name":  "Esca",
                              "category":  "vanilla",
-                             "description":  "Riduce il tempo necessario perchÃ© un pesce abbocchi.",
+                             "description":  "Riduce il tempo necessario perche' un pesce abbocchi.",
                              "maxLevel":  3,
                              "applicableTo":  [
                                                   "rod"
@@ -458,7 +458,7 @@
                              "id":  "piercing",
                              "name":  "Perforazione",
                              "category":  "vanilla",
-                             "description":  "Permette ai dardi della balestra di attraversare piÃ¹ bersagli.",
+                             "description":  "Permette ai dardi della balestra di attraversare piu' bersagli.",
                              "maxLevel":  4,
                              "applicableTo":  [
                                                   "xbow"
@@ -600,9 +600,9 @@
                          },
                          {
                              "id":  "soul_speed",
-                             "name":  "VelocitÃ  delle anime",
+                             "name":  "Velocita' delle anime",
                              "category":  "vanilla",
-                             "description":  "Aumenta la velocitÃ  di movimento sulla sabbia e sul terreno delle anime.",
+                             "description":  "Aumenta la velocita' di movimento sulla sabbia e sul terreno delle anime.",
                              "maxLevel":  3,
                              "applicableTo":  [
                                                   "boots"
@@ -626,7 +626,7 @@
                              "id":  "swift_sneak",
                              "name":  "Passo felpato",
                              "category":  "vanilla",
-                             "description":  "Aumenta la velocitÃ  di movimento mentre sei accovacciato.",
+                             "description":  "Aumenta la velocita' di movimento mentre sei accovacciato.",
                              "maxLevel":  3,
                              "applicableTo":  [
                                                   "legs"
@@ -638,7 +638,7 @@
                              "id":  "thorns",
                              "name":  "Spine",
                              "category":  "vanilla",
-                             "description":  "PuÃ² infliggere danni a chi ti attacca.",
+                             "description":  "Puo' infliggere danni a chi ti attacca.",
                              "maxLevel":  3,
                              "applicableTo":  [
                                                   "helmet",
@@ -651,9 +651,9 @@
                          },
                          {
                              "id":  "unbreaking",
-                             "name":  "IndistruttibilitÃ ",
+                             "name":  "Indistruttibilita'",
                              "category":  "vanilla",
-                             "description":  "Riduce la probabilitÃ  che l\u0027oggetto perda durabilitÃ  quando viene usato.",
+                             "description":  "Riduce la probabilita' che l\u0027oggetto perda durabilita' quando viene usato.",
                              "maxLevel":  3,
                              "applicableTo":  [
                                                   "helmet",
@@ -723,7 +723,7 @@
                              "id":  "abrasion",
                              "name":  "Abrasion",
                              "category":  "custom",
-                             "description":  "Ogni colpo toglie 2 di durabilitÃ  a ogni pezzo d\u0027armatura del bersaglio.",
+                             "description":  "Ogni colpo toglie 2 di durabilita' a ogni pezzo d\u0027armatura del bersaglio.",
                              "maxLevel":  2,
                              "rarity":  "Epico",
                              "applicableTo":  [
@@ -766,7 +766,7 @@
                              "id":  "arcane-defense",
                              "name":  "Arcane Defence",
                              "category":  "custom",
-                             "description":  "probabilitÃ  del 20% per pezzo di annullare i danni da veleno e magia.",
+                             "description":  "probabilita' del 20% per pezzo di annullare i danni da veleno e magia.",
                              "maxLevel":  5,
                              "rarity":  "Non comune",
                              "applicableTo":  [
@@ -832,7 +832,7 @@
                              "id":  "auger",
                              "name":  "Auger",
                              "category":  "custom",
-                             "description":  "Scava una parete 3x3 attorno a ogni blocco, saltando quelli piÃ¹ duri. Non funziona accovacciati.",
+                             "description":  "Scava una parete 3x3 attorno a ogni blocco, saltando quelli piu' duri. Non funziona accovacciati.",
                              "maxLevel":  1,
                              "rarity":  "Speciale",
                              "applicableTo":  [
@@ -877,7 +877,7 @@
                              "id":  "berserker",
                              "name":  "Berserker",
                              "category":  "custom",
-                             "description":  "Sotto il 50% di salute, infliggi il 50% di danni in piÃ¹ e attacchi il 30% piÃ¹ velocemente.",
+                             "description":  "Sotto il 50% di salute, infliggi il 50% di danni in piu' e attacchi il 30% piu' velocemente.",
                              "maxLevel":  3,
                              "rarity":  "Epico",
                              "applicableTo":  [
@@ -899,7 +899,7 @@
                              "id":  "blackout",
                              "name":  "Blackout",
                              "category":  "custom",
-                             "description":  "Hai l\u00278% di probabilitÃ  di avvolgere l\u0027avversario nell\u0027oscurita per 6 secondi e applicargli Debolezza I per 2 secondi.",
+                             "description":  "Hai l\u00278% di probabilita' di avvolgere l\u0027avversario nell\u0027oscurita per 6 secondi e applicargli Debolezza I per 2 secondi.",
                              "maxLevel":  4,
                              "rarity":  "Epico",
                              "applicableTo":  [
@@ -920,7 +920,7 @@
                              "id":  "blast-mining",
                              "name":  "Blast Mining",
                              "category":  "custom",
-                             "description":  "probabilitÃ  del 15% di far esplodere un cubo 3x3x3, esclusi i blocchi piÃ¹ duri. Non funziona accovacciati.",
+                             "description":  "probabilita' del 15% di far esplodere un cubo 3x3x3, esclusi i blocchi piu' duri. Non funziona accovacciati.",
                              "maxLevel":  3,
                              "rarity":  "Leggendario",
                              "applicableTo":  [
@@ -942,7 +942,7 @@
                              "id":  "bleed",
                              "name":  "Bleed",
                              "category":  "custom",
-                             "description":  "I colpi hanno il 10.50% di probabilitÃ  di far sanguinare il bersaglio: 1 danno ogni 0.75 secondi, per 14 volte.",
+                             "description":  "I colpi hanno il 10.50% di probabilita' di far sanguinare il bersaglio: 1 danno ogni 0.75 secondi, per 14 volte.",
                              "maxLevel":  7,
                              "rarity":  "Epico",
                              "applicableTo":  [
@@ -963,7 +963,7 @@
                              "id":  "block-breather",
                              "name":  "Block Breather",
                              "category":  "custom",
-                             "description":  "65% di probabilitÃ  di ignorare i danni da soffocamento.",
+                             "description":  "65% di probabilita' di ignorare i danni da soffocamento.",
                              "maxLevel":  3,
                              "rarity":  "Comune",
                              "applicableTo":  [
@@ -984,7 +984,7 @@
                              "id":  "boss-hunter",
                              "name":  "Boss Hunter",
                              "category":  "custom",
-                             "description":  "Infliggi l\u002780% di danni in piÃ¹ contro i boss.",
+                             "description":  "Infliggi l\u002780% di danni in piu' contro i boss.",
                              "maxLevel":  8,
                              "rarity":  "Non comune",
                              "applicableTo":  [
@@ -1050,7 +1050,7 @@
                              "id":  "caffeinated",
                              "name":  "Caffeinated",
                              "category":  "custom",
-                             "description":  "Infliggi il 20% di danni in piÃ¹ quando colpisci mentre corri.",
+                             "description":  "Infliggi il 20% di danni in piu' quando colpisci mentre corri.",
                              "maxLevel":  3,
                              "rarity":  "Comune",
                              "applicableTo":  [
@@ -1092,7 +1092,7 @@
                              "id":  "catalyst",
                              "name":  "Catalyst",
                              "category":  "custom",
-                             "description":  "70% di probabilitÃ  di moltiplicare i drop di minerali, ghiaia, argilla, lumite e ametista come con Fortuna V. Non funziona sui blocchi piazzati.",
+                             "description":  "70% di probabilita' di moltiplicare i drop di minerali, ghiaia, argilla, lumite e ametista come con Fortuna V. Non funziona sui blocchi piazzati.",
                              "maxLevel":  3,
                              "rarity":  "Leggendario",
                              "applicableTo":  [
@@ -1116,7 +1116,7 @@
                              "id":  "chain-strike",
                              "name":  "Chain Strike",
                              "category":  "custom",
-                             "description":  "I colpi hanno il 35% di probabilitÃ  di scatenare un fulmine: 5 danni al bersaglio e 3 danni ai nemici ogni 6 blocchi lungo la catena. Ricarica: 1 secondo.",
+                             "description":  "I colpi hanno il 35% di probabilita' di scatenare un fulmine: 5 danni al bersaglio e 3 danni ai nemici ogni 6 blocchi lungo la catena. Ricarica: 1 secondo.",
                              "maxLevel":  3,
                              "rarity":  "Epico",
                              "applicableTo":  [
@@ -1181,7 +1181,7 @@
                              "id":  "confusion",
                              "name":  "Confusion",
                              "category":  "custom",
-                             "description":  "12% di probabilitÃ  di stordire il giocatore colpito, causando nausea e visuale ruotata.",
+                             "description":  "12% di probabilita' di stordire il giocatore colpito, causando nausea e visuale ruotata.",
                              "maxLevel":  4,
                              "rarity":  "Epico",
                              "applicableTo":  [
@@ -1202,7 +1202,7 @@
                              "id":  "contagion",
                              "name":  "Contagion",
                              "category":  "custom",
-                             "description":  "10% di probabilitÃ  di creare una nube velenosa nel punto in cui atterra il tridente.",
+                             "description":  "10% di probabilita' di creare una nube velenosa nel punto in cui atterra il tridente.",
                              "maxLevel":  2,
                              "rarity":  "Epico",
                              "applicableTo":  [
@@ -1245,7 +1245,7 @@
                              "id":  "cubism",
                              "name":  "Cubism",
                              "category":  "custom",
-                             "description":  "Infliggi il 35% di danni in piÃ¹ a slime e cubi di magma, in mischia e con le frecce.",
+                             "description":  "Infliggi il 35% di danni in piu' a slime e cubi di magma, in mischia e con le frecce.",
                              "maxLevel":  7,
                              "rarity":  "Non comune",
                              "applicableTo":  [
@@ -1269,7 +1269,7 @@
                              "id":  "curse-of-breaklessness",
                              "name":  "Curse of Breaklessness",
                              "category":  "custom",
-                             "description":  "15% di probabilitÃ  di non riuscire a rompere un blocco.",
+                             "description":  "15% di probabilita' di non riuscire a rompere un blocco.",
                              "maxLevel":  1,
                              "rarity":  "Leggendario",
                              "applicableTo":  [
@@ -1293,7 +1293,7 @@
                              "id":  "curse-of-harmlessness",
                              "name":  "Curse of Harmlessness",
                              "category":  "custom",
-                             "description":  "15% di probabilitÃ  che i tuoi attacchi non causino danni.",
+                             "description":  "15% di probabilita' che i tuoi attacchi non causino danni.",
                              "maxLevel":  1,
                              "rarity":  "Leggendario",
                              "applicableTo":  [
@@ -1336,7 +1336,7 @@
                              "id":  "curse-of-misfortune",
                              "name":  "Curse of Misfortune",
                              "category":  "custom",
-                             "description":  "15% di probabilitÃ  che i blocchi non rilascino oggetti.",
+                             "description":  "15% di probabilita' che i blocchi non rilascino oggetti.",
                              "maxLevel":  1,
                              "rarity":  "Leggendario",
                              "applicableTo":  [
@@ -1398,7 +1398,7 @@
                              "id":  "decapitator",
                              "name":  "Decapitator",
                              "category":  "custom",
-                             "description":  "1.50% di probabilitÃ  di ottenere la testa di zombi, scheletri, creeper e piglin che uccidi.",
+                             "description":  "1.50% di probabilita' di ottenere la testa di zombi, scheletri, creeper e piglin che uccidi.",
                              "maxLevel":  3,
                              "rarity":  "Leggendario",
                              "applicableTo":  [
@@ -1420,7 +1420,7 @@
                              "id":  "dexterity",
                              "name":  "Dexterity",
                              "category":  "custom",
-                             "description":  "Aumenta la velocitÃ  di attacco del 20%.",
+                             "description":  "Aumenta la velocita' di attacco del 20%.",
                              "maxLevel":  2,
                              "rarity":  "Non comune",
                              "applicableTo":  [
@@ -1486,7 +1486,7 @@
                              "id":  "ender-slayer",
                              "name":  "Ender Slayer",
                              "category":  "custom",
-                             "description":  "Infliggi 4 danni aggiuntivi in mischia a Enderman, Endermite, Shulker e allâ€™Enderdrago.",
+                             "description":  "Infliggi 4 danni aggiuntivi in mischia a Enderman, Endermite, Shulker e all'Enderdrago.",
                              "maxLevel":  6,
                              "rarity":  "Comune",
                              "applicableTo":  [
@@ -1508,7 +1508,7 @@
                              "id":  "escape",
                              "name":  "Escape",
                              "category":  "custom",
-                             "description":  "Quando un mob o un giocatore ti colpisce, ottieni +40% di velocitÃ  per 2 secondi. Ricarica: 3 secondi.",
+                             "description":  "Quando un mob o un giocatore ti colpisce, ottieni +40% di velocita' per 2 secondi. Ricarica: 3 secondi.",
                              "maxLevel":  2,
                              "rarity":  "Non comune",
                              "applicableTo":  [
@@ -1529,7 +1529,7 @@
                              "id":  "ethereal-arrow",
                              "name":  "Ethereal Arrow",
                              "category":  "custom",
-                             "description":  "Da accovacciato, le tue frecce non fanno danni e ti teletrasportano dove colpiscono. Resta accovacciato fino allâ€™impatto. Ricarica: 5 secondi.",
+                             "description":  "Da accovacciato, le tue frecce non fanno danni e ti teletrasportano dove colpiscono. Resta accovacciato fino all'impatto. Ricarica: 5 secondi.",
                              "maxLevel":  1,
                              "rarity":  "Leggendario",
                              "applicableTo":  [
@@ -1551,7 +1551,7 @@
                              "id":  "excavation",
                              "name":  "Excavation",
                              "category":  "custom",
-                             "description":  "Scava 5 blocchi in piÃ¹ in linea dove guardi, saltando quelli piÃ¹ duri. Non funziona accovacciati.",
+                             "description":  "Scava 5 blocchi in piu' in linea dove guardi, saltando quelli piu' duri. Non funziona accovacciati.",
                              "maxLevel":  5,
                              "rarity":  "Raro",
                              "applicableTo":  [
@@ -1594,7 +1594,7 @@
                              "id":  "explosive-arrow",
                              "name":  "Explosive Arrow",
                              "category":  "custom",
-                             "description":  "Le frecce esplodono allâ€™impatto, ferendo i mob e i giocatori vicini, ma non te, senza distruggere blocchi.",
+                             "description":  "Le frecce esplodono all'impatto, ferendo i mob e i giocatori vicini, ma non te, senza distruggere blocchi.",
                              "maxLevel":  3,
                              "rarity":  "Epico",
                              "applicableTo":  [
@@ -1637,7 +1637,7 @@
                              "id":  "finishing",
                              "name":  "Finishing",
                              "category":  "custom",
-                             "description":  "Aumenta i danni inflitti dellâ€™1% per ogni punto percentuale di salute mancante allâ€™avversario.",
+                             "description":  "Aumenta i danni inflitti dell'1% per ogni punto percentuale di salute mancante all'avversario.",
                              "maxLevel":  5,
                              "rarity":  "Non comune",
                              "applicableTo":  [
@@ -1659,7 +1659,7 @@
                              "id":  "first-strike",
                              "name":  "First Strike",
                              "category":  "custom",
-                             "description":  "Infliggi il 50% di danni in piÃ¹ contro bersagli a salute piena.",
+                             "description":  "Infliggi il 50% di danni in piu' contro bersagli a salute piena.",
                              "maxLevel":  5,
                              "rarity":  "Non comune",
                              "applicableTo":  [
@@ -1681,7 +1681,7 @@
                              "id":  "flashbang",
                              "name":  "Flashbang",
                              "category":  "custom",
-                             "description":  "Il 24% delle frecce infligge CecitÃ  e Lentezza per 2,5 secondi.",
+                             "description":  "Il 24% delle frecce infligge Cecita' e Lentezza per 2,5 secondi.",
                              "maxLevel":  6,
                              "rarity":  "Non comune",
                              "applicableTo":  [
@@ -1746,7 +1746,7 @@
                              "id":  "frost",
                              "name":  "Frost",
                              "category":  "custom",
-                             "description":  "Ha il 9% di probabilitÃ  di congelare lâ€™avversario per 3 secondi.",
+                             "description":  "Ha il 9% di probabilita' di congelare l'avversario per 3 secondi.",
                              "maxLevel":  3,
                              "rarity":  "Epico",
                              "applicableTo":  [
@@ -1767,7 +1767,7 @@
                              "id":  "frost-arrow",
                              "name":  "Frost Arrow",
                              "category":  "custom",
-                             "description":  "Ha il 50% di probabilitÃ  di congelare il bersaglio e infliggergli Lentezza IV per 6 secondi.",
+                             "description":  "Ha il 50% di probabilita' di congelare il bersaglio e infliggergli Lentezza IV per 6 secondi.",
                              "maxLevel":  3,
                              "rarity":  "Raro",
                              "applicableTo":  [
@@ -1789,7 +1789,7 @@
                              "id":  "frostbite",
                              "name":  "Frostbite",
                              "category":  "custom",
-                             "description":  "Ha il 25% di probabilitÃ  di congelare il bersaglio e infliggergli Lentezza IV per 4 secondi.",
+                             "description":  "Ha il 25% di probabilita' di congelare il bersaglio e infliggergli Lentezza IV per 4 secondi.",
                              "maxLevel":  3,
                              "rarity":  "Raro",
                              "applicableTo":  [
@@ -1810,7 +1810,7 @@
                              "id":  "getaway",
                              "name":  "Getaway",
                              "category":  "custom",
-                             "description":  "Aumenta del 20% la velocitÃ  di movimento quando sei sotto il 20% di salute.",
+                             "description":  "Aumenta del 20% la velocita' di movimento quando sei sotto il 20% di salute.",
                              "maxLevel":  2,
                              "rarity":  "Comune",
                              "applicableTo":  [
@@ -1831,7 +1831,7 @@
                              "id":  "gill-lungs",
                              "name":  "Gill Lungs",
                              "category":  "custom",
-                             "description":  "Fornisce respirazione subacquea infinita e Potere del Condotto, cosÃ¬ lâ€™oceano non ti trattiene.",
+                             "description":  "Fornisce respirazione subacquea infinita e Potere del Condotto, cosi' l'oceano non ti trattiene.",
                              "maxLevel":  1,
                              "rarity":  "Leggendario",
                              "applicableTo":  [
@@ -1874,7 +1874,7 @@
                              "id":  "goliath",
                              "name":  "Goliath",
                              "category":  "custom",
-                             "description":  "Infliggi +40% danni per ogni 100% di salute in piÃ¹ del bersaglio rispetto a te, fino a +100%. La salute massima del bersaglio Ã¨ limitata a 60.",
+                             "description":  "Infliggi +40% danni per ogni 100% di salute in piu' del bersaglio rispetto a te, fino a +100%. La salute massima del bersaglio e' limitata a 60.",
                              "maxLevel":  6,
                              "rarity":  "Raro",
                              "applicableTo":  [
@@ -1937,7 +1937,7 @@
                              "id":  "guided",
                              "name":  "Guided",
                              "category":  "custom",
-                             "description":  "Le frecce scoccate inseguono il mob ostile piÃ¹ vicino entro 40 blocchi.",
+                             "description":  "Le frecce scoccate inseguono il mob ostile piu' vicino entro 40 blocchi.",
                              "maxLevel":  2,
                              "rarity":  "Raro",
                              "applicableTo":  [
@@ -1959,7 +1959,7 @@
                              "id":  "haunting",
                              "name":  "Haunting",
                              "category":  "custom",
-                             "description":  "Quando muori, tutte le entitÃ  entro 3 blocchi subiscono 9 danni.",
+                             "description":  "Quando muori, tutte le entita' entro 3 blocchi subiscono 9 danni.",
                              "maxLevel":  2,
                              "rarity":  "Comune",
                              "applicableTo":  [
@@ -2002,7 +2002,7 @@
                              "id":  "ignis-furnace",
                              "name":  "Ignis Furnace",
                              "category":  "custom",
-                             "description":  "I minerali di ferro, oro, rame e detriti antichi che estrai cadono giÃ  fusi.",
+                             "description":  "I minerali di ferro, oro, rame e detriti antichi che estrai cadono gia' fusi.",
                              "maxLevel":  1,
                              "rarity":  "Leggendario",
                              "applicableTo":  [
@@ -2024,7 +2024,7 @@
                              "id":  "ignis-fury",
                              "name":  "Ignis Fury",
                              "category":  "custom",
-                             "description":  "Il 50% di probabilitÃ  di dare fuoco al bersaglio per 5 secondi e infliggere 8 danni ai nemici attorno a lui entro 5 blocchi. Ricarica: 2 secondi.",
+                             "description":  "Il 50% di probabilita' di dare fuoco al bersaglio per 5 secondi e infliggere 8 danni ai nemici attorno a lui entro 5 blocchi. Ricarica: 2 secondi.",
                              "maxLevel":  2,
                              "rarity":  "Epico",
                              "applicableTo":  [
@@ -2046,7 +2046,7 @@
                              "id":  "infernal-touch",
                              "name":  "Infernal Touch",
                              "category":  "custom",
-                             "description":  "La sabbia diventa vetro, lâ€™ardesia profonda viene estratta intera e lâ€™argilla diventa terracotta. Non funziona sui blocchi piazzati.",
+                             "description":  "La sabbia diventa vetro, l'ardesia profonda viene estratta intera e l'argilla diventa terracotta. Non funziona sui blocchi piazzati.",
                              "maxLevel":  1,
                              "rarity":  "Leggendario",
                              "applicableTo":  [
@@ -2115,7 +2115,7 @@
                              "id":  "jumpshot",
                              "name":  "Jumpshot",
                              "category":  "custom",
-                             "description":  "Le frecce infliggono il 30% di danni in piÃ¹ se sei in aria quando colpiscono.",
+                             "description":  "Le frecce infliggono il 30% di danni in piu' se sei in aria quando colpiscono.",
                              "maxLevel":  3,
                              "rarity":  "Non comune",
                              "applicableTo":  [
@@ -2158,7 +2158,7 @@
                              "id":  "lumberjack",
                              "name":  "Lumberjack",
                              "category":  "custom",
-                             "description":  "ProbabilitÃ  del 18% che i tronchi naturali cadano doppi (non quelli piazzati).",
+                             "description":  "Probabilita' del 18% che i tronchi naturali cadano doppi (non quelli piazzati).",
                              "maxLevel":  6,
                              "rarity":  "Raro",
                              "applicableTo":  [
@@ -2179,7 +2179,7 @@
                              "id":  "metabolism",
                              "name":  "Metabolism",
                              "category":  "custom",
-                             "description":  "Il cibo ripristina il 25% di fame in piÃ¹ (arrotondato per eccesso, minimo +1 punto).",
+                             "description":  "Il cibo ripristina il 25% di fame in piu' (arrotondato per eccesso, minimo +1 punto).",
                              "maxLevel":  2,
                              "rarity":  "Comune",
                              "applicableTo":  [
@@ -2200,7 +2200,7 @@
                              "id":  "molten-heart",
                              "name":  "Molten Heart",
                              "category":  "custom",
-                             "description":  "9% di probabilitÃ  di incendiare chi ti colpisce in mischia e infliggergli Debolezza I per 5 secondi.",
+                             "description":  "9% di probabilita' di incendiare chi ti colpisce in mischia e infliggergli Debolezza I per 5 secondi.",
                              "maxLevel":  3,
                              "rarity":  "Raro",
                              "applicableTo":  [
@@ -2244,7 +2244,7 @@
                              "id":  "nether-prospector",
                              "name":  "Nether Prospector",
                              "category":  "custom",
-                             "description":  "I detriti antichi naturali rendono in media il 110% in piÃ¹ (non quelli piazzati dai giocatori).",
+                             "description":  "I detriti antichi naturali rendono in media il 110% in piu' (non quelli piazzati dai giocatori).",
                              "maxLevel":  2,
                              "rarity":  "Raro",
                              "applicableTo":  [
@@ -2266,7 +2266,7 @@
                              "id":  "night-stalker",
                              "name":  "Night Stalker",
                              "category":  "custom",
-                             "description":  "DÃ  Visione Notturna permanente e VelocitÃ  II di notte, perchÃ© la notte Ã¨ tua alleata.",
+                             "description":  "Da' Visione Notturna permanente e Velocita' II di notte, perche' la notte e' tua alleata.",
                              "maxLevel":  2,
                              "rarity":  "Raro",
                              "applicableTo":  [
@@ -2330,7 +2330,7 @@
                              "id":  "overclock",
                              "name":  "Overclock",
                              "category":  "custom",
-                             "description":  "Aumenta la velocitÃ  di scavo del 24%.",
+                             "description":  "Aumenta la velocita' di scavo del 24%.",
                              "maxLevel":  3,
                              "rarity":  "Raro",
                              "applicableTo":  [
@@ -2353,7 +2353,7 @@
                              "id":  "perforation",
                              "name":  "Perforation",
                              "category":  "custom",
-                             "description":  "Le frecce infliggono il 40% di danni in piÃ¹.",
+                             "description":  "Le frecce infliggono il 40% di danni in piu'.",
                              "maxLevel":  4,
                              "rarity":  "Epico",
                              "applicableTo":  [
@@ -2375,7 +2375,7 @@
                              "id":  "phantom-strike",
                              "name":  "Phantom Strike",
                              "category":  "custom",
-                             "description":  "I colpi critici infliggono il 60% di danno critico in piÃ¹.",
+                             "description":  "I colpi critici infliggono il 60% di danno critico in piu'.",
                              "maxLevel":  2,
                              "rarity":  "Leggendario",
                              "applicableTo":  [
@@ -2460,7 +2460,7 @@
                              "id":  "rapid",
                              "name":  "Rapid",
                              "category":  "custom",
-                             "description":  "Ti permette di scoccare frecce alla massima velocitÃ  con lâ€™arco al 40% di tensione.",
+                             "description":  "Ti permette di scoccare frecce alla massima velocita' con l'arco al 40% di tensione.",
                              "maxLevel":  6,
                              "rarity":  "Raro",
                              "applicableTo":  [
@@ -2502,7 +2502,7 @@
                              "id":  "rebounding",
                              "name":  "Rebounding",
                              "category":  "custom",
-                             "description":  "Parare un colpo in mischia rimanda il 50% del danno allâ€™attaccante.",
+                             "description":  "Parare un colpo in mischia rimanda il 50% del danno all'attaccante.",
                              "maxLevel":  3,
                              "rarity":  "Raro",
                              "applicableTo":  [
@@ -2523,7 +2523,7 @@
                              "id":  "repairing",
                              "name":  "Repairing",
                              "category":  "custom",
-                             "description":  "Questo oggetto recupera 3 di durabilitÃ  ogni 1,5 secondi, se non Ã¨ in mano o indossato.",
+                             "description":  "Questo oggetto recupera 3 di durabilita' ogni 1,5 secondi, se non e' in mano o indossato.",
                              "maxLevel":  3,
                              "rarity":  "Molto speciale",
                              "applicableTo":  [
@@ -2582,7 +2582,7 @@
                              "id":  "resonance",
                              "name":  "Resonance",
                              "category":  "custom",
-                             "description":  "15% di probabilitÃ  di ottenere 3 punti esperienza extra per ogni blocco scavato (non piazzato).",
+                             "description":  "15% di probabilita' di ottenere 3 punti esperienza extra per ogni blocco scavato (non piazzato).",
                              "maxLevel":  3,
                              "rarity":  "Non comune",
                              "applicableTo":  [
@@ -2606,7 +2606,7 @@
                              "id":  "rocket-saver",
                              "name":  "Rocket Saver",
                              "category":  "custom",
-                             "description":  "Ha una probabilitÃ  del 60% di non consumare i fuochi dâ€™artificio durante la spinta con lâ€™elitra.",
+                             "description":  "Ha una probabilita' del 60% di non consumare i fuochi d'artificio durante la spinta con l'elitra.",
                              "maxLevel":  3,
                              "rarity":  "Comune",
                              "applicableTo":  [
@@ -2627,7 +2627,7 @@
                              "id":  "rumble",
                              "name":  "Rumble",
                              "category":  "custom",
-                             "description":  "Click destro: infligge 9 danni a tutte le entitÃ  entro 5 blocchi da te. Ricarica: 20 secondi.",
+                             "description":  "Click destro: infligge 9 danni a tutte le entita' entro 5 blocchi da te. Ricarica: 20 secondi.",
                              "maxLevel":  3,
                              "rarity":  "Epico",
                              "applicableTo":  [
@@ -2669,7 +2669,7 @@
                              "id":  "shadow-step",
                              "name":  "Shadow Step",
                              "category":  "custom",
-                             "description":  "Sotto il 30% di vita, 20% di probabilitÃ  di annullare un colpo, recuperare 10 punti vita e ottenere VelocitÃ  III (3 s) e Resistenza II (2 s). Ricarica: 90 s.",
+                             "description":  "Sotto il 30% di vita, 20% di probabilita' di annullare un colpo, recuperare 10 punti vita e ottenere Velocita' III (3 s) e Resistenza II (2 s). Ricarica: 90 s.",
                              "maxLevel":  2,
                              "rarity":  "Leggendario",
                              "applicableTo":  [
@@ -2690,7 +2690,7 @@
                              "id":  "shulker-harvest",
                              "name":  "Shulker Harvest",
                              "category":  "custom",
-                             "description":  "DÃ  un aumento del 210% ai drop degli shulker.",
+                             "description":  "Da' un aumento del 210% ai drop degli shulker.",
                              "maxLevel":  3,
                              "rarity":  "Comune",
                              "applicableTo":  [
@@ -2711,7 +2711,7 @@
                              "id":  "shura",
                              "name":  "Shura",
                              "category":  "custom",
-                             "description":  "DÃ  un bonus di 1,50x ai danni critici quando sei sotto metÃ  vita.",
+                             "description":  "Da' un bonus di 1,50x ai danni critici quando sei sotto meta' vita.",
                              "maxLevel":  3,
                              "rarity":  "Raro",
                              "applicableTo":  [
@@ -2776,7 +2776,7 @@
                              "id":  "slipstream",
                              "name":  "Slipstream",
                              "category":  "custom",
-                             "description":  "DÃ  un aumento del 24% alla velocitÃ  di movimento mentre planifichi.",
+                             "description":  "Da' un aumento del 24% alla velocita' di movimento mentre planifichi.",
                              "maxLevel":  3,
                              "rarity":  "Non comune",
                              "applicableTo":  [
@@ -2878,7 +2878,7 @@
                              "id":  "sparks",
                              "name":  "Sparks",
                              "category":  "custom",
-                             "description":  "Agganciare un nemico mentre piove dÃ  il 50% di probabilitÃ  di colpirlo con un fulmine da 6 danni.",
+                             "description":  "Agganciare un nemico mentre piove da' il 50% di probabilita' di colpirlo con un fulmine da 6 danni.",
                              "maxLevel":  5,
                              "rarity":  "Non comune",
                              "applicableTo":  [
@@ -2899,7 +2899,7 @@
                              "id":  "stamina",
                              "name":  "Stamina",
                              "category":  "custom",
-                             "description":  "Riduce la perdita di sazietÃ  mentre corri dellâ€™80%.",
+                             "description":  "Riduce la perdita di sazieta' mentre corri dell'80%.",
                              "maxLevel":  4,
                              "rarity":  "Comune",
                              "applicableTo":  [
@@ -2920,7 +2920,7 @@
                              "id":  "static-barrier",
                              "name":  "Static Barrier",
                              "category":  "custom",
-                             "description":  "DÃ  una probabilitÃ  del 45% di scaricarsi su chi ti attacca, applicando CecitÃ  e Lentezza II per 4 secondi.",
+                             "description":  "Da' una probabilita' del 45% di scaricarsi su chi ti attacca, applicando Cecita' e Lentezza II per 4 secondi.",
                              "maxLevel":  3,
                              "rarity":  "Raro",
                              "applicableTo":  [
@@ -2941,7 +2941,7 @@
                              "id":  "stun",
                              "name":  "Stun",
                              "category":  "custom",
-                             "description":  "DÃ  una probabilitÃ  del 10% di stordire i mob colpiti per 2 secondi (non i boss).",
+                             "description":  "Da' una probabilita' del 10% di stordire i mob colpiti per 2 secondi (non i boss).",
                              "maxLevel":  3,
                              "rarity":  "Non comune",
                              "applicableTo":  [
@@ -2965,7 +2965,7 @@
                              "id":  "telekinesis",
                              "name":  "Telekinesis",
                              "category":  "custom",
-                             "description":  "Drop ed esperienza vanno dritti nel tuo inventario, cosÃ¬ nulla tocca terra.",
+                             "description":  "Drop ed esperienza vanno dritti nel tuo inventario, cosi' nulla tocca terra.",
                              "maxLevel":  1,
                              "rarity":  "Raro",
                              "applicableTo":  [
@@ -2990,7 +2990,7 @@
                              "id":  "thor",
                              "name":  "Thor",
                              "category":  "custom",
-                             "description":  "DÃ  al bersaglio una probabilitÃ  del 6% di essere colpito da un fulmine da 15 danni.",
+                             "description":  "Da' al bersaglio una probabilita' del 6% di essere colpito da un fulmine da 15 danni.",
                              "maxLevel":  6,
                              "rarity":  "Raro",
                              "applicableTo":  [
@@ -3166,7 +3166,7 @@
                              "id":  "void-slash",
                              "name":  "Void Slash",
                              "category":  "custom",
-                             "description":  "DÃ  una probabilitÃ  del 15% di infliggere CecitÃ  e Lentezza per 3 secondi quando colpisci.",
+                             "description":  "Da' una probabilita' del 15% di infliggere Cecita' e Lentezza per 3 secondi quando colpisci.",
                              "maxLevel":  3,
                              "rarity":  "Raro",
                              "applicableTo":  [
@@ -3187,7 +3187,7 @@
                              "id":  "warp-drive",
                              "name":  "Warp Drive",
                              "category":  "custom",
-                             "description":  "Colpire un bersaglio con una freccia ti teletrasporta lÃ¬, con Caduta lenta per 3 s (non funziona sui mob volanti).",
+                             "description":  "Colpire un bersaglio con una freccia ti teletrasporta li', con Caduta lenta per 3 s (non funziona sui mob volanti).",
                              "maxLevel":  1,
                              "rarity":  "Molto speciale",
                              "applicableTo":  [
@@ -3208,7 +3208,7 @@
                              "id":  "wisdom",
                              "name":  "Wisdom",
                              "category":  "custom",
-                             "description":  "Aumenta lâ€™esperienza che ottieni del 30% mentre impugni questo oggetto.",
+                             "description":  "Aumenta l'esperienza che ottieni del 30% mentre impugni questo oggetto.",
                              "maxLevel":  3,
                              "rarity":  "Non comune",
                              "applicableTo":  [
@@ -3236,7 +3236,7 @@
                              "id":  "wound",
                              "name":  "Wound",
                              "category":  "custom",
-                             "description":  "Le frecce hanno il 21% di probabilitÃ  di causare sanguinamento: 1,50 danno ogni 0,75 s per 6,75 secondi.",
+                             "description":  "Le frecce hanno il 21% di probabilita' di causare sanguinamento: 1,50 danno ogni 0,75 s per 6,75 secondi.",
                              "maxLevel":  7,
                              "rarity":  "Epico",
                              "applicableTo":  [
@@ -3258,7 +3258,7 @@
                              "id":  "wyvern",
                              "name":  "Wyvern",
                              "category":  "custom",
-                             "description":  "DÃ  un bonus del 30% ai danni da mischia.",
+                             "description":  "Da' un bonus del 30% ai danni da mischia.",
                              "maxLevel":  2,
                              "rarity":  "Raro",
                              "applicableTo":  [
@@ -3300,7 +3300,7 @@
                              "id":  "streamlining",
                              "name":  "Streamlining",
                              "category":  "custom",
-                             "description":  "DÃ  un aumento del 20% alla velocitÃ  di movimento.",
+                             "description":  "Da' un aumento del 20% alla velocita' di movimento.",
                              "maxLevel":  4,
                              "rarity":  "Raro",
                              "applicableTo":  [
@@ -3321,7 +3321,7 @@
                              "id":  "vanish",
                              "name":  "Vanish",
                              "category":  "custom",
-                             "description":  "DÃ  una probabilitÃ  del 4% di farti sparire per 4 secondi dopo aver subito danni.",
+                             "description":  "Da' una probabilita' del 4% di farti sparire per 4 secondi dopo aver subito danni.",
                              "maxLevel":  2,
                              "rarity":  "Raro",
                              "applicableTo":  [
@@ -3385,7 +3385,7 @@
                                                "smite",
                                                "Flagello degli artropodi",
                                                "bane_of_arthropods",
-                                               "DensitÃ ",
+                                               "Densita'",
                                                "density",
                                                "Breccia",
                                                "breach"
@@ -3440,9 +3440,9 @@
                          },
                          {
                              "id":  "unbreaking_4",
-                             "name":  "IndistruttibilitÃ  IV",
+                             "name":  "Indistruttibilita' IV",
                              "category":  "vanilla_plus",
-                             "description":  "Aumenta notevolmente la durabilitÃ  dell\u0027oggetto (Livello Vanilla+ IV).",
+                             "description":  "Aumenta notevolmente la durabilita' dell\u0027oggetto (Livello Vanilla+ IV).",
                              "maxLevel":  4,
                              "rarity":  "Vanilla+",
                              "applicableTo":  [
@@ -3468,9 +3468,9 @@
 
                                               ],
                              "conflicts":  [
-                                               "IndistruttibilitÃ ",
+                                               "Indistruttibilita'",
                                                "unbreaking",
-                                               "IndistruttibilitÃ  V",
+                                               "Indistruttibilita' V",
                                                "unbreaking_5"
                                            ],
                              "unique":  false,
@@ -3479,9 +3479,9 @@
                          },
                          {
                              "id":  "unbreaking_5",
-                             "name":  "IndistruttibilitÃ  V",
+                             "name":  "Indistruttibilita' V",
                              "category":  "vanilla_plus",
-                             "description":  "Massimizza la durabilitÃ  dell\u0027oggetto prima della rottura (Livello Vanilla+ V).",
+                             "description":  "Massimizza la durabilita' dell\u0027oggetto prima della rottura (Livello Vanilla+ V).",
                              "maxLevel":  5,
                              "rarity":  "Vanilla+",
                              "applicableTo":  [
@@ -3507,9 +3507,9 @@
 
                                               ],
                              "conflicts":  [
-                                               "IndistruttibilitÃ ",
+                                               "Indistruttibilita'",
                                                "unbreaking",
-                                               "IndistruttibilitÃ  IV",
+                                               "Indistruttibilita' IV",
                                                "unbreaking_4"
                                            ],
                              "unique":  false,
@@ -3520,7 +3520,7 @@
                              "id":  "depth_strider_4",
                              "name":  "Passo anfibio IV",
                              "category":  "vanilla_plus",
-                             "description":  "Aumenta notevolmente la velocitÃ  di movimento sott\u0027acqua (Livello Vanilla+ IV).",
+                             "description":  "Aumenta notevolmente la velocita' di movimento sott\u0027acqua (Livello Vanilla+ IV).",
                              "maxLevel":  4,
                              "rarity":  "Vanilla+",
                              "applicableTo":  [
@@ -3597,7 +3597,7 @@
                              "id":  "efficiency_6",
                              "name":  "Efficienza VI",
                              "category":  "vanilla_plus",
-                             "description":  "Aumenta drasticamente la velocitÃ  di estrazione e di scavo degli attrezzi (Livello Vanilla+ VI).",
+                             "description":  "Aumenta drasticamente la velocita' di estrazione e di scavo degli attrezzi (Livello Vanilla+ VI).",
                              "maxLevel":  6,
                              "rarity":  "Vanilla+",
                              "applicableTo":  [

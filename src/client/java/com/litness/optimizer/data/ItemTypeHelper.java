@@ -109,12 +109,19 @@ public class ItemTypeHelper {
         Identifier regId = BuiltInRegistries.ITEM.getKey(stack.getItem());
         if (regId != null) {
             String p = regId.getPath().toLowerCase();
-            if (p.contains("shulker") || p.contains("bundle") || p.contains("backpack") || p.contains("chest") || p.contains("barrel") || p.contains("sack")) {
+            if (p.endsWith("_chestplate") || p.contains("chestplate")) {
+                return false;
+            }
+            if (p.contains("shulker") || p.contains("bundle") || p.contains("backpack")
+                    || p.equals("chest") || p.equals("trapped_chest") || p.equals("ender_chest") || p.endsWith("_chest")
+                    || p.contains("barrel") || p.contains("sack")) {
                 return true;
             }
         }
         String desc = stack.getItem().getDescriptionId().toLowerCase();
-        return desc.contains("shulker") || desc.contains("bundle") || desc.contains("backpack") || desc.contains("chest") || desc.contains("barrel");
+        if (desc.contains("chestplate")) return false;
+        return desc.contains("shulker") || desc.contains("bundle") || desc.contains("backpack")
+                || desc.endsWith(".chest") || desc.contains("barrel");
     }
 
     public static boolean isEnchantableWeaponOrArmor(ItemStack stack) {
@@ -133,7 +140,7 @@ public class ItemTypeHelper {
                 || path.endsWith("_shovel") || path.equals("shovel")
                 || path.endsWith("_hoe") || path.equals("hoe")
                 || path.endsWith("_helmet") || path.equals("turtle_helmet") || path.equals("leather_helmet")
-                || path.endsWith("_chestplate") || path.equals("leather_chestplate")
+                || path.endsWith("_chestplate") || path.contains("chestplate") || path.equals("leather_chestplate")
                 || path.endsWith("_leggings") || path.equals("leather_leggings")
                 || path.endsWith("_boots") || path.equals("leather_boots")
                 || path.equals("bow") || path.equals("crossbow") || path.equals("trident")
@@ -145,7 +152,7 @@ public class ItemTypeHelper {
         String desc = stack.getItem().getDescriptionId().toLowerCase();
         return desc.endsWith(".sword") || desc.endsWith(".pickaxe") || desc.endsWith(".axe")
                 || desc.endsWith(".shovel") || desc.endsWith(".hoe") || desc.endsWith(".helmet")
-                || desc.endsWith(".chestplate") || desc.endsWith(".leggings") || desc.endsWith(".boots")
+                || desc.endsWith(".chestplate") || desc.contains("chestplate") || desc.endsWith(".leggings") || desc.endsWith(".boots")
                 || desc.endsWith(".bow") || desc.endsWith(".crossbow") || desc.endsWith(".trident")
                 || desc.endsWith(".mace") || desc.endsWith(".fishing_rod") || desc.endsWith(".elytra");
     }
