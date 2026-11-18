@@ -2049,10 +2049,6 @@ public class AhPriceManager {
         searchBox.setHeight(searchBoxH - 6);
         searchBox.extractRenderState(extractor, mouseX, mouseY, delta);
 
-        if (searchBox.getValue().isEmpty() && !isBoxFocused) {
-            extractor.text(font, "§8Cerca incanto...", searchBoxX + 6, searchBoxY + 5, 0xFF94A3B8, false);
-        }
-
         int curY = searchBoxY + searchBoxH + 5;
 
         if (!hasQuery && !hasFilter) {
@@ -2270,13 +2266,15 @@ public class AhPriceManager {
                 String bestPriceLine = "§a" + best.formattedPrice + " §7(da " + sellerDisplay + ")";
                 extractor.text(font, bestPriceLine, sideX + 8, bestBoxY + 23, 0xFF34D399, false);
                 extractor.text(font, "§9" + best.formattedBreakdown, sideX + 8, bestBoxY + 32, 0xFF60A5FA, false);
-                extractor.text(font, "§e✦ Clicca per acquistare", sideX + 8, bestBoxY + 41, isBestHovered ? 0xFFFDE047 : 0xFFFBBF24, false);
+                boolean isHere = findSlotForListing(screen, best) >= 0;
+                String locInfo = isHere ? "§a✔ In questa pagina (Slot " + best.slot + ")" : ("§7Trovato a §fPag. " + best.page + " §8(Slot " + best.slot + ")");
+                extractor.text(font, locInfo, sideX + 8, bestBoxY + 41, isHere ? 0xFF34D399 : 0xFFCBD5E1, false);
             }
             drawY = bestBoxY + bestBoxH + 5;
         } else {
             // Più incanti in ricerca: mostra una card per ciascun incanto trovato
             if (drawY >= scrollAreaY && drawY + 10 <= scrollAreaY + scrollAreaH) {
-                extractor.text(font, "• MIGLIORI PREZZI §7(clicca per comprare):", sideX + 8, drawY, 0xFF60A5FA, false);
+                extractor.text(font, "• MIGLIORI PREZZI:", sideX + 8, drawY, 0xFF60A5FA, false);
             }
             drawY += 10;
             int cardH = 36;
