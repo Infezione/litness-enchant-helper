@@ -1559,15 +1559,26 @@ public class AhPriceManager {
 
         public static void initSearchWidget(AbstractContainerScreen<?> screen, Consumer<EditBox> widgetAdder) {
         Minecraft mc = Minecraft.getInstance();
-        searchBox = new EditBox(mc.font, -9999, -9999, 100, 16, Component.literal(""));
-        searchBox.setHint(Component.literal("Cerca incanto..."));
-        searchBox.setMaxLength(30);
-        searchBox.setResponder(text -> {
-            searchBoxQuery = text;
-            updateAutocompleteSuggestions(text);
-        });
-        searchBox.visible = false;
-        widgetAdder.accept(searchBox);
+        if (searchBox == null) {
+            searchBox = new EditBox(mc.font, -9999, -9999, 100, 16, Component.literal(""));
+            searchBox.setHint(Component.literal("Cerca incanto..."));
+            searchBox.setMaxLength(30);
+            searchBox.setBordered(false);
+            searchBox.setResponder(text -> {
+                searchBoxQuery = text;
+                updateAutocompleteSuggestions(text);
+            });
+        }
+        searchBox.visible = true;
+        if (widgetAdder != null) {
+            widgetAdder.accept(searchBox);
+        }
+    }
+
+    public static void ensureSearchWidget(AbstractContainerScreen<?> screen, Consumer<EditBox> widgetAdder) {
+        if (searchBox == null) {
+            initSearchWidget(screen, widgetAdder);
+        }
     }
 
     public static void onContainerClosed() {
@@ -2013,12 +2024,33 @@ public class AhPriceManager {
         lastSearchBoxW = searchBoxW;
         lastSearchBoxH = searchBoxH;
 
-        if (searchBox != null) {
-            searchBox.visible = true;
-            searchBox.setPosition(searchBoxX, searchBoxY);
-            searchBox.setWidth(searchBoxW);
-            searchBox.setHeight(searchBoxH);
-            searchBox.extractRenderState(extractor, mouseX, mouseY, delta);
+        if (searchBox == null) {
+            searchBox = new EditBox(font, searchBoxX, searchBoxY, searchBoxW, searchBoxH, Component.literal(""));
+            searchBox.setHint(Component.literal("Cerca incanto..."));
+            searchBox.setMaxLength(30);
+            searchBox.setBordered(false);
+            searchBox.setResponder(text -> {
+                searchBoxQuery = text;
+                updateAutocompleteSuggestions(text);
+            });
+        }
+
+        // Sfondo & Bordo visibile personalizzato Obsidian per la barra di ricerca
+        boolean isBoxFocused = searchBox.isFocused();
+        boolean isBoxHovered = mouseX >= searchBoxX && mouseX <= searchBoxX + searchBoxW && mouseY >= searchBoxY && mouseY <= searchBoxY + searchBoxH;
+        int boxBg = isBoxFocused ? 0xFF141D2E : (isBoxHovered ? 0xFF181F30 : 0xFF0D111A);
+        int boxBorder = isBoxFocused ? 0xFF38BDF8 : (isBoxHovered ? 0xFF60A5FA : 0xFF2A344A);
+        LitnessOptimizerScreen.drawRoundedRect(extractor, searchBoxX, searchBoxY, searchBoxW, searchBoxH, 4, boxBg);
+        LitnessOptimizerScreen.drawRoundedOutline(extractor, searchBoxX, searchBoxY, searchBoxW, searchBoxH, 4, boxBorder);
+
+        searchBox.visible = true;
+        searchBox.setPosition(searchBoxX + 4, searchBoxY + 3);
+        searchBox.setWidth(searchBoxW - 8);
+        searchBox.setHeight(searchBoxH - 6);
+        searchBox.extractRenderState(extractor, mouseX, mouseY, delta);
+
+        if (searchBox.getValue().isEmpty() && !isBoxFocused) {
+            extractor.text(font, "§8Cerca incanto...", searchBoxX + 6, searchBoxY + 5, 0xFF94A3B8, false);
         }
 
         int curY = searchBoxY + searchBoxH + 5;

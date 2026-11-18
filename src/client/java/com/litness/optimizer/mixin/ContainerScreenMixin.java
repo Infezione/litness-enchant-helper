@@ -115,6 +115,7 @@ public abstract class ContainerScreenMixin extends Screen {
             return;
         }
         if (com.litness.optimizer.gui.AhPriceManager.isAuctionHouse((AbstractContainerScreen<?>) (Object) this)) {
+            com.litness.optimizer.gui.AhPriceManager.ensureSearchWidget((AbstractContainerScreen<?>) (Object) this, this::addWidget);
             com.litness.optimizer.gui.AhPriceManager.scanCurrentContainer((AbstractContainerScreen<?>) (Object) this);
             com.litness.optimizer.gui.AhPriceManager.tickAutoNavigation((AbstractContainerScreen<?>) (Object) this);
         }
