@@ -49,6 +49,35 @@ public class AnvilTooltipState {
     public static int calc12BtnX = -9999, calc12BtnY = -9999, calc12BtnW = 0, calc12BtnH = 0;
     public static boolean calc12BtnVisible = false;
 
+    public static boolean isAnvilCleared = false;
+    public static ItemStack clearedItemInstance = ItemStack.EMPTY;
+    public static int resetBtnX = -9999, resetBtnY = -9999, resetBtnW = 0, resetBtnH = 0;
+    public static boolean resetBtnVisible = false;
+
+    public static boolean isInsideResetBtn(double mouseX, double mouseY) {
+        return resetBtnVisible && resetBtnW > 0 && resetBtnH > 0
+                && mouseX >= resetBtnX && mouseX <= resetBtnX + resetBtnW
+                && mouseY >= resetBtnY && mouseY <= resetBtnY + resetBtnH;
+    }
+
+    public static void resetAnvilEquipment(AnvilScreen anvil) {
+        isAnvilCleared = true;
+        if (anvil != null && anvil.getMenu() != null) {
+            ItemStack s0 = anvil.getMenu().getSlot(0).getItem();
+            clearedItemInstance = !s0.isEmpty() ? s0.copy() : ItemStack.EMPTY;
+        } else {
+            clearedItemInstance = ItemStack.EMPTY;
+        }
+        savedSelectedEquipment = ItemStack.EMPTY;
+        explicitTargetEquip = ItemStack.EMPTY;
+        cachedSolution = null;
+        hoveredNextStep = null;
+        hoveredCurrentEnchants = null;
+        hoveredMaxabilityResult = null;
+        hoveredChecklistEnchant = null;
+        ActiveSessionManager.clearAnvilEquipment();
+    }
+
     public static boolean isInsideCalc12Btn(double mouseX, double mouseY) {
         return calc12BtnVisible && calc12BtnW > 0 && calc12BtnH > 0
                 && mouseX >= calc12BtnX && mouseX <= calc12BtnX + calc12BtnW
@@ -63,6 +92,7 @@ public class AnvilTooltipState {
         hoveredMaxabilityResult = null;
         hoveredChecklistEnchant = null;
         calc12BtnVisible = false;
+        resetBtnVisible = false;
     }
 
     public static boolean isInsideSidebar(double mouseX, double mouseY) {
@@ -85,6 +115,8 @@ public class AnvilTooltipState {
 
     public static void selectAndSaveEquipment(ItemStack stack) {
         if (stack == null || stack.isEmpty() || !ItemTypeHelper.isEnchantableWeaponOrArmor(stack)) return;
+        isAnvilCleared = false;
+        clearedItemInstance = ItemStack.EMPTY;
         savedSelectedEquipment = stack.copy();
         explicitTargetEquip = stack.copy();
         String itemKey = ItemTypeHelper.detectItemKey(stack);
@@ -106,37 +138,27 @@ public class AnvilTooltipState {
         double my = event.y();
         int btn = event.button();
         if (btn == 0 || btn == com.mojang.blaze3d.platform.InputConstants.MOUSE_BUTTON_LEFT) {
-            // 1. Click sul pulsante "Calcola Guida 12 Incanti" nel pannello destro
+            // 1. Click sul pulsante "Azzera" nella sidebar sinistra
+            if (isInsideResetBtn(mx, my)) {
+                playClickSound();
+                resetAnvilEquipment(anvil);
+                return true;
+            }
+
+            // 2. Click sul pulsante "Calcola Guida 12 Incanti" nel pannello destro
             if (isInsideCalc12Btn(mx, my)) {
                 playClickSound();
                 open12EnchantGuide(anvil);
                 return true;
             }
 
-            if (isInsideWell(mx, my) || (isInsideSidebar(mx, my) && !isInsideRightPanel(mx, my))) {
+            // 3. Rilascio / Click di un'arma portata con il mouse (carried) nella well sinistra
+            if (isInsideWell(mx, my)) {
                 ItemStack carried = menu.getCarried();
                 if (!carried.isEmpty() && ItemTypeHelper.isEnchantableWeaponOrArmor(carried)) {
                     selectAndSaveEquipment(carried);
                     playClickSound();
                     return true;
-                }
-                // Se clicca con cursore vuoto: auto-seleziona l'arma in mano o la prima arma trovata
-                Minecraft mc = Minecraft.getInstance();
-                if (mc != null && mc.player != null) {
-                    ItemStack mainHand = mc.player.getMainHandItem();
-                    if (!mainHand.isEmpty() && ItemTypeHelper.isEnchantableWeaponOrArmor(mainHand)) {
-                        selectAndSaveEquipment(mainHand);
-                        playClickSound();
-                        return true;
-                    }
-                    for (int i = 0; i < mc.player.getInventory().getContainerSize(); i++) {
-                        ItemStack st = mc.player.getInventory().getItem(i);
-                        if (!st.isEmpty() && ItemTypeHelper.isEnchantableWeaponOrArmor(st)) {
-                            selectAndSaveEquipment(st);
-                            playClickSound();
-                            return true;
-                        }
-                    }
                 }
             }
         }
@@ -148,7 +170,7 @@ public class AnvilTooltipState {
         double my = event.y();
         int btn = event.button();
         if (btn == 0 || btn == com.mojang.blaze3d.platform.InputConstants.MOUSE_BUTTON_LEFT) {
-            if (isInsideWell(mx, my) || isInsideSidebar(mx, my)) {
+            if (isInsideWell(mx, my)) {
                 ItemStack carried = menu.getCarried();
                 if (!carried.isEmpty() && ItemTypeHelper.isEnchantableWeaponOrArmor(carried)) {
                     selectAndSaveEquipment(carried);

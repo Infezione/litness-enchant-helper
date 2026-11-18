@@ -221,6 +221,15 @@ public class ActiveSessionManager {
         save();
     }
 
+    public static synchronized void clearAnvilEquipment() {
+        load();
+        sessionData.savedAnvilItemId = null;
+        sessionData.savedAnvilItemKey = null;
+        sessionData.savedAnvilItemName = null;
+        sessionData.savedAnvilItemPenalty = 0;
+        save();
+    }
+
     public static synchronized void saveAnvilEquipment(String itemKey, String name, int penalty) {
         saveAnvilEquipment(null, itemKey, name, penalty);
     }

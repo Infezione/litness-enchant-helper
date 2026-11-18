@@ -129,9 +129,10 @@ Sul server Litness, maxare un'arma o un pezzo d'armatura con 10–12 incantesimi
     - Rileva e segnala automaticamente con allerta visiva i libri già lavorati con penalità incudine (>0 liv.), proteggendo il set dal rischio di blocco a 11 incantesimi.
 
 - 🔨 **Assistente Incudine Potenziato (Drag & Drop, Clic Diretto & Salvataggio)**:
-  - **Selezione Intuitiva**: ora puoi selezionare l'arma trascinandola e rilasciandola nella barra laterale, inserendola negli slot dell'incudine, oppure semplicemente **cliccandola nel tuo inventario**.
-  - **Salvataggio & Persistenza**: l'arma selezionata rimane memorizzata e salvata anche se chiudi e riapri l'incudine.
-  - **Auto-Rilevamento Arma all'Apertura**: se apri l'incudine senza inserire nulla, l'assistente seleziona in automatico l'arma impugnata o presente nell'inventario.
+  - **Nuovo Tasto `[✕ Azzera]` & Reset Istantaneo**: comodo tasto per azzerare e disattivare l'arma selezionata nella barra laterale, eliminando blocchi o selezioni involontarie.
+  - **Protezione Slot Sacrificio (Slot 1)**: impedisce che l'inserimento di un libro o di un secondo item nello slot di sacrificio modifichi o sovrascriva l'arma base in lavorazione.
+  - **Selezione Intuitiva**: seleziona l'arma trascinandola nella barra sinistra, inserendola nello slot 0 dell'incudine o cliccandola nel tuo inventario.
+  - **Salvataggio & Persistenza**: l'arma selezionata rimane memorizzata se desiderato, oppure azzerabile con un clic.
   - **Distinzione Esatta dei Tipi di Oggetti**: risolto lo scambio accidentale tra armi diverse (es. Spada in Diamante vs Netherite con nome personalizzato).
 
 - 📜 **Nuovo Pannello Destro "Stato Forgia" (Checklist Intelligente Senza Conflitti)**:

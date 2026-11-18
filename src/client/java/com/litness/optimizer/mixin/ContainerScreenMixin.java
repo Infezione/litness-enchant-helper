@@ -94,11 +94,23 @@ public abstract class ContainerScreenMixin extends Screen {
             return;
         }
         if (this.hoveredSlot != null) {
-            if (((Object) this) instanceof net.minecraft.client.gui.screens.inventory.AnvilScreen) {
+            if (((Object) this) instanceof net.minecraft.client.gui.screens.inventory.AnvilScreen anvil) {
                 if (this.hoveredSlot.hasItem()) {
-                    ItemStack clickedStack = this.hoveredSlot.getItem();
-                    if (com.litness.optimizer.data.ItemTypeHelper.isEnchantableWeaponOrArmor(clickedStack)) {
-                        com.litness.optimizer.gui.AnvilTooltipState.selectAndSaveEquipment(clickedStack);
+                    // MAI selezionare da slot 1 (sacrificio) o slot 2 (risultato) dell'incudine!
+                    if (this.hoveredSlot.index == 0) {
+                        ItemStack clickedStack = this.hoveredSlot.getItem();
+                        if (com.litness.optimizer.data.ItemTypeHelper.isEnchantableWeaponOrArmor(clickedStack)) {
+                            com.litness.optimizer.gui.AnvilTooltipState.selectAndSaveEquipment(clickedStack);
+                        }
+                    } else if (this.hoveredSlot.index > 2) {
+                        // Clic su inventario giocatore: seleziona SOLO SE lo slot 0 dell'incudine è vuoto
+                        ItemStack s0 = anvil.getMenu().getSlot(0).getItem();
+                        if (s0.isEmpty()) {
+                            ItemStack clickedStack = this.hoveredSlot.getItem();
+                            if (com.litness.optimizer.data.ItemTypeHelper.isEnchantableWeaponOrArmor(clickedStack)) {
+                                com.litness.optimizer.gui.AnvilTooltipState.selectAndSaveEquipment(clickedStack);
+                            }
+                        }
                     }
                 }
             }

@@ -151,15 +151,35 @@ public abstract class AnvilScreenMixin extends ItemCombinerScreen<AnvilMenu> {
 
             // Barra accento blu elettrico Obsidian |
             LitnessOptimizerScreen.drawRoundedRect(extractor, sideX + 8, sideY + 7, 3, 13, 1, 0xFF3B82F6);
-            extractor.text(this.font, "LITNESS HELPER", sideX + 16, sideY + 9, 0xFFFFFFFF, false);
+            String title = sideW >= 155 ? "LITNESS HELPER" : "HELPER";
+            extractor.text(this.font, title, sideX + 16, sideY + 9, 0xFFFFFFFF, false);
 
-            int infoBtnX = sideX + sideW - 18;
+            int infoBtnX = sideX + sideW - 16;
             int infoBtnY = sideY + 8;
-            boolean isInfoHovered = mouseX >= infoBtnX - 3 && mouseX <= infoBtnX + 15 && mouseY >= infoBtnY - 2 && mouseY <= infoBtnY + 12;
+            boolean isInfoHovered = mouseX >= infoBtnX - 3 && mouseX <= infoBtnX + 13 && mouseY >= infoBtnY - 2 && mouseY <= infoBtnY + 12;
             extractor.text(this.font, isInfoHovered ? "§9[?]" : "§8[?]", infoBtnX, infoBtnY, isInfoHovered ? 0xFF60A5FA : 0xFF64748B, false);
             if (isInfoHovered) {
                 com.litness.optimizer.gui.AnvilTooltipState.hoveredInfoModal = true;
             }
+
+            // Tasto "Azzera"
+            int resetBtnW = 42;
+            int resetBtnH = 13;
+            int resetBtnX = infoBtnX - resetBtnW - 4;
+            int resetBtnY = sideY + 7;
+            com.litness.optimizer.gui.AnvilTooltipState.resetBtnX = resetBtnX;
+            com.litness.optimizer.gui.AnvilTooltipState.resetBtnY = resetBtnY;
+            com.litness.optimizer.gui.AnvilTooltipState.resetBtnW = resetBtnW;
+            com.litness.optimizer.gui.AnvilTooltipState.resetBtnH = resetBtnH;
+            com.litness.optimizer.gui.AnvilTooltipState.resetBtnVisible = true;
+
+            boolean isResetHovered = mouseX >= resetBtnX && mouseX <= resetBtnX + resetBtnW && mouseY >= resetBtnY && mouseY <= resetBtnY + resetBtnH;
+            int resetBg = isResetHovered ? 0x40EF4444 : 0x201E2334;
+            int resetBorder = isResetHovered ? 0xFFEF4444 : 0xFF334155;
+            LitnessOptimizerScreen.drawRoundedRect(extractor, resetBtnX, resetBtnY, resetBtnW, resetBtnH, 3, resetBg);
+            LitnessOptimizerScreen.drawRoundedOutline(extractor, resetBtnX, resetBtnY, resetBtnW, resetBtnH, 3, resetBorder);
+            String resetLabel = isResetHovered ? "§c✕ Azzera" : "§7✕ Azzera";
+            extractor.centeredText(this.font, resetLabel, resetBtnX + (resetBtnW / 2), resetBtnY + 3, isResetHovered ? 0xFFEF4444 : 0xFF94A3B8);
 
             ItemStack slot0 = this.menu.getSlot(0).getItem();
             ItemStack slot1 = this.menu.getSlot(1).getItem();
@@ -169,74 +189,58 @@ public abstract class AnvilScreenMixin extends ItemCombinerScreen<AnvilMenu> {
             boolean equipInSlot0 = false;
 
             if (!slot0.isEmpty() && ItemTypeHelper.isEnchantableWeaponOrArmor(slot0)) {
-                activeEquipment = slot0;
-                lastExplicitEquipment = slot0.copy();
-                AnvilTooltipState.selectAndSaveEquipment(slot0);
-                equipInSlot0 = true;
-            } else if (!slot1.isEmpty() && ItemTypeHelper.isEnchantableWeaponOrArmor(slot1)) {
-                activeEquipment = slot1;
-                lastExplicitEquipment = slot1.copy();
-                AnvilTooltipState.selectAndSaveEquipment(slot1);
-            } else if (!this.menu.getCarried().isEmpty() && ItemTypeHelper.isEnchantableWeaponOrArmor(this.menu.getCarried())) {
-                activeEquipment = this.menu.getCarried();
-                lastExplicitEquipment = activeEquipment.copy();
-                AnvilTooltipState.selectAndSaveEquipment(activeEquipment);
-            } else if (AnvilTooltipState.savedSelectedEquipment != null && !AnvilTooltipState.savedSelectedEquipment.isEmpty()) {
-                ItemStack found = findMatchingEquipmentInInventory(AnvilTooltipState.savedSelectedEquipment);
-                activeEquipment = !found.isEmpty() ? found : AnvilTooltipState.savedSelectedEquipment;
-                lastExplicitEquipment = activeEquipment.copy();
-            } else if (ActiveSessionManager.getSavedAnvilItemKey() != null) {
-                String savedId = ActiveSessionManager.getSavedAnvilItemId();
-                String savedKey = ActiveSessionManager.getSavedAnvilItemKey();
-                ItemStack found = findEquipmentBySavedDetails(savedId, savedKey);
-                if (!found.isEmpty()) {
-                    activeEquipment = found;
-                } else {
-                    activeEquipment = createFallbackEquipment(savedId, savedKey, ActiveSessionManager.getSavedAnvilItemName(), ActiveSessionManager.getSavedAnvilItemPenalty());
+                // Se l'utente non aveva azzerato manualmente per questo specifico stack
+                if (!com.litness.optimizer.gui.AnvilTooltipState.isAnvilCleared || !ItemStack.matches(slot0, com.litness.optimizer.gui.AnvilTooltipState.clearedItemInstance)) {
+                    com.litness.optimizer.gui.AnvilTooltipState.isAnvilCleared = false;
+                    com.litness.optimizer.gui.AnvilTooltipState.clearedItemInstance = ItemStack.EMPTY;
+                    activeEquipment = slot0;
+                    lastExplicitEquipment = slot0.copy();
+                    com.litness.optimizer.gui.AnvilTooltipState.selectAndSaveEquipment(slot0);
+                    equipInSlot0 = true;
                 }
-                if (!activeEquipment.isEmpty()) {
+            } else if (!com.litness.optimizer.gui.AnvilTooltipState.isAnvilCleared) {
+                if (com.litness.optimizer.gui.AnvilTooltipState.savedSelectedEquipment != null && !com.litness.optimizer.gui.AnvilTooltipState.savedSelectedEquipment.isEmpty()) {
+                    ItemStack found = findMatchingEquipmentInInventory(com.litness.optimizer.gui.AnvilTooltipState.savedSelectedEquipment);
+                    activeEquipment = !found.isEmpty() ? found : com.litness.optimizer.gui.AnvilTooltipState.savedSelectedEquipment;
                     lastExplicitEquipment = activeEquipment.copy();
-                    AnvilTooltipState.savedSelectedEquipment = activeEquipment.copy();
-                }
-            } else if (!lastExplicitEquipment.isEmpty()) {
-                ItemStack found = findMatchingEquipmentInInventory(lastExplicitEquipment);
-                activeEquipment = !found.isEmpty() ? found : lastExplicitEquipment;
-            } else {
-                // Se nessun oggetto è ancora stato inserito nello slot 0, controlliamo se c'è un set esplicitamente pinnato
-                String pinnedId = ActiveSessionManager.getPinnedSetId();
-                if (pinnedId != null && !pinnedId.isEmpty()) {
-                    SavedSetsManager.CustomSet pinned = SavedSetsManager.getSetById(pinnedId);
-                    if (pinned != null && pinned.itemKey != null) {
-                        activeEquipment = findEquipmentByKeyInInventory(pinned.itemKey);
-                        if (!activeEquipment.isEmpty()) {
-                            lastExplicitEquipment = activeEquipment.copy();
-                            AnvilTooltipState.savedSelectedEquipment = activeEquipment.copy();
-                        }
-                    }
-                }
-                // Se ancora nessun equip è stato salvato o aperto, auto-seleziona arma in mano o prima arma in inventario
-                if (activeEquipment.isEmpty() && this.minecraft != null && this.minecraft.player != null) {
-                    ItemStack mainHand = this.minecraft.player.getMainHandItem();
-                    if (!mainHand.isEmpty() && ItemTypeHelper.isEnchantableWeaponOrArmor(mainHand)) {
-                        activeEquipment = mainHand;
+                } else if (ActiveSessionManager.getSavedAnvilItemKey() != null) {
+                    String savedId = ActiveSessionManager.getSavedAnvilItemId();
+                    String savedKey = ActiveSessionManager.getSavedAnvilItemKey();
+                    ItemStack found = findEquipmentBySavedDetails(savedId, savedKey);
+                    if (!found.isEmpty()) {
+                        activeEquipment = found;
                         lastExplicitEquipment = activeEquipment.copy();
-                        AnvilTooltipState.savedSelectedEquipment = activeEquipment.copy();
-                    } else {
-                        ItemStack any = findAnyEquipmentInInventory();
-                        if (!any.isEmpty()) {
-                            activeEquipment = any;
-                            lastExplicitEquipment = activeEquipment.copy();
-                            AnvilTooltipState.savedSelectedEquipment = activeEquipment.copy();
+                        com.litness.optimizer.gui.AnvilTooltipState.savedSelectedEquipment = activeEquipment.copy();
+                    }
+                } else if (!lastExplicitEquipment.isEmpty()) {
+                    ItemStack found = findMatchingEquipmentInInventory(lastExplicitEquipment);
+                    activeEquipment = !found.isEmpty() ? found : lastExplicitEquipment;
+                } else {
+                    // Controlla eventuale set pinnato esplicitamente
+                    String pinnedId = ActiveSessionManager.getPinnedSetId();
+                    if (pinnedId != null && !pinnedId.isEmpty()) {
+                        SavedSetsManager.CustomSet pinned = SavedSetsManager.getSetById(pinnedId);
+                        if (pinned != null && pinned.itemKey != null) {
+                            activeEquipment = findEquipmentByKeyInInventory(pinned.itemKey);
+                            if (!activeEquipment.isEmpty()) {
+                                lastExplicitEquipment = activeEquipment.copy();
+                                com.litness.optimizer.gui.AnvilTooltipState.savedSelectedEquipment = activeEquipment.copy();
+                            }
                         }
                     }
                 }
             }
 
+            if (com.litness.optimizer.gui.AnvilTooltipState.isAnvilCleared) {
+                lastExplicitEquipment = ItemStack.EMPTY;
+                activeEquipment = ItemStack.EMPTY;
+            }
+
             if (activeEquipment.isEmpty()) {
                 cachedSolution = null;
-                AnvilTooltipState.cachedSolution = null;
+                com.litness.optimizer.gui.AnvilTooltipState.cachedSolution = null;
             }
-            AnvilTooltipState.explicitTargetEquip = activeEquipment;
+            com.litness.optimizer.gui.AnvilTooltipState.explicitTargetEquip = activeEquipment;
 
             if (!activeEquipment.isEmpty()) {
                 updateAutoCalculation(activeEquipment);
@@ -995,17 +999,9 @@ public abstract class AnvilScreenMixin extends ItemCombinerScreen<AnvilMenu> {
     private ItemStack findMatchingEquipmentInInventory(ItemStack target) {
         if (target == null || target.isEmpty()) return ItemStack.EMPTY;
         if (this.menu != null) {
-            ItemStack carried = this.menu.getCarried();
-            if (!carried.isEmpty() && carried.getItem() == target.getItem()) {
-                return carried;
-            }
             ItemStack s0 = this.menu.getSlot(0).getItem();
             if (!s0.isEmpty() && s0.getItem() == target.getItem()) {
                 return s0;
-            }
-            ItemStack s1 = this.menu.getSlot(1).getItem();
-            if (!s1.isEmpty() && s1.getItem() == target.getItem()) {
-                return s1;
             }
         }
         if (this.minecraft == null || this.minecraft.player == null) return target;
