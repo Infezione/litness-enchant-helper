@@ -857,7 +857,7 @@ public class LitnessTooltipHandler {
                 if (ModConfig.get().warnUsedBooksInAnvil) {
                     lines.add(insertIdx + 1, Component.literal("  §c⚠ " + (LitnessI18n.isEnglish()
                             ? "Used book! High risk of blocking at 11 enchants."
-                            : "Libro già lavorato! Rischio blocco a 11 incanti.")));
+                            : "Libro gia' lavorato! Rischio blocco a 11 incanti.")));
                 }
             }
             return;

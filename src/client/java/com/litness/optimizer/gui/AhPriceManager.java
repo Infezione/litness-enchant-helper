@@ -2191,7 +2191,7 @@ public class AhPriceManager {
                 }
                 recalculateMinPrices();
                 if (mc.player != null) {
-                    mc.player.sendOverlayMessage(Component.literal("§c• Offerta a Pagina " + targetPage + " (Slot " + targetSlot + ") già acquistata o rimossa"));
+                    mc.player.sendOverlayMessage(Component.literal("§c• Offerta a Pagina " + targetPage + " (Slot " + targetSlot + ") gia' acquistata o rimossa"));
                 }
                 autoNavListing = null;
                 autoNavAttempts = 0;

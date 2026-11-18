@@ -41,6 +41,9 @@ public abstract class ContainerScreenMixin extends Screen {
     @Shadow protected int imageWidth;
     @Shadow protected int imageHeight;
     @Shadow protected Slot hoveredSlot;
+    @Shadow public abstract AbstractContainerMenu getMenu();
+    @Shadow protected abstract List<Component> getTooltipFromContainerItem(ItemStack stack);
+    @Shadow protected abstract boolean showTooltipWithItemInHand(ItemStack stack);
 
     private static long lastTargetCheck = 0;
     private static Set<String> cachedTargetEnchants = Collections.emptySet();
@@ -60,6 +63,38 @@ public abstract class ContainerScreenMixin extends Screen {
     private void litness_onContainerKeyPressed(KeyEvent event, CallbackInfoReturnable<Boolean> cir) {
         if (com.litness.optimizer.gui.AhPriceManager.handleKeyPressed(event)) {
             cir.setReturnValue(true);
+        }
+    }
+
+    @Inject(method = "extractTooltip", at = @At("HEAD"), cancellable = true, require = 0)
+    private void litness_clampAnvilTooltip(GuiGraphicsExtractor extractor, int mouseX, int mouseY, CallbackInfo ci) {
+        if (((Object) this) instanceof net.minecraft.client.gui.screens.inventory.AnvilScreen) {
+            int rightX = com.litness.optimizer.gui.AnvilTooltipState.rightSideX;
+            int rightW = com.litness.optimizer.gui.AnvilTooltipState.rightSideW;
+            if (rightW > 0 && rightX > 0 && this.hoveredSlot != null && this.hoveredSlot.hasItem()) {
+                ItemStack stack = this.hoveredSlot.getItem();
+                if (this.getMenu().getCarried().isEmpty() || this.showTooltipWithItemInHand(stack)) {
+                    List<Component> lines = this.getTooltipFromContainerItem(stack);
+                    int tipW = 0;
+                    for (Component c : lines) {
+                        tipW = Math.max(tipW, this.font.width(c));
+                    }
+                    tipW += 20; // 8 padding each side + borders
+                    int limit = rightX - 4;
+                    int tipX = mouseX + 12;
+                    if (tipX + tipW > limit) {
+                        tipX = mouseX - tipW - 8;
+                    }
+                    if (tipX < 4) {
+                        tipX = 4;
+                    }
+                    if (tipX + tipW > limit) {
+                        tipX = Math.max(4, limit - tipW);
+                    }
+                    extractor.setTooltipForNextFrame(this.font, lines, stack.getTooltipImage(), tipX, mouseY);
+                    ci.cancel();
+                }
+            }
         }
     }
 
@@ -96,20 +131,11 @@ public abstract class ContainerScreenMixin extends Screen {
         if (this.hoveredSlot != null) {
             if (((Object) this) instanceof net.minecraft.client.gui.screens.inventory.AnvilScreen anvil) {
                 if (this.hoveredSlot.hasItem()) {
-                    // MAI selezionare da slot 1 (sacrificio) o slot 2 (risultato) dell'incudine!
+                    // Seleziona esplicitamente SOLO dallo slot 0 (item base dell'incudine)
                     if (this.hoveredSlot.index == 0) {
                         ItemStack clickedStack = this.hoveredSlot.getItem();
                         if (com.litness.optimizer.data.ItemTypeHelper.isEnchantableWeaponOrArmor(clickedStack)) {
                             com.litness.optimizer.gui.AnvilTooltipState.selectAndSaveEquipment(clickedStack);
-                        }
-                    } else if (this.hoveredSlot.index > 2) {
-                        // Clic su inventario giocatore: seleziona SOLO SE lo slot 0 dell'incudine è vuoto
-                        ItemStack s0 = anvil.getMenu().getSlot(0).getItem();
-                        if (s0.isEmpty()) {
-                            ItemStack clickedStack = this.hoveredSlot.getItem();
-                            if (com.litness.optimizer.data.ItemTypeHelper.isEnchantableWeaponOrArmor(clickedStack)) {
-                                com.litness.optimizer.gui.AnvilTooltipState.selectAndSaveEquipment(clickedStack);
-                            }
                         }
                     }
                 }

@@ -164,7 +164,7 @@ public class UpdateChecker {
 
         client.player.sendSystemMessage(Component.literal("§8§m--------------------------------------------------"));
         client.player.sendSystemMessage(Component.literal("§6• §e§lLITNESS ENCHANT HELPER §r§7- §a§lNUOVO AGGIORNAMENTO! §b(" + latestVersion + ")"));
-        client.player.sendSystemMessage(Component.literal("§7È disponibile una nuova versione della mod con correzioni e migliorie."));
+        client.player.sendSystemMessage(Component.literal("§7E' disponibile una nuova versione della mod con correzioni e migliorie."));
 
         MutableComponent downloadBtn = Component.literal("§a§n[SCARICA SUBITO .JAR]§r")
                 .withStyle(style -> style

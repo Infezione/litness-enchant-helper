@@ -189,6 +189,16 @@ public abstract class AnvilScreenMixin extends ItemCombinerScreen<AnvilMenu> {
             boolean equipInSlot0 = false;
 
             if (!slot0.isEmpty() && ItemTypeHelper.isEnchantableWeaponOrArmor(slot0)) {
+                String slot0Key = ItemTypeHelper.detectItemKey(slot0);
+                if (this.cachedItemKey != null && !this.cachedItemKey.equalsIgnoreCase(slot0Key)) {
+                    // Nuovo tipo di oggetto rilevato nello slot 0: invalida immediatamente la cache del vecchio item
+                    this.cachedSolution = null;
+                    this.lastSlot0Hash = 0;
+                    this.lastInvBooksHash = 0;
+                    this.cachedItemKey = slot0Key;
+                    com.litness.optimizer.gui.AnvilTooltipState.cachedSolution = null;
+                    com.litness.optimizer.gui.AnvilTooltipState.cachedItemKey = slot0Key;
+                }
                 com.litness.optimizer.gui.AnvilTooltipState.isAnvilCleared = false;
                 com.litness.optimizer.gui.AnvilTooltipState.clearedItemInstance = ItemStack.EMPTY;
                 activeEquipment = slot0;
@@ -276,11 +286,11 @@ public abstract class AnvilScreenMixin extends ItemCombinerScreen<AnvilMenu> {
                     String trimmedName = trimToWidth(itemName + titleSuffix, sideW - 38);
                     extractor.text(this.font, trimmedName, sideX + 30, wellY + 4, 0xFFFFFFFF, false);
 
-                    // Penalità di lavoro
+                    // Penalita' di lavoro
                     if (penalty == 0) {
-                        extractor.text(this.font, "Penalità: 0 liv.", sideX + 30, wellY + 15, 0xFF34D399, false);
+                        extractor.text(this.font, "Penalita': 0 liv.", sideX + 30, wellY + 15, 0xFF34D399, false);
                     } else {
-                        extractor.text(this.font, "Penalità: +" + penalty + " liv.", sideX + 30, wellY + 15, 0xFFF59E0B, false);
+                        extractor.text(this.font, "Penalita': +" + penalty + " liv.", sideX + 30, wellY + 15, 0xFFF59E0B, false);
                     }
 
                     // Analisi Maxabilità
@@ -413,11 +423,11 @@ public abstract class AnvilScreenMixin extends ItemCombinerScreen<AnvilMenu> {
 
                     if (maxability.status == com.litness.optimizer.calculator.MaxabilityAnalyzer.Status.SATURATED) {
                         extractor.text(this.font, "§c[!] TROPPO COSTOSO!", sideX + 10, moveY + 5, 0xFFEF4444, false);
-                        extractor.text(this.font, "Penalità +" + penalty + " troppo alta,", sideX + 10, moveY + 18, 0xFFE2E8F0, false);
+                        extractor.text(this.font, "Penalita' +" + penalty + " troppo alta,", sideX + 10, moveY + 18, 0xFFE2E8F0, false);
                         extractor.text(this.font, "l'incudine blocca i libri.", sideX + 10, moveY + 30, 0xFF94A3B8, false);
                         extractor.text(this.font, "Premi [N] per spiegazione", sideX + 10, moveY + 43, 0xFF60A5FA, false);
                     } else if (maxability.status == com.litness.optimizer.calculator.MaxabilityAnalyzer.Status.PARTIALLY_MAXABLE) {
-                        extractor.text(this.font, "§e[!] ATTENZIONE PENALITÀ", sideX + 10, moveY + 5, 0xFFF59E0B, false);
+                        extractor.text(this.font, "§e[!] ATTENZIONE PENALITA'", sideX + 10, moveY + 5, 0xFFF59E0B, false);
                         extractor.text(this.font, "Puoi aggiungere ancora", sideX + 10, moveY + 18, 0xFFE2E8F0, false);
                         extractor.text(this.font, "fino a §a+" + maxability.maxAddable + " incanti §7con guida.", sideX + 10, moveY + 30, 0xFFFFFFFF, false);
                         extractor.text(this.font, "Premi [N] per simulare!", sideX + 10, moveY + 43, 0xFF60A5FA, false);
@@ -464,26 +474,7 @@ public abstract class AnvilScreenMixin extends ItemCombinerScreen<AnvilMenu> {
                 com.litness.optimizer.gui.AnvilTooltipState.cachedSolution = null;
 
                 ItemStack ghostItem = getSuggestedItem();
-                if (slot0.isEmpty()) {
-                    net.minecraft.world.inventory.Slot s0 = this.menu.getSlot(0);
-                    int slot0X = this.leftPos + (s0 != null ? s0.x : 27);
-                    int slot0Y = this.topPos + (s0 != null ? s0.y : 47);
-                    String ghostName = ItemTypeHelper.getSuggestedName(ghostItem);
-
-                    long time = System.currentTimeMillis();
-                    double wave = (Math.sin(time / 260.0) + 1.0) / 2.0;
-                    int borderAlpha = (int)(0x60 + wave * 0x80);
-                    LitnessOptimizerScreen.drawRoundedOutline(extractor, slot0X - 1, slot0Y - 1, 18, 18, 4, (borderAlpha << 24) | 0x3B82F6);
-                    int bgAlpha = (int)(0x15 + wave * 0x25);
-                    LitnessOptimizerScreen.drawRoundedRect(extractor, slot0X, slot0Y, 16, 16, 3, (bgAlpha << 24) | 0x3B82F6);
-                    extractor.fakeItem(ghostItem, slot0X, slot0Y);
-                    int holoAlpha = (int)(0x40 + (1.0 - wave) * 0x40);
-                    LitnessOptimizerScreen.drawRoundedRect(extractor, slot0X, slot0Y, 16, 16, 3, (holoAlpha << 24) | 0x090B10);
-
-                    if (mouseX >= slot0X && mouseX < slot0X + 16 && mouseY >= slot0Y && mouseY < slot0Y + 16) {
-                        com.litness.optimizer.gui.AnvilTooltipState.hoveredGhostSlotItemName = ghostName;
-                    }
-                }
+                // Nello slot 0 dell'incudine non disegniamo mai un fakeItem ingannevole quando è vuoto
 
                 int cardY = sideY + 23;
                 int cardH = sideH - 35;

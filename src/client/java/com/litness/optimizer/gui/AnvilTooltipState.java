@@ -155,34 +155,14 @@ public class AnvilTooltipState {
                     playClickSound();
                     return true;
                 }
-                // Se il cursore è vuoto:
-                // a) Controlla se c'è già un'arma nello slot 0 dell'incudine
+                // Se il cursore è vuoto: seleziona SOLO SE c'è un'arma o armatura nello slot 0 dell'incudine
                 ItemStack s0 = menu.getSlot(0).getItem();
                 if (!s0.isEmpty() && ItemTypeHelper.isEnchantableWeaponOrArmor(s0)) {
                     selectAndSaveEquipment(s0);
                     playClickSound();
                     return true;
                 }
-                // b) Altrimenti controlla l'arma in mano al giocatore
-                Minecraft mc = Minecraft.getInstance();
-                if (mc != null && mc.player != null) {
-                    ItemStack mainHand = mc.player.getMainHandItem();
-                    if (!mainHand.isEmpty() && ItemTypeHelper.isEnchantableWeaponOrArmor(mainHand)) {
-                        selectAndSaveEquipment(mainHand);
-                        playClickSound();
-                        return true;
-                    }
-                    // c) Altrimenti cerca la prima arma/armatura nell'inventario
-                    for (int i = 0; i < mc.player.getInventory().getContainerSize(); i++) {
-                        ItemStack st = mc.player.getInventory().getItem(i);
-                        if (!st.isEmpty() && ItemTypeHelper.isEnchantableWeaponOrArmor(st)) {
-                            selectAndSaveEquipment(st);
-                            playClickSound();
-                            return true;
-                        }
-                    }
-                }
-                return true;
+                return false;
             }
         }
         return false;
@@ -258,10 +238,14 @@ public class AnvilTooltipState {
 
         int tipX = mouseX + 12;
         int tipY = mouseY - 10;
-        if (tipX + tipW > anvil.width - 4) tipX = mouseX - tipW - 6;
+        // Limite destro: rispetta il pannello destro se visibile
+        int rightLimit = (rightSideW > 0 && rightSideX > 0) ? rightSideX - 4 : anvil.width - 4;
+        if (tipX + tipW > rightLimit) tipX = mouseX - tipW - 6;
         if (tipY + tipH > anvil.height - 4) tipY = anvil.height - tipH - 4;
         if (tipX < 4) tipX = 4;
         if (tipY < 4) tipY = 4;
+        if (tipX + tipW > rightLimit) tipX = rightLimit - tipW;
+        if (tipX < 4) tipX = 4;
 
         extractor.outline(tipX - 1, tipY - 1, tipW + 2, tipH + 2, 0x80000000);
         extractor.fill(tipX, tipY, tipX + tipW, tipY + tipH, 0xEA0D111D);
@@ -344,6 +328,16 @@ public class AnvilTooltipState {
                 }
             }
         } else {
+            // Se lo slot 0 dell'incudine contiene già un'arma o armatura:
+            if (!anvilSlot0.isEmpty() && ItemTypeHelper.isEnchantableWeaponOrArmor(anvilSlot0)) {
+                String slot0Key = ItemTypeHelper.detectItemKey(anvilSlot0);
+                if (cachedItemKey != null && !cachedItemKey.isEmpty() && !cachedItemKey.equalsIgnoreCase(slot0Key)) {
+                    // La soluzione memorizzata era per un item diverso (es. Spada invece di Corazza):
+                    // non suggerire mai il vecchio item dall'inventario!
+                    return targets;
+                }
+            }
+
             boolean slot0HasEquip = !anvilSlot0.isEmpty() && ItemTypeHelper.isEnchantableWeaponOrArmor(anvilSlot0)
                     && ItemTypeHelper.detectItemKey(anvilSlot0).equalsIgnoreCase(cachedItemKey);
             boolean slot1HasBook = matchesEnchantList(anvilSlot1, step.rightEnchants);
@@ -360,6 +354,8 @@ public class AnvilTooltipState {
 
                 for (Slot s : anvil.getMenu().slots) {
                     if (s.container != mc.player.getInventory()) continue;
+                    // MAI selezionare slot armatura indossata (36-39) o offhand (40)
+                    if (s.getContainerSlot() >= 36) continue;
                     ItemStack st = s.getItem();
                     if (st.isEmpty() || ItemTypeHelper.isContainerOrShulker(st) || st.is(Items.ENCHANTED_BOOK) || st.is(Items.BOOK)) continue;
                     if (!ItemTypeHelper.isEnchantableWeaponOrArmor(st)) continue;
@@ -679,12 +675,18 @@ public class AnvilTooltipState {
         tipW += 12;
         int tipH = tipLines.size() * 10 + 6;
 
+        // Limite destro: se il pannello destro è visibile, non sforare su di esso
+        int rightLimit = (rightSideW > 0 && rightSideX > 0) ? rightSideX - 4 : anvil.width - 4;
+
         int tipX = mouseX + 10;
         int tipY = mouseY - 10;
-        if (tipX + tipW > anvil.width - 4) tipX = mouseX - tipW - 6;
+        if (tipX + tipW > rightLimit) tipX = mouseX - tipW - 6;
         if (tipY + tipH > anvil.height - 4) tipY = anvil.height - tipH - 4;
         if (tipX < 4) tipX = 4;
         if (tipY < 4) tipY = 4;
+        // Clamp finale per sicurezza
+        if (tipX + tipW > rightLimit) tipX = rightLimit - tipW;
+        if (tipX < 4) tipX = 4;
 
         extractor.outline(tipX - 1, tipY - 1, tipW + 2, tipH + 2, 0x80000000);
         extractor.fill(tipX, tipY, tipX + tipW, tipY + tipH, 0xEA0D111D);
@@ -771,8 +773,8 @@ public class AnvilTooltipState {
         tipLines.add(Component.literal("§eper iniziare la guida."));
         tipLines.add(Component.empty());
         tipLines.add(Component.literal("§8• Suggerito: §f" + ghostName));
-        tipLines.add(Component.literal("§8• L'assistente leggerà enchant e penalità"));
-        tipLines.add(Component.literal("§8  e guiderà ogni singolo passo nell'incudine!"));
+        tipLines.add(Component.literal("§8• L'assistente leggera' enchant e penalita'"));
+        tipLines.add(Component.literal("§8  e guidera' ogni singolo passo nell'incudine!"));
 
         int maxW = 0;
         for (Component c : tipLines) {
@@ -781,16 +783,21 @@ public class AnvilTooltipState {
         int tipW = maxW + 16;
         int tipH = tipLines.size() * 11 + 10;
 
+        // Limite destro: rispetta il pannello destro se visibile
+        int rightLimit = (rightSideW > 0 && rightSideX > 0) ? rightSideX - 4 : anvil.width - 4;
+
         int tipX = mouseX + 12;
         int tipY = mouseY - 12;
 
-        if (tipX + tipW > anvil.width - 4) {
+        if (tipX + tipW > rightLimit) {
             tipX = mouseX - tipW - 8;
         }
         if (tipY + tipH > anvil.height - 4) {
             tipY = anvil.height - tipH - 4;
         }
         if (tipY < 4) tipY = 4;
+        if (tipX < 4) tipX = 4;
+        if (tipX + tipW > rightLimit) tipX = rightLimit - tipW;
         if (tipX < 4) tipX = 4;
 
         extractor.outline(tipX - 1, tipY - 1, tipW + 2, tipH + 2, 0xFF000000);
@@ -815,8 +822,8 @@ public class AnvilTooltipState {
         Font font = mc.font;
 
         List<Component> tipLines = new ArrayList<>();
-        tipLines.add(Component.literal("§6• ANALISI MAXABILITÀ OGGETTO"));
-        tipLines.add(Component.literal("§7Penalità attuale: §f+" + res.currentPenalty + " liv. §8(Lavori: " + res.currentWork + ")"));
+        tipLines.add(Component.literal("§6• ANALISI MAXABILITA' OGGETTO"));
+        tipLines.add(Component.literal("§7Penalita' attuale: §f+" + res.currentPenalty + " liv. §8(Lavori: " + res.currentWork + ")"));
         tipLines.add(Component.literal("§7Incantesimi presenti: §f" + res.currentEnchants + "/12"));
         tipLines.add(Component.empty());
 
@@ -831,16 +838,21 @@ public class AnvilTooltipState {
         int tipW = maxW + 16;
         int tipH = tipLines.size() * 11 + 10;
 
+        // Limite destro: rispetta il pannello destro se visibile
+        int rightLimit = (rightSideW > 0 && rightSideX > 0) ? rightSideX - 4 : anvil.width - 4;
+
         int tipX = mouseX + 12;
         int tipY = mouseY - 12;
 
-        if (tipX + tipW > anvil.width - 4) {
+        if (tipX + tipW > rightLimit) {
             tipX = mouseX - tipW - 8;
         }
         if (tipY + tipH > anvil.height - 4) {
             tipY = anvil.height - tipH - 4;
         }
         if (tipY < 4) tipY = 4;
+        if (tipX < 4) tipX = 4;
+        if (tipX + tipW > rightLimit) tipX = rightLimit - tipW;
         if (tipX < 4) tipX = 4;
 
         int headerColor = res.isFullyMaxable ? 0xFF10B981 : (res.status == com.litness.optimizer.calculator.MaxabilityAnalyzer.Status.PARTIALLY_MAXABLE ? 0xFFF59E0B : 0xFFEF4444);
@@ -869,14 +881,14 @@ public class AnvilTooltipState {
         List<Component> tipLines = new ArrayList<>();
         tipLines.add(Component.literal("§6• ASSISTENTE DINAMICO (GPS LIVE)"));
         tipLines.add(Component.literal("§7Calcola la mossa migliore basandosi sui libri attualmente"));
-        tipLines.add(Component.literal("§7presenti nel tuo inventario e sulla penalità effettiva"));
+        tipLines.add(Component.literal("§7presenti nel tuo inventario e sulla penalita' effettiva"));
         tipLines.add(Component.literal("§7dell'oggetto nello slot 1."));
         tipLines.add(Component.empty());
-        tipLines.add(Component.literal("§ePerché i passi possono differire dalla Guida [N]?"));
+        tipLines.add(Component.literal("§ePerche' i passi possono differire dalla Guida [N]?"));
         tipLines.add(Component.literal("§8• La Guida [N] mostra l'albero matematico a tavolino"));
-        tipLines.add(Component.literal("§8  (tutti i libri a penalità 0)."));
+        tipLines.add(Component.literal("§8  (tutti i libri a penalita' 0)."));
         tipLines.add(Component.literal("§8• Questo assistente si adatta dinamicamente:"));
-        tipLines.add(Component.literal("§8  se ti mancano libri o usi libri con penalità pregresse,"));
+        tipLines.add(Component.literal("§8  se ti mancano libri o usi libri con penalita' pregresse,"));
         tipLines.add(Component.literal("§8  ricalcola il percorso migliore in tempo reale"));
         tipLines.add(Component.literal("§8  per evitare 'Troppo Costoso!'."));
 

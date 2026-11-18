@@ -1028,7 +1028,7 @@ public class LitnessOptimizerScreen extends Screen {
             this.clearWidgets();
             this.init();
         } else {
-            showCenterNotification("✖ FORMATO NON VALIDO", "La stringa negli appunti non è un set valido", false);
+            showCenterNotification("✖ FORMATO NON VALIDO", "La stringa negli appunti non e' un set valido", false);
             if (mc.player != null) {
                 mc.player.sendOverlayMessage(Component.literal("§c• Formato set non valido negli appunti!"));
             }
@@ -2466,7 +2466,7 @@ public class LitnessOptimizerScreen extends Screen {
                 this.clearWidgets();
                 this.init();
             }));
-            opts.add(new DropdownOption("90% (Media)", "Leggermente ridotta per più spazio", config.guiScaleMode == 2, () -> {
+            opts.add(new DropdownOption("90% (Media)", "Leggermente ridotta per piu' spazio", config.guiScaleMode == 2, () -> {
                 config.guiScaleMode = 2;
                 ModConfig.save();
                 this.clearWidgets();
@@ -2478,7 +2478,7 @@ public class LitnessOptimizerScreen extends Screen {
                 this.clearWidgets();
                 this.init();
             }));
-            opts.add(new DropdownOption("115% (Ingrandita)", "Elementi e scritte più grandi", config.guiScaleMode == 4, () -> {
+            opts.add(new DropdownOption("115% (Ingrandita)", "Elementi e scritte piu' grandi", config.guiScaleMode == 4, () -> {
                 config.guiScaleMode = 4;
                 ModConfig.save();
                 this.clearWidgets();
