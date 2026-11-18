@@ -129,16 +129,25 @@ public class EnchantmentDatabase {
         VANILLA_BOOK_MULTIPLIERS.put("vanishing_curse", 4);
     }
 
+    private static boolean failedToLoad = false;
+
     public static synchronized void load() {
         loadCustomCosts();
-        if (!allEnchantments.isEmpty()) return;
+        if (!allEnchantments.isEmpty() || failedToLoad) return;
 
         try (InputStream stream = EnchantmentDatabase.class.getResourceAsStream("/assets/litnessoptimizer/data/enchantments.json")) {
             if (stream == null) {
                 System.err.println("[LitnessOptimizer] Impossibile trovare enchantments.json nei resources!");
+                failedToLoad = true;
                 return;
             }
-            JsonObject root = JsonParser.parseReader(new InputStreamReader(stream, StandardCharsets.UTF_8)).getAsJsonObject();
+            byte[] bytes = stream.readAllBytes();
+            int offset = 0;
+            while (offset + 2 < bytes.length && (bytes[offset] & 0xFF) == 0xEF && (bytes[offset + 1] & 0xFF) == 0xBB && (bytes[offset + 2] & 0xFF) == 0xBF) {
+                offset += 3;
+            }
+            String jsonStr = new String(bytes, offset, bytes.length - offset, StandardCharsets.UTF_8);
+            JsonObject root = JsonParser.parseString(jsonStr).getAsJsonObject();
 
             Gson gson = new Gson();
             JsonArray itemsArray = root.getAsJsonArray("items");

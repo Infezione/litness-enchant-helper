@@ -72,6 +72,7 @@ public class AnvilTooltipState {
         hoveredCurrentEnchants = null;
         hoveredMaxabilityResult = null;
         hoveredChecklistEnchant = null;
+        rightPanelScrollOffset = 0;
         ActiveSessionManager.clearAnvilEquipment();
     }
 
