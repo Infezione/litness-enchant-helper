@@ -54,15 +54,17 @@ public abstract class ContainerScreenMixin extends Screen {
 
     @Inject(method = "init", at = @At("TAIL"), require = 0)
     private void litness_onContainerInit(CallbackInfo ci) {
-        if (!(((Object) this) instanceof net.minecraft.client.gui.screens.inventory.AnvilScreen)) {
+        if (com.litness.optimizer.gui.AhPriceManager.isAuctionHouse((AbstractContainerScreen<?>) (Object) this)) {
             com.litness.optimizer.gui.AhPriceManager.initSearchWidget((AbstractContainerScreen<?>) (Object) this, this::addWidget);
         }
     }
 
     @Inject(method = "keyPressed", at = @At("HEAD"), cancellable = true, require = 0)
     private void litness_onContainerKeyPressed(KeyEvent event, CallbackInfoReturnable<Boolean> cir) {
-        if (com.litness.optimizer.gui.AhPriceManager.handleKeyPressed(event)) {
-            cir.setReturnValue(true);
+        if (com.litness.optimizer.gui.AhPriceManager.isAuctionHouse((AbstractContainerScreen<?>) (Object) this)) {
+            if (com.litness.optimizer.gui.AhPriceManager.handleKeyPressed(event)) {
+                cir.setReturnValue(true);
+            }
         }
     }
 
@@ -100,7 +102,10 @@ public abstract class ContainerScreenMixin extends Screen {
 
     @Inject(method = "extractRenderState", at = @At("HEAD"), require = 0)
     private void litness_preScanContainer(GuiGraphicsExtractor extractor, int mouseX, int mouseY, float delta, CallbackInfo ci) {
-        if (!(((Object) this) instanceof net.minecraft.client.gui.screens.inventory.AnvilScreen)) {
+        if (((Object) this) instanceof net.minecraft.client.gui.screens.inventory.AnvilScreen) {
+            return;
+        }
+        if (com.litness.optimizer.gui.AhPriceManager.isAuctionHouse((AbstractContainerScreen<?>) (Object) this)) {
             com.litness.optimizer.gui.AhPriceManager.scanCurrentContainer((AbstractContainerScreen<?>) (Object) this);
             com.litness.optimizer.gui.AhPriceManager.tickAutoNavigation((AbstractContainerScreen<?>) (Object) this);
         }
@@ -111,7 +116,7 @@ public abstract class ContainerScreenMixin extends Screen {
         if (((Object) this) instanceof net.minecraft.client.gui.screens.inventory.AnvilScreen anvil) {
             com.litness.optimizer.gui.AnvilTooltipState.renderInventoryHighlightsAndBadges(extractor, anvil, this.leftPos, this.topPos, mouseX, mouseY);
             com.litness.optimizer.gui.AnvilTooltipState.renderTopLayer(extractor, anvil, mouseX, mouseY);
-        } else {
+        } else if (com.litness.optimizer.gui.AhPriceManager.isAuctionHouse((AbstractContainerScreen<?>) (Object) this)) {
             com.litness.optimizer.gui.AhPriceManager.renderAhSidebar(extractor, (AbstractContainerScreen<?>) (Object) this, this.leftPos, this.topPos, this.imageWidth, this.imageHeight, mouseX, mouseY, delta);
         }
     }
@@ -124,9 +129,11 @@ public abstract class ContainerScreenMixin extends Screen {
                 return;
             }
         }
-        if (com.litness.optimizer.gui.AhPriceManager.handleMouseClicked(this, event)) {
-            cir.setReturnValue(true);
-            return;
+        if (com.litness.optimizer.gui.AhPriceManager.isAuctionHouse((AbstractContainerScreen<?>) (Object) this)) {
+            if (com.litness.optimizer.gui.AhPriceManager.handleMouseClicked(this, event)) {
+                cir.setReturnValue(true);
+                return;
+            }
         }
         if (this.hoveredSlot != null) {
             if (((Object) this) instanceof net.minecraft.client.gui.screens.inventory.AnvilScreen anvil) {
