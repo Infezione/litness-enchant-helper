@@ -62,12 +62,7 @@ public class AnvilTooltipState {
 
     public static void resetAnvilEquipment(AnvilScreen anvil) {
         isAnvilCleared = true;
-        if (anvil != null && anvil.getMenu() != null) {
-            ItemStack s0 = anvil.getMenu().getSlot(0).getItem();
-            clearedItemInstance = !s0.isEmpty() ? s0.copy() : ItemStack.EMPTY;
-        } else {
-            clearedItemInstance = ItemStack.EMPTY;
-        }
+        clearedItemInstance = ItemStack.EMPTY;
         savedSelectedEquipment = ItemStack.EMPTY;
         explicitTargetEquip = ItemStack.EMPTY;
         cachedSolution = null;
@@ -152,14 +147,42 @@ public class AnvilTooltipState {
                 return true;
             }
 
-            // 3. Rilascio / Click di un'arma portata con il mouse (carried) nella well sinistra
-            if (isInsideWell(mx, my)) {
+            // 3. Click / Rilascio sulla card / well sinistra ("a sinistra")
+            if (isInsideWell(mx, my) || (isInsideSidebar(mx, my) && !isInsideRightPanel(mx, my))) {
                 ItemStack carried = menu.getCarried();
                 if (!carried.isEmpty() && ItemTypeHelper.isEnchantableWeaponOrArmor(carried)) {
                     selectAndSaveEquipment(carried);
                     playClickSound();
                     return true;
                 }
+                // Se il cursore è vuoto:
+                // a) Controlla se c'è già un'arma nello slot 0 dell'incudine
+                ItemStack s0 = menu.getSlot(0).getItem();
+                if (!s0.isEmpty() && ItemTypeHelper.isEnchantableWeaponOrArmor(s0)) {
+                    selectAndSaveEquipment(s0);
+                    playClickSound();
+                    return true;
+                }
+                // b) Altrimenti controlla l'arma in mano al giocatore
+                Minecraft mc = Minecraft.getInstance();
+                if (mc != null && mc.player != null) {
+                    ItemStack mainHand = mc.player.getMainHandItem();
+                    if (!mainHand.isEmpty() && ItemTypeHelper.isEnchantableWeaponOrArmor(mainHand)) {
+                        selectAndSaveEquipment(mainHand);
+                        playClickSound();
+                        return true;
+                    }
+                    // c) Altrimenti cerca la prima arma/armatura nell'inventario
+                    for (int i = 0; i < mc.player.getInventory().getContainerSize(); i++) {
+                        ItemStack st = mc.player.getInventory().getItem(i);
+                        if (!st.isEmpty() && ItemTypeHelper.isEnchantableWeaponOrArmor(st)) {
+                            selectAndSaveEquipment(st);
+                            playClickSound();
+                            return true;
+                        }
+                    }
+                }
+                return true;
             }
         }
         return false;

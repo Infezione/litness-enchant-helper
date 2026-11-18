@@ -189,15 +189,12 @@ public abstract class AnvilScreenMixin extends ItemCombinerScreen<AnvilMenu> {
             boolean equipInSlot0 = false;
 
             if (!slot0.isEmpty() && ItemTypeHelper.isEnchantableWeaponOrArmor(slot0)) {
-                // Se l'utente non aveva azzerato manualmente per questo specifico stack
-                if (!com.litness.optimizer.gui.AnvilTooltipState.isAnvilCleared || !ItemStack.matches(slot0, com.litness.optimizer.gui.AnvilTooltipState.clearedItemInstance)) {
-                    com.litness.optimizer.gui.AnvilTooltipState.isAnvilCleared = false;
-                    com.litness.optimizer.gui.AnvilTooltipState.clearedItemInstance = ItemStack.EMPTY;
-                    activeEquipment = slot0;
-                    lastExplicitEquipment = slot0.copy();
-                    com.litness.optimizer.gui.AnvilTooltipState.selectAndSaveEquipment(slot0);
-                    equipInSlot0 = true;
-                }
+                com.litness.optimizer.gui.AnvilTooltipState.isAnvilCleared = false;
+                com.litness.optimizer.gui.AnvilTooltipState.clearedItemInstance = ItemStack.EMPTY;
+                activeEquipment = slot0;
+                lastExplicitEquipment = slot0.copy();
+                com.litness.optimizer.gui.AnvilTooltipState.selectAndSaveEquipment(slot0);
+                equipInSlot0 = true;
             } else if (!com.litness.optimizer.gui.AnvilTooltipState.isAnvilCleared) {
                 if (com.litness.optimizer.gui.AnvilTooltipState.savedSelectedEquipment != null && !com.litness.optimizer.gui.AnvilTooltipState.savedSelectedEquipment.isEmpty()) {
                     ItemStack found = findMatchingEquipmentInInventory(com.litness.optimizer.gui.AnvilTooltipState.savedSelectedEquipment);
@@ -466,25 +463,26 @@ public abstract class AnvilScreenMixin extends ItemCombinerScreen<AnvilMenu> {
                 this.lastInvBooksHash = 0;
                 com.litness.optimizer.gui.AnvilTooltipState.cachedSolution = null;
 
-                net.minecraft.world.inventory.Slot s0 = this.menu.getSlot(0);
-                int slot0X = this.leftPos + (s0 != null ? s0.x : 27);
-                int slot0Y = this.topPos + (s0 != null ? s0.y : 47);
-
                 ItemStack ghostItem = getSuggestedItem();
-                String ghostName = ItemTypeHelper.getSuggestedName(ghostItem);
+                if (slot0.isEmpty()) {
+                    net.minecraft.world.inventory.Slot s0 = this.menu.getSlot(0);
+                    int slot0X = this.leftPos + (s0 != null ? s0.x : 27);
+                    int slot0Y = this.topPos + (s0 != null ? s0.y : 47);
+                    String ghostName = ItemTypeHelper.getSuggestedName(ghostItem);
 
-                long time = System.currentTimeMillis();
-                double wave = (Math.sin(time / 260.0) + 1.0) / 2.0;
-                int borderAlpha = (int)(0x60 + wave * 0x80);
-                LitnessOptimizerScreen.drawRoundedOutline(extractor, slot0X - 1, slot0Y - 1, 18, 18, 4, (borderAlpha << 24) | 0x3B82F6);
-                int bgAlpha = (int)(0x15 + wave * 0x25);
-                LitnessOptimizerScreen.drawRoundedRect(extractor, slot0X, slot0Y, 16, 16, 3, (bgAlpha << 24) | 0x3B82F6);
-                extractor.fakeItem(ghostItem, slot0X, slot0Y);
-                int holoAlpha = (int)(0x40 + (1.0 - wave) * 0x40);
-                LitnessOptimizerScreen.drawRoundedRect(extractor, slot0X, slot0Y, 16, 16, 3, (holoAlpha << 24) | 0x090B10);
+                    long time = System.currentTimeMillis();
+                    double wave = (Math.sin(time / 260.0) + 1.0) / 2.0;
+                    int borderAlpha = (int)(0x60 + wave * 0x80);
+                    LitnessOptimizerScreen.drawRoundedOutline(extractor, slot0X - 1, slot0Y - 1, 18, 18, 4, (borderAlpha << 24) | 0x3B82F6);
+                    int bgAlpha = (int)(0x15 + wave * 0x25);
+                    LitnessOptimizerScreen.drawRoundedRect(extractor, slot0X, slot0Y, 16, 16, 3, (bgAlpha << 24) | 0x3B82F6);
+                    extractor.fakeItem(ghostItem, slot0X, slot0Y);
+                    int holoAlpha = (int)(0x40 + (1.0 - wave) * 0x40);
+                    LitnessOptimizerScreen.drawRoundedRect(extractor, slot0X, slot0Y, 16, 16, 3, (holoAlpha << 24) | 0x090B10);
 
-                if (mouseX >= slot0X && mouseX < slot0X + 16 && mouseY >= slot0Y && mouseY < slot0Y + 16) {
-                    com.litness.optimizer.gui.AnvilTooltipState.hoveredGhostSlotItemName = ghostName;
+                    if (mouseX >= slot0X && mouseX < slot0X + 16 && mouseY >= slot0Y && mouseY < slot0Y + 16) {
+                        com.litness.optimizer.gui.AnvilTooltipState.hoveredGhostSlotItemName = ghostName;
+                    }
                 }
 
                 int cardY = sideY + 23;
@@ -498,8 +496,8 @@ public abstract class AnvilScreenMixin extends ItemCombinerScreen<AnvilMenu> {
                 boolean carryingEnchantable = !carried.isEmpty() && ItemTypeHelper.isEnchantableWeaponOrArmor(carried);
                 boolean isWellHovered = (mouseX >= sideX + 6 && mouseX <= sideX + sideW - 6 && mouseY >= cardY && mouseY <= cardY + cardH);
 
-                int cardBg = (isWellHovered && carryingEnchantable) ? 0xFF142436 : 0xFF131724;
-                int cardBorder = (isWellHovered && carryingEnchantable) ? 0xFF38BDF8 : 0xFF1E2334;
+                int cardBg = (isWellHovered && carryingEnchantable) ? 0xFF142436 : (isWellHovered ? 0xFF181D2E : 0xFF131724);
+                int cardBorder = (isWellHovered && carryingEnchantable) ? 0xFF38BDF8 : (isWellHovered ? 0xFF3B82F6 : 0xFF1E2334);
 
                 LitnessOptimizerScreen.drawRoundedRect(extractor, sideX + 6, cardY, sideW - 12, cardH, 6, cardBg);
                 LitnessOptimizerScreen.drawRoundedOutline(extractor, sideX + 6, cardY, sideW - 12, cardH, 6, cardBorder);
@@ -512,10 +510,10 @@ public abstract class AnvilScreenMixin extends ItemCombinerScreen<AnvilMenu> {
                     extractor.centeredText(this.font, "per selezionarla", midX, cardY + 70, 0xFF94A3B8);
                 } else {
                     extractor.fakeItem(ghostItem, midX - 8, cardY + 18);
-                    extractor.centeredText(this.font, "Slot 1 vuoto", midX, cardY + 42, 0xFFFFFFFF);
-                    extractor.centeredText(this.font, "Inserisci o trascina l'item", midX, cardY + 58, 0xFF60A5FA);
-                    extractor.centeredText(this.font, "desiderato qui per", midX, cardY + 70, 0xFF60A5FA);
-                    extractor.centeredText(this.font, "iniziare la guida.", midX, cardY + 82, 0xFF94A3B8);
+                    extractor.centeredText(this.font, "Nessun Oggetto", midX, cardY + 42, 0xFFFFFFFF);
+                    extractor.centeredText(this.font, "Clicca qui o inserisci", midX, cardY + 58, 0xFF60A5FA);
+                    extractor.centeredText(this.font, "un'arma nell'incudine", midX, cardY + 70, 0xFF93C5FD);
+                    extractor.centeredText(this.font, "per iniziare la guida.", midX, cardY + 82, 0xFF94A3B8);
                 }
 
                 int pillY = cardY + cardH - 22;
