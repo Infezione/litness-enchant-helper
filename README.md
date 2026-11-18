@@ -67,6 +67,7 @@ Sul server Litness, maxare un'arma o un pezzo d'armatura con 10–12 incantesimi
 ---
 
 ### 4. 🛒 Assistente Prezzi & Ricerca Libri `/ah`
+![Assistente Prezzi AH](docs/images/preview_ah.png)
 - **Barra di Ricerca Rapida**: digita il nome di qualsiasi incantesimo per filtrare all'istante le offerte migliori con autocompletamento intelligente.
 - **Tracciamento Prezzi Passivo & Sicuro (100% Legit, Zero Botting)**:
   - Navigando normalmente tra le pagine della Casa d'Aste (`/ah`), la mod memorizza passivamente i libri in vendita e calcola il miglior prezzo disponibile.
